@@ -4,10 +4,14 @@ public enum RuleScope
 {
     FileHash = 0,
     FilePath = 1,
-    Publisher = 2,
-    Process = 3,
-    ParentProcess = 4,
-    RemoteAddress = 5,
-    RemotePort = 6,
-    Protocol = 7
+    FileName = 2,
+    FileExtension = 3,
+    Publisher = 4,
+    Process = 5,
+    ParentProcess = 6,
+    Interpreter = 7,
+    RemoteAddress = 8,
+    RemotePort = 9,
+    Protocol = 10,
+    DestinationProcess = 11
 }
