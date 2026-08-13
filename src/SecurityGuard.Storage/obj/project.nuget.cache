@@ -1,8 +1,15 @@
 {
   "version": 2,
-  "dgSpecHash": "07wwEdoIOys=",
+  "dgSpecHash": "z5Q6h34iJAk=",
   "success": true,
   "projectFilePath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Storage/SecurityGuard.Storage.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "/Users/designyousupova/.nuget/packages/microsoft.data.sqlite/10.0.11/microsoft.data.sqlite.10.0.11.nupkg.sha512",
+    "/Users/designyousupova/.nuget/packages/microsoft.data.sqlite.core/10.0.11/microsoft.data.sqlite.core.10.0.11.nupkg.sha512",
+    "/Users/designyousupova/.nuget/packages/sqlitepclraw.bundle_e_sqlite3/2.1.12/sqlitepclraw.bundle_e_sqlite3.2.1.12.nupkg.sha512",
+    "/Users/designyousupova/.nuget/packages/sqlitepclraw.core/2.1.12/sqlitepclraw.core.2.1.12.nupkg.sha512",
+    "/Users/designyousupova/.nuget/packages/sqlitepclraw.lib.e_sqlite3/2.1.12/sqlitepclraw.lib.e_sqlite3.2.1.12.nupkg.sha512",
+    "/Users/designyousupova/.nuget/packages/sqlitepclraw.provider.e_sqlite3/2.1.12/sqlitepclraw.provider.e_sqlite3.2.1.12.nupkg.sha512"
+  ],
   "logs": []
 }

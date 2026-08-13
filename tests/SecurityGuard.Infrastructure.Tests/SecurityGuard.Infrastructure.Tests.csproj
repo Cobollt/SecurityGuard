@@ -18,4 +18,10 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SecurityGuard.Core\SecurityGuard.Core.csproj" />
+    <ProjectReference Include="..\..\src\SecurityGuard.Storage\SecurityGuard.Storage.csproj" />
+    <ProjectReference Include="..\..\src\SecurityGuard.Infrastructure\SecurityGuard.Infrastructure.csproj" />
+  </ItemGroup>
+
 </Project>
