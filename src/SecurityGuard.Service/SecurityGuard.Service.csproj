@@ -1,13 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk.Worker">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>dotnet-SecurityGuard.Service-5ad577b4-f745-47f5-a38b-4946dfe6178b</UserSecretsId>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <OutputType>Exe</OutputType>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.10" />
+    <ProjectReference Include="..\SecurityGuard.Core\SecurityGuard.Core.csproj" />
+    <ProjectReference Include="..\SecurityGuard.Storage\SecurityGuard.Storage.csproj" />
+    <ProjectReference Include="..\SecurityGuard.Infrastructure\SecurityGuard.Infrastructure.csproj" />
   </ItemGroup>
+
 </Project>
