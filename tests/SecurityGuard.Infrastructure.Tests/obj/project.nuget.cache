@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "dgSpecHash": "sYhoiFTSAMM=",
-  "success": false,
+  "dgSpecHash": "+4hW4GXVpaM=",
+  "success": true,
   "projectFilePath": "/Users/designyousupova/Project/SecurityGuard/tests/SecurityGuard.Infrastructure.Tests/SecurityGuard.Infrastructure.Tests.csproj",
   "expectedPackageFiles": [
     "/Users/designyousupova/.nuget/packages/coverlet.collector/6.0.4/coverlet.collector.6.0.4.nupkg.sha512",
@@ -26,17 +26,5 @@
     "/Users/designyousupova/.nuget/packages/xunit.runner.visualstudio/3.1.4/xunit.runner.visualstudio.3.1.4.nupkg.sha512",
     "/Users/designyousupova/.nuget/packages/microsoft.windowsdesktop.app.ref/10.0.10/microsoft.windowsdesktop.app.ref.10.0.10.nupkg.sha512"
   ],
-  "logs": [
-    {
-      "code": "NU1201",
-      "level": "Error",
-      "message": "Project SecurityGuard.Infrastructure is not compatible with net10.0 (.NETCoreApp,Version=v10.0). Project SecurityGuard.Infrastructure supports: net10.0-windows7.0 (.NETCoreApp,Version=v10.0)",
-      "projectPath": "/Users/designyousupova/Project/SecurityGuard/tests/SecurityGuard.Infrastructure.Tests/SecurityGuard.Infrastructure.Tests.csproj",
-      "filePath": "/Users/designyousupova/Project/SecurityGuard/tests/SecurityGuard.Infrastructure.Tests/SecurityGuard.Infrastructure.Tests.csproj",
-      "libraryId": "SecurityGuard.Infrastructure",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    }
-  ]
+  "logs": []
 }

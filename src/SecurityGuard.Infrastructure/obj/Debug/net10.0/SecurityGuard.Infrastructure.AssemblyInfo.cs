@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SecurityGuard.Infrastructure")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1794a0cdcf0b3f89410859e2abae1ec4730c4f38")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+bcb24ba40effbd7a4c8cfc19c50781e4758fae86")]
 [assembly: System.Reflection.AssemblyProductAttribute("SecurityGuard.Infrastructure")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SecurityGuard.Infrastructure")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

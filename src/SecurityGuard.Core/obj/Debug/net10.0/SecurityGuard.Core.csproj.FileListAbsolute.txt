@@ -1,0 +1,5 @@
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/obj/Debug/net10.0/SecurityGuard.Core.GeneratedMSBuildEditorConfig.editorconfig
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/obj/Debug/net10.0/SecurityGuard.Core.AssemblyInfoInputs.cache
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/obj/Debug/net10.0/SecurityGuard.Core.AssemblyInfo.cs
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/obj/Debug/net10.0/SecurityGuard.Core.csproj.CoreCompileInputs.cache
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/obj/Debug/net10.0/SecurityGuard.Core.sourcelink.json

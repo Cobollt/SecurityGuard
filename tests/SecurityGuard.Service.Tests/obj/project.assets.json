@@ -570,6 +570,34 @@
           "bin/placeholder/SecurityGuard.Core.dll": {}
         }
       },
+      "SecurityGuard.Infrastructure/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "dependencies": {
+          "SecurityGuard.Core": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/SecurityGuard.Infrastructure.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/SecurityGuard.Infrastructure.dll": {}
+        }
+      },
+      "SecurityGuard.Service/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "dependencies": {
+          "SecurityGuard.Core": "1.0.0",
+          "SecurityGuard.Infrastructure": "1.0.0",
+          "SecurityGuard.Storage": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/SecurityGuard.Service.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/SecurityGuard.Service.dll": {}
+        }
+      },
       "SecurityGuard.Storage/1.0.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v10.0",
@@ -1217,6 +1245,16 @@
       "path": "../../src/SecurityGuard.Core/SecurityGuard.Core.csproj",
       "msbuildProject": "../../src/SecurityGuard.Core/SecurityGuard.Core.csproj"
     },
+    "SecurityGuard.Infrastructure/1.0.0": {
+      "type": "project",
+      "path": "../../src/SecurityGuard.Infrastructure/SecurityGuard.Infrastructure.csproj",
+      "msbuildProject": "../../src/SecurityGuard.Infrastructure/SecurityGuard.Infrastructure.csproj"
+    },
+    "SecurityGuard.Service/1.0.0": {
+      "type": "project",
+      "path": "../../src/SecurityGuard.Service/SecurityGuard.Service.csproj",
+      "msbuildProject": "../../src/SecurityGuard.Service/SecurityGuard.Service.csproj"
+    },
     "SecurityGuard.Storage/1.0.0": {
       "type": "project",
       "path": "../../src/SecurityGuard.Storage/SecurityGuard.Storage.csproj",
@@ -1227,6 +1265,8 @@
     "net10.0": [
       "Microsoft.NET.Test.Sdk >= 17.14.1",
       "SecurityGuard.Core >= 1.0.0",
+      "SecurityGuard.Infrastructure >= 1.0.0",
+      "SecurityGuard.Service >= 1.0.0",
       "SecurityGuard.Storage >= 1.0.0",
       "coverlet.collector >= 6.0.4",
       "xunit >= 2.9.3",
@@ -1261,6 +1301,12 @@
           "projectReferences": {
             "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj": {
               "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj"
+            },
+            "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Infrastructure/SecurityGuard.Infrastructure.csproj": {
+              "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Infrastructure/SecurityGuard.Infrastructure.csproj"
+            },
+            "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Service/SecurityGuard.Service.csproj": {
+              "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Service/SecurityGuard.Service.csproj"
             },
             "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Storage/SecurityGuard.Storage.csproj": {
               "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Storage/SecurityGuard.Storage.csproj"

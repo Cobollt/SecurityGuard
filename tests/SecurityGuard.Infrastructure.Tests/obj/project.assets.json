@@ -572,7 +572,10 @@
       },
       "SecurityGuard.Infrastructure/1.0.0": {
         "type": "project",
-        "framework": "Unsupported,Version=v0.0",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "dependencies": {
+          "SecurityGuard.Core": "1.0.0"
+        },
         "compile": {
           "bin/placeholder/SecurityGuard.Infrastructure.dll": {}
         },
@@ -1621,16 +1624,5 @@
         }
       }
     }
-  },
-  "logs": [
-    {
-      "code": "NU1201",
-      "level": "Error",
-      "message": "Project SecurityGuard.Infrastructure is not compatible with net10.0 (.NETCoreApp,Version=v10.0). Project SecurityGuard.Infrastructure supports: net10.0-windows7.0 (.NETCoreApp,Version=v10.0)",
-      "libraryId": "SecurityGuard.Infrastructure",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    }
-  ]
+  }
 }
