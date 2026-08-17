@@ -1,10 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "jgGSgsPoLjI=",
+  "dgSpecHash": "2gCXMPXKan4=",
   "success": true,
   "projectFilePath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Infrastructure/SecurityGuard.Infrastructure.csproj",
   "expectedPackageFiles": [
-    "/Users/designyousupova/.nuget/packages/system.io.filesystem.accesscontrol/5.0.0/system.io.filesystem.accesscontrol.5.0.0.nupkg.sha512"
+    "/Users/designyousupova/.nuget/packages/microsoft.windowsdesktop.app.ref/10.0.10/microsoft.windowsdesktop.app.ref.10.0.10.nupkg.sha512"
   ],
   "logs": []
 }

@@ -57,6 +57,12 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.WindowsDesktop.App.Ref",
+              "version": "[10.0.10, 10.0.10]"
+            }
+          ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
@@ -353,15 +359,15 @@
           "/Users/designyousupova/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
-          "net10.0"
+          "net10.0-windows"
         ],
         "sources": {
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
-          "net10.0": {
-            "framework": "net10.0",
-            "targetAlias": "net10.0",
+          "net10.0-windows": {
+            "framework": "net10.0-windows7.0",
+            "targetAlias": "net10.0-windows",
             "projectReferences": {
               "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj": {
                 "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj"
@@ -383,15 +389,9 @@
         "SdkAnalysisLevel": "10.0.300"
       },
       "frameworks": {
-        "net10.0": {
-          "framework": "net10.0",
-          "targetAlias": "net10.0",
-          "dependencies": {
-            "System.IO.FileSystem.AccessControl": {
-              "target": "Package",
-              "version": "[5.0.0, )"
-            }
-          },
+        "net10.0-windows": {
+          "framework": "net10.0-windows7.0",
+          "targetAlias": "net10.0-windows",
           "imports": [
             "net461",
             "net462",
@@ -403,6 +403,12 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.WindowsDesktop.App.Ref",
+              "version": "[10.0.10, 10.0.10]"
+            }
+          ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "Grp89al9sTw=",
+  "dgSpecHash": "PBn9cWr0Rsk=",
   "success": true,
   "projectFilePath": "/Users/designyousupova/Project/SecurityGuard/tests/SecurityGuard.Storage.Tests/SecurityGuard.Storage.Tests.csproj",
   "expectedPackageFiles": [
@@ -22,7 +22,8 @@
     "/Users/designyousupova/.nuget/packages/xunit.core/2.9.3/xunit.core.2.9.3.nupkg.sha512",
     "/Users/designyousupova/.nuget/packages/xunit.extensibility.core/2.9.3/xunit.extensibility.core.2.9.3.nupkg.sha512",
     "/Users/designyousupova/.nuget/packages/xunit.extensibility.execution/2.9.3/xunit.extensibility.execution.2.9.3.nupkg.sha512",
-    "/Users/designyousupova/.nuget/packages/xunit.runner.visualstudio/3.1.5/xunit.runner.visualstudio.3.1.5.nupkg.sha512"
+    "/Users/designyousupova/.nuget/packages/xunit.runner.visualstudio/3.1.5/xunit.runner.visualstudio.3.1.5.nupkg.sha512",
+    "/Users/designyousupova/.nuget/packages/microsoft.windowsdesktop.app.ref/10.0.10/microsoft.windowsdesktop.app.ref.10.0.10.nupkg.sha512"
   ],
   "logs": []
 }
