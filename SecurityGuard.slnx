@@ -11,5 +11,6 @@
     <Project Path="tests/SecurityGuard.Infrastructure.Tests/SecurityGuard.Infrastructure.Tests.csproj" />
     <Project Path="tests/SecurityGuard.Service.Tests/SecurityGuard.Service.Tests.csproj" />
     <Project Path="tests/SecurityGuard.Storage.Tests/SecurityGuard.Storage.Tests.csproj" />
+    <Project Path="tests/SecurityGuard.UI.Tests/SecurityGuard.UI.Tests.csproj" />
   </Folder>
 </Solution>
