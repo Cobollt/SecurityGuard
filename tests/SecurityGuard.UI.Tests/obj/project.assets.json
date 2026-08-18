@@ -393,6 +393,29 @@
         "build": {
           "build/net8.0/xunit.runner.visualstudio.props": {}
         }
+      },
+      "SecurityGuard.Core/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "compile": {
+          "bin/placeholder/SecurityGuard.Core.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/SecurityGuard.Core.dll": {}
+        }
+      },
+      "SecurityGuard.UI/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "dependencies": {
+          "SecurityGuard.Core": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/SecurityGuard.UI.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/SecurityGuard.UI.dll": {}
+        }
       }
     }
   },
@@ -903,11 +926,23 @@
         "xunit.runner.visualstudio.3.1.4.nupkg.sha512",
         "xunit.runner.visualstudio.nuspec"
       ]
+    },
+    "SecurityGuard.Core/1.0.0": {
+      "type": "project",
+      "path": "../../src/SecurityGuard.Core/SecurityGuard.Core.csproj",
+      "msbuildProject": "../../src/SecurityGuard.Core/SecurityGuard.Core.csproj"
+    },
+    "SecurityGuard.UI/1.0.0": {
+      "type": "project",
+      "path": "../../src/SecurityGuard.UI/SecurityGuard.UI.csproj",
+      "msbuildProject": "../../src/SecurityGuard.UI/SecurityGuard.UI.csproj"
     }
   },
   "projectFileDependencyGroups": {
     "net10.0": [
       "Microsoft.NET.Test.Sdk >= 17.14.1",
+      "SecurityGuard.Core >= 1.0.0",
+      "SecurityGuard.UI >= 1.0.0",
       "coverlet.collector >= 6.0.4",
       "xunit >= 2.9.3",
       "xunit.runner.visualstudio >= 3.1.4"
@@ -938,7 +973,14 @@
         "net10.0": {
           "framework": "net10.0",
           "targetAlias": "net10.0",
-          "projectReferences": {}
+          "projectReferences": {
+            "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj": {
+              "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj"
+            },
+            "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.UI/SecurityGuard.UI.csproj": {
+              "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.UI/SecurityGuard.UI.csproj"
+            }
+          }
         }
       },
       "warningProperties": {

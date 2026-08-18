@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "u3ca3O23hLg=",
+  "dgSpecHash": "NR7ZqnuXW90=",
   "success": true,
   "projectFilePath": "/Users/designyousupova/Project/SecurityGuard/tests/SecurityGuard.Service.Tests/SecurityGuard.Service.Tests.csproj",
   "expectedPackageFiles": [
@@ -16,6 +16,8 @@
     "/Users/designyousupova/.nuget/packages/sqlitepclraw.core/2.1.12/sqlitepclraw.core.2.1.12.nupkg.sha512",
     "/Users/designyousupova/.nuget/packages/sqlitepclraw.lib.e_sqlite3/2.1.12/sqlitepclraw.lib.e_sqlite3.2.1.12.nupkg.sha512",
     "/Users/designyousupova/.nuget/packages/sqlitepclraw.provider.e_sqlite3/2.1.12/sqlitepclraw.provider.e_sqlite3.2.1.12.nupkg.sha512",
+    "/Users/designyousupova/.nuget/packages/system.codedom/10.0.11/system.codedom.10.0.11.nupkg.sha512",
+    "/Users/designyousupova/.nuget/packages/system.management/10.0.11/system.management.10.0.11.nupkg.sha512",
     "/Users/designyousupova/.nuget/packages/xunit/2.9.3/xunit.2.9.3.nupkg.sha512",
     "/Users/designyousupova/.nuget/packages/xunit.abstractions/2.0.3/xunit.abstractions.2.0.3.nupkg.sha512",
     "/Users/designyousupova/.nuget/packages/xunit.analyzers/1.18.0/xunit.analyzers.1.18.0.nupkg.sha512",

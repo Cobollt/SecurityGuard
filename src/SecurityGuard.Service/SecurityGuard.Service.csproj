@@ -9,6 +9,7 @@
     <ProjectReference Include="..\SecurityGuard.Core\SecurityGuard.Core.csproj" />
     <ProjectReference Include="..\SecurityGuard.Storage\SecurityGuard.Storage.csproj" />
     <ProjectReference Include="..\SecurityGuard.Infrastructure\SecurityGuard.Infrastructure.csproj" />
+    <ProjectReference Include="..\SecurityGuard.AlgorithmGuard\SecurityGuard.AlgorithmGuard.csproj" />
   </ItemGroup>
 
 </Project>
