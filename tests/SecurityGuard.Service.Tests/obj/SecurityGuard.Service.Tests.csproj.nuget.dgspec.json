@@ -1774,6 +1774,9 @@
             "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {
+              "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.AlgorithmGuard/SecurityGuard.AlgorithmGuard.csproj": {
+                "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.AlgorithmGuard/SecurityGuard.AlgorithmGuard.csproj"
+              },
               "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj": {
                 "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj"
               },

@@ -1386,6 +1386,7 @@
   "projectFileDependencyGroups": {
     "net10.0": [
       "Microsoft.NET.Test.Sdk >= 17.14.1",
+      "SecurityGuard.AlgorithmGuard >= 1.0.0",
       "SecurityGuard.Core >= 1.0.0",
       "SecurityGuard.Infrastructure >= 1.0.0",
       "SecurityGuard.Service >= 1.0.0",
@@ -1421,6 +1422,9 @@
           "framework": "net10.0",
           "targetAlias": "net10.0",
           "projectReferences": {
+            "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.AlgorithmGuard/SecurityGuard.AlgorithmGuard.csproj": {
+              "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.AlgorithmGuard/SecurityGuard.AlgorithmGuard.csproj"
+            },
             "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj": {
               "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj"
             },
