@@ -147,6 +147,25 @@ public sealed class SqliteQuarantineRepository
         return ReadRecord(reader);
     }
 
+    public async Task<int> CountAsync(
+    CancellationToken cancellationToken = default)
+{
+    await using var connection =
+        await _connectionFactory.OpenAsync(cancellationToken);
+
+    await using var command =
+        connection.CreateCommand();
+
+    command.CommandText =
+        "SELECT COUNT(*) FROM quarantine;";
+
+    var result =
+        await command.ExecuteScalarAsync(
+            cancellationToken);
+
+    return Convert.ToInt32(result);
+}
+
     public async Task DeleteAsync(
         Guid id,
         CancellationToken cancellationToken = default)

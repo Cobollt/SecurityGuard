@@ -1,20 +1,32 @@
 using System.Diagnostics;
 using System.Text;
+using SecurityGuard.AlgorithmGuard.Contracts;
 
 namespace SecurityGuard.AlgorithmGuard.Services;
 
 public sealed class PowerShellProcessRunner
 {
+    private readonly IInternalProcessRegistry? _internalProcessRegistry;
+
+    public PowerShellProcessRunner(
+        IInternalProcessRegistry? internalProcessRegistry = null)
+    {
+        _internalProcessRegistry =
+            internalProcessRegistry;
+    }
+
     public async Task<string> RunEncodedAsync(
         string script,
         IReadOnlyDictionary<string, string>? environment = null,
         CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(script);
+        ArgumentException.ThrowIfNullOrWhiteSpace(
+            script);
 
         var encoded =
             Convert.ToBase64String(
-                Encoding.Unicode.GetBytes(script));
+                Encoding.Unicode.GetBytes(
+                    script));
 
         var startInfo =
             new ProcessStartInfo
@@ -26,10 +38,17 @@ public sealed class PowerShellProcessRunner
                 CreateNoWindow = true
             };
 
-        startInfo.ArgumentList.Add("-NoProfile");
-        startInfo.ArgumentList.Add("-NonInteractive");
-        startInfo.ArgumentList.Add("-EncodedCommand");
-        startInfo.ArgumentList.Add(encoded);
+        startInfo.ArgumentList.Add(
+            "-NoProfile");
+
+        startInfo.ArgumentList.Add(
+            "-NonInteractive");
+
+        startInfo.ArgumentList.Add(
+            "-EncodedCommand");
+
+        startInfo.ArgumentList.Add(
+            encoded);
 
         if (environment is not null)
         {
@@ -43,7 +62,8 @@ public sealed class PowerShellProcessRunner
         using var process =
             new Process
             {
-                StartInfo = startInfo
+                StartInfo =
+                    startInfo
             };
 
         if (!process.Start())
@@ -51,6 +71,9 @@ public sealed class PowerShellProcessRunner
             throw new InvalidOperationException(
                 "Unable to start Windows PowerShell.");
         }
+
+        _internalProcessRegistry?.Register(
+            process.Id);
 
         var outputTask =
             process.StandardOutput.ReadToEndAsync(

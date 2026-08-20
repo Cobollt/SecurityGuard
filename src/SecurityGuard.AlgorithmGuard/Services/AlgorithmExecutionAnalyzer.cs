@@ -63,7 +63,10 @@ public sealed class AlgorithmExecutionAnalyzer
             analysis.Type,
             analysis.ScriptPath,
             null,
-            signal.DetectedAtUtc);
+            signal.DetectedAtUtc,
+            metadata.UserName,
+            metadata.ParentProcessName,
+            metadata.ParentExecutablePath);
     }
 
     private static InvocationAnalysis AnalyzeArguments(

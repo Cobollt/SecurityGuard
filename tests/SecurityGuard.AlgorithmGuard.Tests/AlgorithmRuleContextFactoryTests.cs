@@ -54,4 +54,56 @@ public sealed class AlgorithmRuleContextFactoryTests
             "PowerShell",
             context.Interpreter);
     }
+
+    [Fact]
+    public void Process_security_context_is_mapped()
+    {
+        var attempt =
+            new AlgorithmExecutionAttempt(
+                Guid.NewGuid(),
+                100,
+                50,
+                "powershell.exe",
+                @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
+                "powershell.exe -Command Get-Date",
+                InterpreterKind.PowerShell,
+                AlgorithmInvocationType.InlineCommand,
+                null,
+                null,
+                DateTimeOffset.UtcNow,
+                @"DESKTOP\User",
+                "explorer.exe",
+                @"C:\Windows\explorer.exe",
+                "Microsoft Corporation",
+                "Valid",
+                null,
+                null);
+
+        var factory =
+            new AlgorithmRuleContextFactory();
+
+        var context =
+            factory.Create(
+                attempt);
+
+        Assert.Equal(
+            @"DESKTOP\User",
+            context.UserName);
+
+        Assert.Equal(
+            "explorer.exe",
+            context.ParentProcess);
+
+        Assert.Equal(
+            @"C:\Windows\explorer.exe",
+            context.ParentProcessPath);
+
+        Assert.Equal(
+            "Microsoft Corporation",
+            context.ProcessPublisher);
+
+        Assert.Equal(
+            "Microsoft Corporation",
+            context.Publisher);
+    }
 }

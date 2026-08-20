@@ -8,13 +8,15 @@ public sealed class AlgorithmGuardMonitor
     private readonly IProcessStartMonitor _processStartMonitor;
     private readonly IProcessMetadataProvider _metadataProvider;
     private readonly IAlgorithmExecutionAnalyzer _analyzer;
-    private readonly AlgorithmObservationService _observationService;
+    private readonly AlgorithmPolicyService _policyService;
+    private readonly IInternalProcessRegistry _internalProcessRegistry;
 
     public AlgorithmGuardMonitor(
         IProcessStartMonitor processStartMonitor,
         IProcessMetadataProvider metadataProvider,
         IAlgorithmExecutionAnalyzer analyzer,
-        AlgorithmObservationService observationService)
+        AlgorithmPolicyService policyService,
+        IInternalProcessRegistry internalProcessRegistry)
     {
         _processStartMonitor =
             processStartMonitor;
@@ -25,8 +27,11 @@ public sealed class AlgorithmGuardMonitor
         _analyzer =
             analyzer;
 
-        _observationService =
-            observationService;
+        _policyService =
+            policyService;
+
+        _internalProcessRegistry =
+            internalProcessRegistry;
     }
 
     public async Task RunAsync(
@@ -39,6 +44,18 @@ public sealed class AlgorithmGuardMonitor
         {
             try
             {
+                if (_internalProcessRegistry.TryConsume(
+                        signal.ProcessId))
+                {
+                    continue;
+                }
+
+                if (signal.ParentProcessId ==
+                    Environment.ProcessId)
+                {
+                    continue;
+                }
+
                 var metadata =
                     await _metadataProvider.GetAsync(
                         signal.ProcessId,
@@ -59,7 +76,7 @@ public sealed class AlgorithmGuardMonitor
                     continue;
                 }
 
-                await _observationService.HandleAsync(
+                await _policyService.HandleAsync(
                     attempt,
                     cancellationToken);
             }

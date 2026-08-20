@@ -12,4 +12,8 @@ public sealed record RuleMatchContext(
     string? RemoteAddress = null,
     int? RemotePort = null,
     string? Protocol = null,
-    string? DestinationProcess = null);
+    string? DestinationProcess = null,
+    string? CommandLine = null,
+    string? UserName = null,
+    string? ProcessPublisher = null,
+    string? ParentProcessPath = null);

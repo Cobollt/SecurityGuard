@@ -1,3 +1,4 @@
+using SecurityGuard.AlgorithmGuard.Contracts;
 using SecurityGuard.AlgorithmGuard.Models;
 using SecurityGuard.Core.Contracts;
 using SecurityGuard.Core.Enums;
@@ -9,95 +10,148 @@ public sealed class AlgorithmObservationService
 {
     private readonly IFileHashService _hashService;
     private readonly IProtectedObjectRepository _protectedObjectRepository;
-    private readonly IAuditService _auditService;
+    private readonly IAuthenticodeSignatureService _signatureService;
 
     public AlgorithmObservationService(
         IFileHashService hashService,
         IProtectedObjectRepository protectedObjectRepository,
-        IAuditService auditService)
+        IAuthenticodeSignatureService signatureService)
     {
-        _hashService = hashService;
+        _hashService =
+            hashService;
+
         _protectedObjectRepository =
             protectedObjectRepository;
 
-        _auditService = auditService;
+        _signatureService =
+            signatureService;
     }
 
-    public async Task HandleAsync(
+    public async Task<AlgorithmExecutionAttempt> EnrichAsync(
         AlgorithmExecutionAttempt attempt,
         CancellationToken cancellationToken = default)
     {
-        var finalAttempt =
-            attempt;
+        var processSignature =
+            await GetSignatureAsync(
+                attempt.ExecutablePath,
+                cancellationToken);
 
-        if (!string.IsNullOrWhiteSpace(
-                attempt.ScriptPath) &&
-            Path.IsPathRooted(
-                attempt.ScriptPath) &&
-            File.Exists(
+        var enriched =
+            attempt with
+            {
+                ProcessPublisher =
+                    processSignature?.Publisher,
+
+                ProcessSignatureStatus =
+                    processSignature?.Status
+            };
+
+        if (string.IsNullOrWhiteSpace(
                 attempt.ScriptPath))
         {
-            var hash =
-                await _hashService.ComputeSha256Async(
-                    attempt.ScriptPath,
-                    cancellationToken);
-
-            finalAttempt =
-                attempt with
-                {
-                    ScriptSha256 = hash
-                };
-
-            var file =
-                new FileInfo(
-                    attempt.ScriptPath);
-
-            var now =
-                DateTimeOffset.UtcNow;
-
-            var protectedObject =
-                new ProtectedObject(
-                    Guid.NewGuid(),
-                    file.FullName,
-                    file.Name,
-                    file.Extension,
-                    hash,
-                    file.Length,
-                    ObjectTrustStatus.Unknown,
-                    now,
-                    now);
-
-            await _protectedObjectRepository.UpsertAsync(
-                protectedObject,
-                cancellationToken);
+            return enriched;
         }
 
-        await _auditService.WriteAsync(
-            SecurityModuleKind.AlgorithmGuard,
-            SecurityEventType.AlgorithmExecution,
-            SecuritySeverity.Info,
-            "Algorithm execution detected",
-            BuildDetails(finalAttempt),
-            SecurityAction.None,
-            cancellationToken: cancellationToken);
+        if (!Path.IsPathRooted(
+                attempt.ScriptPath))
+        {
+            return enriched;
+        }
+
+        if (!File.Exists(
+                attempt.ScriptPath))
+        {
+            return enriched;
+        }
+
+        var file =
+            new FileInfo(
+                attempt.ScriptPath);
+
+        var hash =
+            await _hashService.ComputeSha256Async(
+                file.FullName,
+                cancellationToken);
+
+        var scriptSignature =
+            await GetSignatureAsync(
+                file.FullName,
+                cancellationToken);
+
+        var now =
+            DateTimeOffset.UtcNow;
+
+        var existing =
+            await _protectedObjectRepository.FindByHashAsync(
+                hash,
+                cancellationToken);
+
+        var protectedObject =
+            new ProtectedObject(
+                existing?.Id ??
+                Guid.NewGuid(),
+                file.FullName,
+                file.Name,
+                file.Extension,
+                hash,
+                file.Length,
+                existing?.TrustStatus ??
+                ObjectTrustStatus.Unknown,
+                existing?.FirstSeenAtUtc ??
+                now,
+                now);
+
+        await _protectedObjectRepository.UpsertAsync(
+            protectedObject,
+            cancellationToken);
+
+        return enriched with
+        {
+            ScriptPath =
+                file.FullName,
+
+            ScriptSha256 =
+                hash,
+
+            ScriptPublisher =
+                scriptSignature?.Publisher,
+
+            ScriptSignatureStatus =
+                scriptSignature?.Status
+        };
     }
 
-    private static string BuildDetails(
-        AlgorithmExecutionAttempt attempt)
+    private async Task<AuthenticodeSignatureInfo?> GetSignatureAsync(
+        string? filePath,
+        CancellationToken cancellationToken)
     {
-        return string.Join(
-            Environment.NewLine,
-            new[]
-            {
-                $"PID: {attempt.ProcessId}",
-                $"Parent PID: {attempt.ParentProcessId?.ToString() ?? "Unknown"}",
-                $"Process: {attempt.ProcessName}",
-                $"Executable: {attempt.ExecutablePath ?? "Unknown"}",
-                $"Interpreter: {attempt.Interpreter}",
-                $"Invocation: {attempt.InvocationType}",
-                $"Script: {attempt.ScriptPath ?? "None"}",
-                $"SHA256: {attempt.ScriptSha256 ?? "Unknown"}",
-                $"CommandLine: {attempt.CommandLine ?? "Unknown"}"
-            });
+        if (string.IsNullOrWhiteSpace(
+                filePath))
+        {
+            return null;
+        }
+
+        if (!File.Exists(
+                filePath))
+        {
+            return null;
+        }
+
+        try
+        {
+            return await _signatureService.GetAsync(
+                filePath,
+                cancellationToken);
+        }
+        catch
+        {
+            return new AuthenticodeSignatureInfo(
+                filePath,
+                false,
+                false,
+                "Error",
+                null,
+                null);
+        }
     }
 }

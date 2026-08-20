@@ -15,6 +15,9 @@ public interface IQuarantineRepository
         Guid id,
         CancellationToken cancellationToken = default);
 
+    Task<int> CountAsync(
+        CancellationToken cancellationToken = default);
+
     Task DeleteAsync(
         Guid id,
         CancellationToken cancellationToken = default);

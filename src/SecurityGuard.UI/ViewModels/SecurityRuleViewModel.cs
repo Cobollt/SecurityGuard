@@ -26,6 +26,8 @@ public sealed class SecurityRuleViewModel
 
     public DateTimeOffset? ExpiresAtUtc { get; }
 
+    public string ConditionsDisplayName { get; }
+
     public string ModuleDisplayName =>
         Module switch
         {
@@ -59,50 +61,8 @@ public sealed class SecurityRuleViewModel
         };
 
     public string ScopeDisplayName =>
-        Scope switch
-        {
-            RuleScope.FileHash =>
-                "SHA-256",
-
-            RuleScope.FilePath =>
-                "Путь",
-
-            RuleScope.FileName =>
-                "Имя файла",
-
-            RuleScope.FileExtension =>
-                "Расширение",
-
-            RuleScope.Publisher =>
-                "Издатель",
-
-            RuleScope.Process =>
-                "Процесс",
-
-            RuleScope.ParentProcess =>
-                "Родительский процесс",
-
-            RuleScope.Interpreter =>
-                "Интерпретатор",
-
-            RuleScope.CommandLine =>
-                "Командная строка",
-
-            RuleScope.RemoteAddress =>
-                "Удалённый адрес",
-
-            RuleScope.RemotePort =>
-                "Удалённый порт",
-
-            RuleScope.Protocol =>
-                "Протокол",
-
-            RuleScope.DestinationProcess =>
-                "Процесс назначения",
-
-            _ =>
-                Scope.ToString()
-        };
+        GetScopeDisplayName(
+            Scope);
 
     public string EnabledDisplayName =>
         Enabled
@@ -145,10 +105,88 @@ public sealed class SecurityRuleViewModel
         ExpiresAtUtc =
             rule.ExpiresAtUtc;
 
+        ConditionsDisplayName =
+            BuildConditionsDisplayName(
+                rule.Conditions);
+
         DeleteCommand =
             new AsyncRelayCommand(
                 () =>
                     deleteAsync(
                         rule.Id));
+    }
+
+    private static string BuildConditionsDisplayName(
+        IReadOnlyList<SecurityRuleCondition>? conditions)
+    {
+        if (conditions is null ||
+            conditions.Count == 0)
+        {
+            return "—";
+        }
+
+        return string.Join(
+            Environment.NewLine,
+            conditions.Select(
+                condition =>
+                    $"{GetScopeDisplayName(condition.Scope)} = {condition.Value}"));
+    }
+
+    private static string GetScopeDisplayName(
+        RuleScope scope)
+    {
+        return scope switch
+        {
+            RuleScope.FileHash =>
+                "SHA-256",
+
+            RuleScope.FilePath =>
+                "Путь",
+
+            RuleScope.FileName =>
+                "Имя файла",
+
+            RuleScope.FileExtension =>
+                "Расширение",
+
+            RuleScope.Publisher =>
+                "Издатель",
+
+            RuleScope.Process =>
+                "Процесс",
+
+            RuleScope.ParentProcess =>
+                "Родительский процесс",
+
+            RuleScope.Interpreter =>
+                "Интерпретатор",
+
+            RuleScope.CommandLine =>
+                "Командная строка",
+
+            RuleScope.UserName =>
+                "Пользователь",
+
+            RuleScope.ProcessPublisher =>
+                "Издатель процесса",
+
+            RuleScope.ParentProcessPath =>
+                "Путь родительского процесса",
+
+            RuleScope.RemoteAddress =>
+                "Удалённый адрес",
+
+            RuleScope.RemotePort =>
+                "Удалённый порт",
+
+            RuleScope.Protocol =>
+                "Протокол",
+
+            RuleScope.DestinationProcess =>
+                "Процесс назначения",
+
+            _ =>
+                scope.ToString()
+        };
     }
 }

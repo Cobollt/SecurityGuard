@@ -30,6 +30,12 @@ public sealed class MainViewModel
 
     public ObservableCollection<DecisionRequestViewModel> PendingRequests { get; } = [];
 
+    public ObservableCollection<SecurityRuleViewModel> Rules { get; } = [];
+
+    public ObservableCollection<SecurityRuleViewModel> AllowRules { get; } = [];
+
+    public ObservableCollection<SecurityRuleViewModel> BlockRules { get; } = [];
+
     public ICommand NavigateCommand { get; }
 
     public ICommand RefreshCommand { get; }
@@ -143,19 +149,37 @@ public sealed class MainViewModel
             if (!connected)
             {
                 IsConnected = false;
+
                 LastError =
                     "SecurityGuard.Service не отвечает.";
 
                 return;
             }
 
+            var snapshotTask =
+                _client.GetSnapshotAsync();
+
+            var rulesTask =
+                _client.GetRulesAsync();
+
+            await Task.WhenAll(
+                snapshotTask,
+                rulesTask);
+
             var snapshot =
-                await _client.GetSnapshotAsync();
+                await snapshotTask;
+
+            var rules =
+                await rulesTask;
 
             IsConnected = true;
             LastError = null;
 
-            UpdateSnapshot(snapshot);
+            UpdateSnapshot(
+                snapshot);
+
+            UpdateRules(
+                rules);
 
             LastRefreshUtc =
                 DateTimeOffset.UtcNow;
@@ -171,7 +195,8 @@ public sealed class MainViewModel
         {
             IsBusy = false;
 
-            if (RefreshCommand is AsyncRelayCommand command)
+            if (RefreshCommand is
+                AsyncRelayCommand command)
             {
                 command.RaiseCanExecuteChanged();
             }
@@ -276,6 +301,56 @@ public sealed class MainViewModel
         foreach (var value in values)
         {
             collection.Add(value);
+        }
+    }
+
+    private void UpdateRules(
+        IReadOnlyList<SecurityRule> rules)
+    {
+        var viewModels =
+            rules
+                .Select(
+                    rule =>
+                        new SecurityRuleViewModel(
+                            rule,
+                            DeleteRuleAsync))
+                .ToArray();
+
+        Replace(
+            Rules,
+            viewModels);
+
+        Replace(
+            AllowRules,
+            viewModels.Where(
+                rule =>
+                    rule.Decision ==
+                    RuleDecision.Allow));
+
+        Replace(
+            BlockRules,
+            viewModels.Where(
+                rule =>
+                    rule.Decision ==
+                    RuleDecision.Block));
+    }
+
+    private async Task DeleteRuleAsync(
+        Guid ruleId)
+    {
+        try
+        {
+            await _client.DeleteRuleAsync(
+                ruleId);
+
+            LastError = null;
+
+            await RefreshAsync();
+        }
+        catch (Exception exception)
+        {
+            LastError =
+                exception.Message;
         }
     }
 }

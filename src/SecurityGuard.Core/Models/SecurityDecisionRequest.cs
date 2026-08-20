@@ -11,4 +11,5 @@ public sealed record SecurityDecisionRequest(
     string? FilePath,
     string? ProcessName,
     IReadOnlyList<SecurityAction> AvailableActions,
-    DateTimeOffset CreatedAtUtc);
+    DateTimeOffset CreatedAtUtc,
+    RuleMatchContext? RuleContext = null);

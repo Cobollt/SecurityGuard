@@ -63,10 +63,27 @@ public sealed class WmiProcessMetadataProvider
             using (process)
             {
                 var parentProcessId =
-                    process["ParentProcessId"] is null
-                        ? null
-                        : Convert.ToInt32(
-                            process["ParentProcessId"]);
+                    GetNullableInt32(
+                        process["ParentProcessId"]);
+
+                var owner =
+                    GetOwner(process);
+
+                string? parentName = null;
+                string? parentPath = null;
+
+                if (parentProcessId is > 0)
+                {
+                    var parent =
+                        QueryIdentity(
+                            parentProcessId.Value);
+
+                    parentName =
+                        parent.Name;
+
+                    parentPath =
+                        parent.Path;
+                }
 
                 return new ProcessMetadata(
                     processId,
@@ -77,10 +94,127 @@ public sealed class WmiProcessMetadataProvider
                     Convert.ToString(
                         process["ExecutablePath"]),
                     Convert.ToString(
-                        process["CommandLine"]));
+                        process["CommandLine"]),
+                    owner,
+                    parentName,
+                    parentPath);
             }
         }
 
         return null;
     }
+
+    private static string? GetOwner(
+        ManagementObject process)
+    {
+        ManagementBaseObject? result = null;
+
+        try
+        {
+            result =
+                process.InvokeMethod(
+                    "GetOwner",
+                    null,
+                    null);
+
+            if (result is null)
+            {
+                return null;
+            }
+
+            var returnValue =
+                Convert.ToUInt32(
+                    result["ReturnValue"]);
+
+            if (returnValue != 0)
+            {
+                return null;
+            }
+
+            var user =
+                Convert.ToString(
+                    result["User"]);
+
+            var domain =
+                Convert.ToString(
+                    result["Domain"]);
+
+            if (string.IsNullOrWhiteSpace(
+                    user))
+            {
+                return null;
+            }
+
+            if (string.IsNullOrWhiteSpace(
+                    domain))
+            {
+                return user;
+            }
+
+            return $@"{domain}\{user}";
+        }
+        catch
+        {
+            return null;
+        }
+        finally
+        {
+            result?.Dispose();
+        }
+    }
+
+    private static ProcessIdentity QueryIdentity(
+        int processId)
+    {
+        try
+        {
+            using var searcher =
+                new ManagementObjectSearcher(
+                    $"""
+                    SELECT
+                        Name,
+                        ExecutablePath
+                    FROM Win32_Process
+                    WHERE ProcessId = {processId}
+                    """);
+
+            using var results =
+                searcher.Get();
+
+            foreach (ManagementObject process in results)
+            {
+                using (process)
+                {
+                    return new ProcessIdentity(
+                        Convert.ToString(
+                            process["Name"]),
+                        Convert.ToString(
+                            process["ExecutablePath"]));
+                }
+            }
+        }
+        catch
+        {
+        }
+
+        return new ProcessIdentity(
+            null,
+            null);
+    }
+
+    private static int? GetNullableInt32(
+        object? value)
+    {
+        if (value is null)
+        {
+            return null;
+        }
+
+        return Convert.ToInt32(
+            value);
+    }
+
+    private sealed record ProcessIdentity(
+        string? Name,
+        string? Path);
 }

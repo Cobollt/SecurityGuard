@@ -10,7 +10,14 @@ public interface ISecurityGuardClient
     Task<SecuritySnapshot> GetSnapshotAsync(
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<SecurityRule>> GetRulesAsync(
+        CancellationToken cancellationToken = default);
+
     Task SubmitDecisionAsync(
         SecurityDecision decision,
+        CancellationToken cancellationToken = default);
+
+    Task DeleteRuleAsync(
+        Guid ruleId,
         CancellationToken cancellationToken = default);
 }

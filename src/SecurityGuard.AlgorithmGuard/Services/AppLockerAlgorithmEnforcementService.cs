@@ -1,3 +1,4 @@
+using System.Text.Json;
 using SecurityGuard.AlgorithmGuard.Contracts;
 using SecurityGuard.AlgorithmGuard.Enums;
 using SecurityGuard.AlgorithmGuard.Models;
@@ -86,12 +87,15 @@ public sealed class AppLockerAlgorithmEnforcementService
         var environment =
             new Dictionary<string, string>
             {
-                ["SG_TARGET_FILE"] = fullPath,
-                ["SG_RULE_ID"] = securityRuleId.ToString("D")
+                ["SG_TARGET_FILE"] =
+                    fullPath,
+
+                ["SG_RULE_ID"] =
+                    securityRuleId.ToString("D")
             };
 
         await _powerShellRunner.RunEncodedAsync(
-            BuildPolicyScript(),
+            BuildAddPolicyScript(),
             environment,
             cancellationToken);
 
@@ -99,7 +103,7 @@ public sealed class AppLockerAlgorithmEnforcementService
             level switch
             {
                 AlgorithmEnforcementLevel.PowerShellConstrained =>
-                    "AppLocker rule applied. PowerShell will restrict the blocked script with Constrained Language Mode.",
+                    "AppLocker PowerShell enforcement applied.",
 
                 AlgorithmEnforcementLevel.AppLockerBlocked =>
                     "AppLocker block rule applied.",
@@ -114,7 +118,63 @@ public sealed class AppLockerAlgorithmEnforcementService
             message);
     }
 
-    private static string BuildPolicyScript()
+    public Task RemoveBlockAsync(
+        Guid securityRuleId,
+        CancellationToken cancellationToken = default)
+    {
+        var environment =
+            new Dictionary<string, string>
+            {
+                ["SG_RULE_ID"] =
+                    securityRuleId.ToString("D")
+            };
+
+        return _powerShellRunner.RunEncodedAsync(
+            BuildRemovePolicyScript(),
+            environment,
+            cancellationToken);
+    }
+
+    public async Task<AlgorithmEnforcementSnapshot> InspectAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var output =
+            await _powerShellRunner.RunEncodedAsync(
+                BuildInspectionScript(),
+                cancellationToken: cancellationToken);
+
+        var state =
+            JsonSerializer.Deserialize<AppLockerInspectionDto>(
+                output,
+                new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+        if (state is null)
+        {
+            throw new InvalidOperationException(
+                "Unable to read AppLocker enforcement state.");
+        }
+
+        var local =
+            state.LocalRuleIds
+                .Select(Guid.Parse)
+                .ToHashSet();
+
+        var effective =
+            state.EffectiveRuleIds
+                .Select(Guid.Parse)
+                .ToHashSet();
+
+        return new AlgorithmEnforcementSnapshot(
+            local,
+            effective,
+            state.ManagedBaselinePresent,
+            state.UnmanagedScriptRulesPresent);
+    }
+
+    private static string BuildAddPolicyScript()
     {
         return
             """
@@ -136,18 +196,33 @@ public sealed class AppLockerAlgorithmEnforcementService
                 Start-Service -Name AppIDSvc -ErrorAction Stop
             }
 
-            $currentXmlText = Get-AppLockerPolicy -Local -Xml
-            [xml]$currentXml = $currentXmlText
+            [xml]$currentXml =
+                Get-AppLockerPolicy -Local -Xml
 
-            $currentScriptCollection =
+            $currentCollection =
                 @(
                     $currentXml.AppLockerPolicy.RuleCollection |
-                    Where-Object { $_.Type -eq 'Script' }
+                    Where-Object {
+                        $_.Type -eq 'Script'
+                    }
                 ) |
                 Select-Object -First 1
 
-            $hadScriptCollection =
-                $null -ne $currentScriptCollection
+            if ($null -ne $currentCollection) {
+                $existing =
+                    @(
+                        $currentCollection.ChildNodes |
+                        Where-Object {
+                            $_.Name -eq $ruleName -and
+                            $_.Description -eq 'SecurityGuardManaged'
+                        }
+                    )
+
+                if ($existing.Count -gt 0) {
+                    Write-Output $ruleName
+                    return
+                }
+            }
 
             $generatedXmlText =
                 Get-Item -LiteralPath $targetFile |
@@ -164,12 +239,14 @@ public sealed class AppLockerAlgorithmEnforcementService
             $generatedCollection =
                 @(
                     $generatedXml.AppLockerPolicy.RuleCollection |
-                    Where-Object { $_.Type -eq 'Script' }
+                    Where-Object {
+                        $_.Type -eq 'Script'
+                    }
                 ) |
                 Select-Object -First 1
 
             if ($null -eq $generatedCollection) {
-                throw "Unable to create an AppLocker Script rule."
+                throw "Unable to create AppLocker Script collection."
             }
 
             $generatedRule =
@@ -179,15 +256,16 @@ public sealed class AppLockerAlgorithmEnforcementService
                 Select-Object -First 1
 
             if ($null -eq $generatedRule) {
-                throw "Unable to create an AppLocker hash rule."
+                throw "Unable to create AppLocker hash rule."
             }
 
             $generatedRule.Action = 'Deny'
             $generatedRule.Name = $ruleName
             $generatedRule.Description = 'SecurityGuardManaged'
 
-            if (-not $hadScriptCollection) {
-                $generatedCollection.EnforcementMode = 'Enabled'
+            if ($null -eq $currentCollection) {
+                $generatedCollection.EnforcementMode =
+                    'Enabled'
 
                 $baselineRule =
                     $generatedXml.CreateElement(
@@ -241,7 +319,9 @@ public sealed class AppLockerAlgorithmEnforcementService
             $temporaryPolicy =
                 Join-Path `
                     ([System.IO.Path]::GetTempPath()) `
-                    ("SecurityGuard-" + [Guid]::NewGuid().ToString('N') + '.xml')
+                    ("SecurityGuard-" +
+                     [Guid]::NewGuid().ToString('N') +
+                     '.xml')
 
             try {
                 $generatedXml.Save(
@@ -262,4 +342,224 @@ public sealed class AppLockerAlgorithmEnforcementService
             Write-Output $ruleName
             """;
     }
+
+    private static string BuildRemovePolicyScript()
+    {
+        return
+            """
+            $ErrorActionPreference = 'Stop'
+
+            Import-Module AppLocker -ErrorAction Stop
+
+            $securityRuleId = $env:SG_RULE_ID
+            $ruleName = "SecurityGuard:$securityRuleId"
+
+            [xml]$policy =
+                Get-AppLockerPolicy -Local -Xml
+
+            $scriptCollection =
+                @(
+                    $policy.AppLockerPolicy.RuleCollection |
+                    Where-Object {
+                        $_.Type -eq 'Script'
+                    }
+                ) |
+                Select-Object -First 1
+
+            if ($null -eq $scriptCollection) {
+                return
+            }
+
+            $rules =
+                @(
+                    $scriptCollection.ChildNodes
+                )
+
+            $targets =
+                @(
+                    $rules |
+                    Where-Object {
+                        $_.Name -eq $ruleName -and
+                        $_.Description -eq 'SecurityGuardManaged'
+                    }
+                )
+
+            if ($targets.Count -eq 0) {
+                return
+            }
+
+            foreach ($target in $targets) {
+                $scriptCollection.RemoveChild(
+                    $target) |
+                    Out-Null
+            }
+
+            $remainingManagedRules =
+                @(
+                    $scriptCollection.ChildNodes |
+                    Where-Object {
+                        $_.Description -eq 'SecurityGuardManaged'
+                    }
+                )
+
+            if ($remainingManagedRules.Count -eq 0) {
+                $baselines =
+                    @(
+                        $scriptCollection.ChildNodes |
+                        Where-Object {
+                            $_.Name -eq 'SecurityGuard:BaselineAllow' -and
+                            $_.Description -eq 'SecurityGuardManagedBaseline'
+                        }
+                    )
+
+                foreach ($baseline in $baselines) {
+                    $scriptCollection.RemoveChild(
+                        $baseline) |
+                        Out-Null
+                }
+            }
+
+            if ($scriptCollection.ChildNodes.Count -eq 0) {
+                $policy.AppLockerPolicy.RemoveChild(
+                    $scriptCollection) |
+                    Out-Null
+            }
+
+            $temporaryPolicy =
+                Join-Path `
+                    ([System.IO.Path]::GetTempPath()) `
+                    ("SecurityGuard-" +
+                     [Guid]::NewGuid().ToString('N') +
+                     '.xml')
+
+            try {
+                $policy.Save(
+                    $temporaryPolicy)
+
+                Set-AppLockerPolicy `
+                    -XmlPolicy $temporaryPolicy `
+                    -ErrorAction Stop
+            }
+            finally {
+                Remove-Item `
+                    -LiteralPath $temporaryPolicy `
+                    -Force `
+                    -ErrorAction SilentlyContinue
+            }
+            """;
+    }
+
+    private static string BuildInspectionScript()
+    {
+        return
+            """
+            $ErrorActionPreference = 'Stop'
+
+            Import-Module AppLocker -ErrorAction Stop
+
+            function Get-ScriptRules {
+                param(
+                    [xml]$Policy
+                )
+
+                $collection =
+                    @(
+                        $Policy.AppLockerPolicy.RuleCollection |
+                        Where-Object {
+                            $_.Type -eq 'Script'
+                        }
+                    ) |
+                    Select-Object -First 1
+
+                if ($null -eq $collection) {
+                    return @()
+                }
+
+                return @(
+                    $collection.ChildNodes
+                )
+            }
+
+            function Get-SecurityGuardIds {
+                param(
+                    [object[]]$Rules
+                )
+
+                $ids = @()
+
+                foreach ($rule in $Rules) {
+                    if (
+                        $rule.Description -eq 'SecurityGuardManaged' -and
+                        $rule.Name -match '^SecurityGuard:(?<id>[0-9a-fA-F-]{36})$'
+                    ) {
+                        $ids += $Matches['id']
+                    }
+                }
+
+                return @($ids)
+            }
+
+            [xml]$localPolicy =
+                Get-AppLockerPolicy -Local -Xml
+
+            [xml]$effectivePolicy =
+                Get-AppLockerPolicy -Effective -Xml
+
+            $localRules =
+                @(Get-ScriptRules $localPolicy)
+
+            $effectiveRules =
+                @(Get-ScriptRules $effectivePolicy)
+
+            $localIds =
+                @(Get-SecurityGuardIds $localRules)
+
+            $effectiveIds =
+                @(Get-SecurityGuardIds $effectiveRules)
+
+            $managedBaselinePresent =
+                @(
+                    $localRules |
+                    Where-Object {
+                        $_.Name -eq 'SecurityGuard:BaselineAllow' -and
+                        $_.Description -eq 'SecurityGuardManagedBaseline'
+                    }
+                ).Count -gt 0
+
+            $unmanagedScriptRulesPresent =
+                @(
+                    $localRules |
+                    Where-Object {
+                        $_.Description -ne 'SecurityGuardManaged' -and
+                        $_.Description -ne 'SecurityGuardManagedBaseline'
+                    }
+                ).Count -gt 0
+
+            $result =
+                [PSCustomObject]@{
+                    LocalRuleIds =
+                        @($localIds)
+
+                    EffectiveRuleIds =
+                        @($effectiveIds)
+
+                    ManagedBaselinePresent =
+                        $managedBaselinePresent
+
+                    UnmanagedScriptRulesPresent =
+                        $unmanagedScriptRulesPresent
+                }
+
+            $result |
+                ConvertTo-Json `
+                    -Compress `
+                    -Depth 5
+            """;
+    }
+
+    private sealed record AppLockerInspectionDto(
+        string[] LocalRuleIds,
+        string[] EffectiveRuleIds,
+        bool ManagedBaselinePresent,
+        bool UnmanagedScriptRulesPresent);
 }

@@ -10,6 +10,12 @@ using SecurityGuard.Service.Hosting;
 using SecurityGuard.Storage.Configuration;
 using SecurityGuard.Storage.Database;
 using SecurityGuard.Storage.Repositories;
+using SecurityGuard.Service.Application;
+using SecurityGuard.Service.Ipc;
+using SecurityGuard.AlgorithmGuard.Contracts;
+using SecurityGuard.AlgorithmGuard.Monitoring;
+using SecurityGuard.AlgorithmGuard.Parsing;
+using SecurityGuard.AlgorithmGuard.Services;
 
 namespace SecurityGuard.Service.DependencyInjection;
 
@@ -55,7 +61,78 @@ public static class ServiceRegistration
             IQuarantineService,
             QuarantineManager>();
 
+        services.AddSingleton<
+            ISecuritySnapshotService,
+            SecuritySnapshotService>();
+
+        services.AddSingleton<
+            ISecurityDecisionService,
+            SecurityDecisionService>();
+
+        services.AddSingleton<PipeRequestHandler>();
+
+        services.AddSingleton<InterpreterCatalog>();
+
+        services.AddSingleton<WindowsCommandLineParser>();
+
+        services.AddSingleton<
+            IProcessStartMonitor,
+            WmiProcessStartMonitor>();
+
+        services.AddSingleton<
+            IProcessMetadataProvider,
+            WmiProcessMetadataProvider>();
+
+        services.AddSingleton<
+            IAlgorithmExecutionAnalyzer,
+            AlgorithmExecutionAnalyzer>();
+
+        services.AddSingleton<AlgorithmRuleContextFactory>();
+
+        services.AddSingleton<
+            IAlgorithmTemporaryDecisionStore,
+            AlgorithmTemporaryDecisionStore>();
+
+        services.AddSingleton<
+            IInternalProcessRegistry,
+            InternalProcessRegistry>();
+
+        services.AddSingleton<PowerShellProcessRunner>();
+
+        services.AddSingleton<
+            IAuthenticodeSignatureService,
+            PowerShellAuthenticodeSignatureService>();
+
+        services.AddSingleton<
+            IAlgorithmEnforcementService,
+            AppLockerAlgorithmEnforcementService>();
+
+        services.AddSingleton<AlgorithmEnforcementSynchronizer>();
+
+        services.AddSingleton<
+            ISecurityRuleLifecycleHandler,
+            AlgorithmRuleLifecycleHandler>();
+
+        services.AddSingleton<
+            IRuleManagementService,
+            RuleManagementService>();
+
+        services.AddSingleton<AlgorithmPolicyService>();
+
+        services.AddSingleton<
+            ISecurityDecisionHandler,
+            AlgorithmDecisionHandler>();
+
+        services.AddSingleton<
+            IAlgorithmGuardMonitor,
+            AlgorithmGuardMonitor>();
+
+        services.AddHostedService<SecurityGuardPipeServer>();
         services.AddHostedService<SecurityGuardStartupService>();
+        services.AddHostedService<SecurityGuardWorker>();
+        services.AddHostedService<SecurityGuardStartupService>();
+        services.AddHostedService<SecurityGuardPipeServer>();
+        services.AddHostedService<AlgorithmGuardHostedService>();
         services.AddHostedService<SecurityGuardWorker>();
 
         return services;

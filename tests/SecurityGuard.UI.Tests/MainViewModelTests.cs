@@ -207,4 +207,55 @@ public sealed class MainViewModelTests
             2,
             DateTimeOffset.UtcNow);
     }
+
+    [Fact]
+    public async Task Refresh_loads_security_rules()
+    {
+        var client =
+            new FakeSecurityGuardClient
+            {
+                Rules =
+                [
+                    new SecurityRule(
+                        Guid.NewGuid(),
+                        "Allow script",
+                        SecurityModuleKind.AlgorithmGuard,
+                        RuleDecision.Allow,
+                        RuleScope.FileHash,
+                        "AAA",
+                        true,
+                        100,
+                        DateTimeOffset.UtcNow,
+                        null),
+
+                    new SecurityRule(
+                        Guid.NewGuid(),
+                        "Block script",
+                        SecurityModuleKind.AlgorithmGuard,
+                        RuleDecision.Block,
+                        RuleScope.FileHash,
+                        "BBB",
+                        true,
+                        200,
+                        DateTimeOffset.UtcNow,
+                        null)
+                ]
+            };
+
+        var viewModel =
+            new MainViewModel(
+                client);
+
+        await viewModel.RefreshAsync();
+
+        Assert.Equal(
+            2,
+            viewModel.Rules.Count);
+
+        Assert.Single(
+            viewModel.AllowRules);
+
+        Assert.Single(
+            viewModel.BlockRules);
+    }
 }

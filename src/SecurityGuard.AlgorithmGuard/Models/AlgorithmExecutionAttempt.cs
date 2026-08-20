@@ -13,4 +13,11 @@ public sealed record AlgorithmExecutionAttempt(
     AlgorithmInvocationType InvocationType,
     string? ScriptPath,
     string? ScriptSha256,
-    DateTimeOffset DetectedAtUtc);
+    DateTimeOffset DetectedAtUtc,
+    string? UserName = null,
+    string? ParentProcessName = null,
+    string? ParentExecutablePath = null,
+    string? ProcessPublisher = null,
+    string? ProcessSignatureStatus = null,
+    string? ScriptPublisher = null,
+    string? ScriptSignatureStatus = null);

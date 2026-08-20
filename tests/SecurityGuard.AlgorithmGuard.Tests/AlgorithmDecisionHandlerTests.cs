@@ -57,7 +57,8 @@ public sealed class AlgorithmDecisionHandlerTests
                     hashService,
                     ruleRepository,
                     new FakeQuarantineService(),
-                    new AlgorithmTemporaryDecisionStore());
+                    new AlgorithmTemporaryDecisionStore(),
+                    new FakeEnforcementService());
 
             var request =
                 new SecurityDecisionRequest(
@@ -71,21 +72,45 @@ public sealed class AlgorithmDecisionHandlerTests
                     [
                         SecurityAction.Allow
                     ],
-                    DateTimeOffset.UtcNow);
-
-            await handler.HandleAsync(
-                request,
-                new SecurityDecision(
-                    request.Id,
-                    SecurityAction.Allow,
-                    true,
-                    DateTimeOffset.UtcNow));
+                    DateTimeOffset.UtcNow,
+                    new RuleMatchContext(
+                        Process:
+                            "powershell.exe",
+                        ParentProcess:
+                            "explorer.exe",
+                        ParentProcessPath:
+                            @"C:\Windows\explorer.exe",
+                        UserName:
+                            @"DESKTOP\User",
+                        ProcessPublisher:
+                            "Microsoft"));
 
             var rules =
                 await ruleRepository.GetEnabledAsync();
 
             var rule =
                 Assert.Single(rules);
+                
+                Assert.NotNull(
+                    rule.Conditions);
+
+                Assert.Contains(
+                    rule.Conditions,
+                    condition =>
+                        condition.Scope ==
+                        RuleScope.UserName);
+
+                Assert.Contains(
+                    rule.Conditions,
+                    condition =>
+                        condition.Scope ==
+                        RuleScope.ParentProcessPath);
+
+                Assert.Contains(
+                    rule.Conditions,
+                    condition =>
+                        condition.Scope ==
+                        RuleScope.ProcessPublisher);
 
             Assert.Equal(
                 RuleScope.FileHash,
@@ -98,6 +123,100 @@ public sealed class AlgorithmDecisionHandlerTests
             Assert.Equal(
                 64,
                 rule.Value.Length);
+        }
+        finally
+        {
+            Directory.Delete(
+                root,
+                true);
+        }
+    }
+
+    [Fact]
+    public async Task Block_applies_enforcement_and_creates_rule()
+    {
+        var root =
+            Path.Combine(
+                Path.GetTempPath(),
+                "SecurityGuard.AlgorithmGuard.Tests",
+                Guid.NewGuid().ToString("N"));
+
+        Directory.CreateDirectory(root);
+
+        try
+        {
+            var factory =
+                new SqliteConnectionFactory(
+                    new StorageOptions(
+                        Path.Combine(
+                            root,
+                            "test.db")));
+
+            await new DatabaseInitializer(
+                factory).InitializeAsync();
+
+            var repository =
+                new SqliteRuleRepository(
+                    factory);
+
+            var script =
+                Path.Combine(
+                    root,
+                    "test.cmd");
+
+            await File.WriteAllTextAsync(
+                script,
+                "echo test");
+
+            var enforcement =
+                new RecordingEnforcementService();
+
+            var handler =
+                new AlgorithmDecisionHandler(
+                    new Sha256FileHashService(),
+                    repository,
+                    new FakeQuarantineService(),
+                    new AlgorithmTemporaryDecisionStore(),
+                    enforcement);
+
+            var request =
+                new SecurityDecisionRequest(
+                    Guid.NewGuid(),
+                    SecurityModuleKind.AlgorithmGuard,
+                    SecurityEventType.AlgorithmExecution,
+                    "Unknown",
+                    $"cmd.exe /c \"{script}\"",
+                    script,
+                    "cmd.exe",
+                    [
+                        SecurityAction.Block
+                    ],
+                    DateTimeOffset.UtcNow);
+
+            await handler.HandleAsync(
+                request,
+                new SecurityDecision(
+                    request.Id,
+                    SecurityAction.Block,
+                    true,
+                    DateTimeOffset.UtcNow));
+
+            Assert.True(
+                enforcement.WasCalled);
+
+            var rules =
+                await repository.GetEnabledAsync();
+
+            var rule =
+                Assert.Single(rules);
+
+            Assert.Equal(
+                RuleDecision.Block,
+                rule.Decision);
+
+            Assert.Equal(
+                RuleScope.FileHash,
+                rule.Scope);
         }
         finally
         {
@@ -132,6 +251,56 @@ public sealed class AlgorithmDecisionHandlerTests
             CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();
+        }
+    }
+
+    private sealed class FakeEnforcementService
+    : SecurityGuard.AlgorithmGuard.Contracts.IAlgorithmEnforcementService
+        {
+        public SecurityGuard.AlgorithmGuard.Enums.AlgorithmEnforcementLevel GetLevel(
+            string? filePath)
+            {
+            return SecurityGuard.AlgorithmGuard.Enums.AlgorithmEnforcementLevel.AppLockerBlocked;
+            }
+
+        public Task<SecurityGuard.AlgorithmGuard.Models.AlgorithmEnforcementResult>
+            AddBlockAsync(
+                Guid securityRuleId,
+                string filePath,
+                CancellationToken cancellationToken = default)
+            {
+            return Task.FromResult(
+                new SecurityGuard.AlgorithmGuard.Models.AlgorithmEnforcementResult(
+                    true,
+                    SecurityGuard.AlgorithmGuard.Enums.AlgorithmEnforcementLevel.AppLockerBlocked,
+                    "Applied"));
+            }
+        }
+
+        private sealed class RecordingEnforcementService
+        : SecurityGuard.AlgorithmGuard.Contracts.IAlgorithmEnforcementService
+    {
+        public bool WasCalled { get; private set; }
+
+        public SecurityGuard.AlgorithmGuard.Enums.AlgorithmEnforcementLevel GetLevel(
+            string? filePath)
+        {
+            return SecurityGuard.AlgorithmGuard.Enums.AlgorithmEnforcementLevel.AppLockerBlocked;
+        }
+
+        public Task<SecurityGuard.AlgorithmGuard.Models.AlgorithmEnforcementResult>
+            AddBlockAsync(
+                Guid securityRuleId,
+                string filePath,
+                CancellationToken cancellationToken = default)
+        {
+            WasCalled = true;
+
+            return Task.FromResult(
+                new SecurityGuard.AlgorithmGuard.Models.AlgorithmEnforcementResult(
+                    true,
+                    SecurityGuard.AlgorithmGuard.Enums.AlgorithmEnforcementLevel.AppLockerBlocked,
+                    "Applied"));
         }
     }
 }

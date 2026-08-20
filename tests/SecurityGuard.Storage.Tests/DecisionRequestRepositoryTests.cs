@@ -57,4 +57,60 @@ public sealed class DecisionRequestRepositoryTests
 
         Assert.Empty(pending);
     }
+
+    [Fact]
+    public async Task Decision_request_preserves_rule_context()
+    {
+        await using var database =
+            await TestDatabase.CreateAsync();
+
+        var repository =
+            new SqliteDecisionRequestRepository(
+                database.ConnectionFactory);
+
+        var request =
+            new SecurityDecisionRequest(
+                Guid.NewGuid(),
+                SecurityModuleKind.AlgorithmGuard,
+                SecurityEventType.AlgorithmExecution,
+                "Unknown script",
+                "powershell.exe -File test.ps1",
+                @"C:\Temp\test.ps1",
+                "powershell.exe",
+                [
+                    SecurityAction.Allow,
+                    SecurityAction.Block
+                ],
+                DateTimeOffset.UtcNow,
+                new RuleMatchContext(
+                    FileHash:
+                        "ABC",
+                    Process:
+                        "powershell.exe",
+                    ParentProcess:
+                        "explorer.exe",
+                    UserName:
+                        @"DESKTOP\User"));
+
+        await repository.AddAsync(
+            request);
+
+        var stored =
+            await repository.GetByIdAsync(
+                request.Id);
+
+        Assert.NotNull(
+            stored);
+
+        Assert.NotNull(
+            stored.RuleContext);
+
+        Assert.Equal(
+            @"DESKTOP\User",
+            stored.RuleContext.UserName);
+
+        Assert.Equal(
+            "explorer.exe",
+            stored.RuleContext.ParentProcess);
+    }
 }

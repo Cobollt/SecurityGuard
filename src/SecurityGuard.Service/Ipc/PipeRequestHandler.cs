@@ -8,13 +8,21 @@ public sealed class PipeRequestHandler
 {
     private readonly ISecuritySnapshotService _snapshotService;
     private readonly ISecurityDecisionService _decisionService;
+    private readonly IRuleManagementService _ruleManagementService;
 
     public PipeRequestHandler(
         ISecuritySnapshotService snapshotService,
-        ISecurityDecisionService decisionService)
+        ISecurityDecisionService decisionService,
+        IRuleManagementService ruleManagementService)
     {
-        _snapshotService = snapshotService;
-        _decisionService = decisionService;
+        _snapshotService =
+            snapshotService;
+
+        _decisionService =
+            decisionService;
+
+        _ruleManagementService =
+            ruleManagementService;
     }
 
     public async Task<PipeResponse> HandleAsync(
@@ -37,6 +45,16 @@ public sealed class PipeRequestHandler
 
                 PipeMessageType.SubmitDecision =>
                     await SubmitDecisionAsync(
+                        request,
+                        cancellationToken),
+
+                PipeMessageType.GetRules =>
+                    await GetRulesAsync(
+                        request,
+                        cancellationToken),
+
+                PipeMessageType.DeleteRule =>
+                    await DeleteRuleAsync(
                         request,
                         cancellationToken),
 
@@ -64,7 +82,8 @@ public sealed class PipeRequestHandler
 
         return PipeResponse.Ok(
             request.Id,
-            PipeJsonSerializer.Serialize(snapshot));
+            PipeJsonSerializer.Serialize(
+                snapshot));
     }
 
     private async Task<PipeResponse> SubmitDecisionAsync(
@@ -85,6 +104,44 @@ public sealed class PipeRequestHandler
 
         await _decisionService.ApplyAsync(
             decision,
+            cancellationToken);
+
+        return PipeResponse.Ok(
+            request.Id);
+    }
+
+    private async Task<PipeResponse> GetRulesAsync(
+        PipeRequest request,
+        CancellationToken cancellationToken)
+    {
+        var rules =
+            await _ruleManagementService.GetAllAsync(
+                cancellationToken);
+
+        return PipeResponse.Ok(
+            request.Id,
+            PipeJsonSerializer.Serialize(
+                rules));
+    }
+
+    private async Task<PipeResponse> DeleteRuleAsync(
+        PipeRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(
+                request.Payload))
+        {
+            return PipeResponse.Fail(
+                request.Id,
+                "Delete rule payload is required.");
+        }
+
+        var deleteRequest =
+            PipeJsonSerializer.Deserialize<DeleteSecurityRuleRequest>(
+                request.Payload);
+
+        await _ruleManagementService.DeleteAsync(
+            deleteRequest.RuleId,
             cancellationToken);
 
         return PipeResponse.Ok(

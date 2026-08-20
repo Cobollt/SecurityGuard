@@ -12,4 +12,5 @@ public sealed record SecurityRule(
     bool Enabled,
     int Priority,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset? ExpiresAtUtc);
+    DateTimeOffset? ExpiresAtUtc,
+    IReadOnlyList<SecurityRuleCondition>? Conditions = null);

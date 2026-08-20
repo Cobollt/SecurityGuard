@@ -12,4 +12,11 @@ public interface IAlgorithmEnforcementService
         Guid securityRuleId,
         string filePath,
         CancellationToken cancellationToken = default);
+
+    Task RemoveBlockAsync(
+        Guid securityRuleId,
+        CancellationToken cancellationToken = default);
+
+    Task<AlgorithmEnforcementSnapshot> InspectAsync(
+        CancellationToken cancellationToken = default);
 }

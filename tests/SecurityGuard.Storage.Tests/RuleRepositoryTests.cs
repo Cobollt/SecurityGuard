@@ -79,4 +79,129 @@ public sealed class RuleRepositoryTests
 
         Assert.Empty(rules);
     }
+
+    [Fact]
+        public async Task Rule_can_be_loaded_by_id()
+        {
+            var ruleId = Guid.NewGuid();
+
+            var rule = new SecurityRule(
+                ruleId,
+                "Test rule",
+                SecurityModuleKind.AlgorithmGuard,
+                RuleDecision.Block,
+                RuleScope.File,
+                "test.ps1",
+                true,
+                100,
+                DateTimeOffset.UtcNow,
+                null);
+
+            await _repository.UpsertAsync(rule);
+
+            var loaded = await _repository.GetByIdAsync(ruleId);
+
+            Assert.NotNull(loaded);
+            Assert.Equal(ruleId, loaded.Id);
+            Assert.Equal(RuleDecision.Block, loaded.Decision);
+        }
+
+        [Fact]
+        public async Task Get_all_returns_disabled_rules_too()
+        {
+            var enabledRule = new SecurityRule(
+                Guid.NewGuid(),
+                "Enabled rule",
+                SecurityModuleKind.AlgorithmGuard,
+                RuleDecision.Block,
+                RuleScope.File,
+                "enabled.ps1",
+                true,
+                100,
+                DateTimeOffset.UtcNow,
+                null);
+
+            var disabledRule = new SecurityRule(
+                Guid.NewGuid(),
+                "Disabled rule",
+                SecurityModuleKind.AlgorithmGuard,
+                RuleDecision.Block,
+                RuleScope.File,
+                "disabled.ps1",
+                false,
+                100,
+                DateTimeOffset.UtcNow,
+                null);
+
+            await _repository.UpsertAsync(enabledRule);
+            await _repository.UpsertAsync(disabledRule);
+
+            var rules = await _repository.GetAllAsync();
+
+            Assert.Contains(
+                rules,
+                rule => rule.Id == enabledRule.Id);
+
+            Assert.Contains(
+                rules,
+                rule => rule.Id == disabledRule.Id);
+        }
+
+        [Fact]
+    public async Task Compound_rule_is_saved_and_loaded()
+    {
+        await using var database =
+            await TestDatabase.CreateAsync();
+
+        var repository =
+            new SqliteRuleRepository(
+                database.ConnectionFactory);
+
+        var rule =
+            new SecurityRule(
+                Guid.NewGuid(),
+                "Compound allow",
+                SecurityModuleKind.AlgorithmGuard,
+                RuleDecision.Allow,
+                RuleScope.FileHash,
+                "ABC123",
+                true,
+                100,
+                DateTimeOffset.UtcNow,
+                null,
+                [
+                    new SecurityRuleCondition(
+                        RuleScope.UserName,
+                        @"DESKTOP\User"),
+
+                    new SecurityRuleCondition(
+                        RuleScope.ParentProcessPath,
+                        @"C:\Program Files\Backup\backup.exe")
+                ]);
+
+        await repository.UpsertAsync(
+            rule);
+
+        var stored =
+            await repository.GetByIdAsync(
+                rule.Id);
+
+        Assert.NotNull(
+            stored);
+
+        Assert.NotNull(
+            stored.Conditions);
+
+        Assert.Equal(
+            2,
+            stored.Conditions.Count);
+
+        Assert.Contains(
+            stored.Conditions,
+            condition =>
+                condition.Scope ==
+                RuleScope.UserName &&
+                condition.Value ==
+                @"DESKTOP\User");
+    }
 }

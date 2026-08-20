@@ -5,4 +5,7 @@ public sealed record ProcessMetadata(
     int? ParentProcessId,
     string ProcessName,
     string? ExecutablePath,
-    string? CommandLine);
+    string? CommandLine,
+    string? UserName = null,
+    string? ParentProcessName = null,
+    string? ParentExecutablePath = null);

@@ -13,5 +13,9 @@ public enum RuleScope
     RemoteAddress = 8,
     RemotePort = 9,
     Protocol = 10,
-    DestinationProcess = 11
+    DestinationProcess = 11,
+    CommandLine = 12,
+    UserName = 13,
+    ProcessPublisher = 14,
+    ParentProcessPath = 15
 }

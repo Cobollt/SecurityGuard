@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Hosting;
 using SecurityGuard.AlgorithmGuard.Contracts;
+using SecurityGuard.AlgorithmGuard.Services;
 using SecurityGuard.Core.Contracts;
 using SecurityGuard.Core.Enums;
 
@@ -9,17 +10,27 @@ public sealed class AlgorithmGuardHostedService
     : BackgroundService
 {
     private readonly IAlgorithmGuardMonitor _monitor;
+    private readonly AlgorithmEnforcementSynchronizer _synchronizer;
     private readonly IModuleRegistry _moduleRegistry;
     private readonly IAuditService _auditService;
 
     public AlgorithmGuardHostedService(
         IAlgorithmGuardMonitor monitor,
+        AlgorithmEnforcementSynchronizer synchronizer,
         IModuleRegistry moduleRegistry,
         IAuditService auditService)
     {
-        _monitor = monitor;
-        _moduleRegistry = moduleRegistry;
-        _auditService = auditService;
+        _monitor =
+            monitor;
+
+        _synchronizer =
+            synchronizer;
+
+        _moduleRegistry =
+            moduleRegistry;
+
+        _auditService =
+            auditService;
     }
 
     protected override async Task ExecuteAsync(
@@ -32,17 +43,31 @@ public sealed class AlgorithmGuardHostedService
 
         try
         {
-            _moduleRegistry.Set(
-                SecurityModuleKind.AlgorithmGuard,
-                ModuleOperationalState.Active,
-                "Passive monitoring is active");
+            var sync =
+                await _synchronizer.SynchronizeAsync(
+                    stoppingToken);
+
+            if (sync.Healthy)
+            {
+                _moduleRegistry.Set(
+                    SecurityModuleKind.AlgorithmGuard,
+                    ModuleOperationalState.Active,
+                    "Monitoring and enforcement are active");
+            }
+            else
+            {
+                _moduleRegistry.Set(
+                    SecurityModuleKind.AlgorithmGuard,
+                    ModuleOperationalState.Degraded,
+                    "Monitoring is active, enforcement synchronization has warnings");
+            }
 
             await _auditService.WriteAsync(
                 SecurityModuleKind.AlgorithmGuard,
                 SecurityEventType.System,
                 SecuritySeverity.Info,
                 "AlgorithmGuard started",
-                "Passive process monitoring started",
+                "Process monitoring started",
                 cancellationToken: stoppingToken);
 
             await _monitor.RunAsync(
@@ -57,7 +82,7 @@ public sealed class AlgorithmGuardHostedService
             _moduleRegistry.Set(
                 SecurityModuleKind.AlgorithmGuard,
                 ModuleOperationalState.Faulted,
-                "AlgorithmGuard monitoring failed");
+                "AlgorithmGuard failed");
 
             throw;
         }

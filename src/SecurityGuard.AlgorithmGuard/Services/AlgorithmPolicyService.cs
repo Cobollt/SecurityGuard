@@ -86,9 +86,10 @@ public sealed class AlgorithmPolicyService
             return;
         }
 
-        await CreateDecisionRequestAsync(
-            enriched,
-            cancellationToken);
+            await CreateDecisionRequestAsync(
+                enriched,
+                context,
+                cancellationToken);
     }
 
     private Task WriteAllowedOnceAsync(
@@ -147,10 +148,12 @@ public sealed class AlgorithmPolicyService
 
     private async Task CreateDecisionRequestAsync(
         AlgorithmExecutionAttempt attempt,
+        RuleMatchContext context,
         CancellationToken cancellationToken)
     {
         var actions =
-            GetAvailableActions(attempt);
+            GetAvailableActions(
+                attempt);
 
         var request =
             new SecurityDecisionRequest(
@@ -163,7 +166,8 @@ public sealed class AlgorithmPolicyService
                 attempt.ScriptPath,
                 attempt.ProcessName,
                 actions,
-                DateTimeOffset.UtcNow);
+                DateTimeOffset.UtcNow,
+                context);
 
         await _decisionRepository.AddAsync(
             request,
@@ -178,7 +182,6 @@ public sealed class AlgorithmPolicyService
             SecurityAction.None,
             cancellationToken: cancellationToken);
     }
-
     private static IReadOnlyList<SecurityAction> GetAvailableActions(
         AlgorithmExecutionAttempt attempt)
     {
@@ -213,13 +216,20 @@ public sealed class AlgorithmPolicyService
             new[]
             {
                 $"PID: {attempt.ProcessId}",
-                $"Parent PID: {attempt.ParentProcessId?.ToString() ?? "Unknown"}",
+                $"User: {attempt.UserName ?? "Unknown"}",
                 $"Process: {attempt.ProcessName}",
                 $"Executable: {attempt.ExecutablePath ?? "Unknown"}",
+                $"Process publisher: {attempt.ProcessPublisher ?? "Unknown"}",
+                $"Process signature: {attempt.ProcessSignatureStatus ?? "Unknown"}",
+                $"Parent PID: {attempt.ParentProcessId?.ToString() ?? "Unknown"}",
+                $"Parent process: {attempt.ParentProcessName ?? "Unknown"}",
+                $"Parent executable: {attempt.ParentExecutablePath ?? "Unknown"}",
                 $"Interpreter: {attempt.Interpreter}",
                 $"Invocation: {attempt.InvocationType}",
                 $"Script: {attempt.ScriptPath ?? "None"}",
                 $"SHA256: {attempt.ScriptSha256 ?? "Unknown"}",
+                $"Script publisher: {attempt.ScriptPublisher ?? "Unknown"}",
+                $"Script signature: {attempt.ScriptSignatureStatus ?? "Unknown"}",
                 $"CommandLine: {attempt.CommandLine ?? "Unknown"}"
             });
     }

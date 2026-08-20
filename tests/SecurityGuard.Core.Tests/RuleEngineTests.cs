@@ -134,5 +134,220 @@ public sealed class RuleEngineTests
         {
             return Task.CompletedTask;
         }
+
+        public Task<IReadOnlyList<SecurityRule>> GetAllAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(
+                _rules);
+        }
+
+        public Task<SecurityRule?> GetByIdAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(
+                _rules.FirstOrDefault(
+                    rule =>
+                        rule.Id == id));
+        }
+    }
+
+    [Fact]
+    public async Task Command_line_rule_can_match()
+    {
+        var rule =
+            new SecurityRule(
+                Guid.NewGuid(),
+                "Allowed command",
+                SecurityModuleKind.AlgorithmGuard,
+                RuleDecision.Allow,
+                RuleScope.CommandLine,
+                "powershell.exe -Command Get-Date",
+                true,
+                100,
+                DateTimeOffset.UtcNow,
+                null);
+
+        var engine =
+            new RuleEngine(
+                new FakeRuleRepository(
+                    [rule]));
+
+        var result =
+            await engine.EvaluateAsync(
+                SecurityModuleKind.AlgorithmGuard,
+                new RuleMatchContext(
+                    CommandLine:
+                        "powershell.exe -Command Get-Date"));
+
+        Assert.True(
+            result.Matched);
+
+        Assert.Equal(
+            RuleDecision.Allow,
+            result.Decision);
+    }
+
+    [Fact]
+    public async Task User_rule_can_match()
+    {
+        var rule =
+            new SecurityRule(
+                Guid.NewGuid(),
+                "Allowed user",
+                SecurityModuleKind.AlgorithmGuard,
+                RuleDecision.Allow,
+                RuleScope.UserName,
+                @"DESKTOP\User",
+                true,
+                100,
+                DateTimeOffset.UtcNow,
+                null);
+
+        var engine =
+            new RuleEngine(
+                new FakeRuleRepository(
+                    [rule]));
+
+        var result =
+            await engine.EvaluateAsync(
+                SecurityModuleKind.AlgorithmGuard,
+                new RuleMatchContext(
+                    UserName:
+                        @"DESKTOP\User"));
+
+        Assert.True(
+            result.Matched);
+
+        Assert.Equal(
+            RuleDecision.Allow,
+            result.Decision);
+    }
+
+    [Fact]
+    public async Task Parent_process_path_rule_can_match()
+    {
+        var rule =
+            new SecurityRule(
+                Guid.NewGuid(),
+                "Explorer parent",
+                SecurityModuleKind.AlgorithmGuard,
+                RuleDecision.Allow,
+                RuleScope.ParentProcessPath,
+                @"C:\Windows\explorer.exe",
+                true,
+                100,
+                DateTimeOffset.UtcNow,
+                null);
+
+        var engine =
+            new RuleEngine(
+                new FakeRuleRepository(
+                    [rule]));
+
+        var result =
+            await engine.EvaluateAsync(
+                SecurityModuleKind.AlgorithmGuard,
+                new RuleMatchContext(
+                    ParentProcessPath:
+                        @"C:\Windows\explorer.exe"));
+
+        Assert.True(
+            result.Matched);
+    }
+
+    [Fact]
+public async Task Compound_rule_matches_when_all_conditions_match()
+    {
+        var rule =
+            new SecurityRule(
+                Guid.NewGuid(),
+                "Trusted backup script",
+                SecurityModuleKind.AlgorithmGuard,
+                RuleDecision.Allow,
+                RuleScope.FileHash,
+                "ABC123",
+                true,
+                100,
+                DateTimeOffset.UtcNow,
+                null,
+                [
+                    new SecurityRuleCondition(
+                        RuleScope.UserName,
+                        @"DESKTOP\User"),
+
+                    new SecurityRuleCondition(
+                        RuleScope.ParentProcess,
+                        "backup.exe")
+                ]);
+
+        var engine =
+            new RuleEngine(
+                new FakeRuleRepository(
+                    [rule]));
+
+        var result =
+            await engine.EvaluateAsync(
+                SecurityModuleKind.AlgorithmGuard,
+                new RuleMatchContext(
+                    FileHash:
+                        "ABC123",
+                    UserName:
+                        @"DESKTOP\User",
+                    ParentProcess:
+                        "backup.exe"));
+
+        Assert.True(
+            result.Matched);
+
+        Assert.Equal(
+            RuleDecision.Allow,
+            result.Decision);
+    }
+
+    [Fact]
+    public async Task Compound_rule_does_not_match_when_one_condition_differs()
+    {
+        var rule =
+            new SecurityRule(
+                Guid.NewGuid(),
+                "Trusted backup script",
+                SecurityModuleKind.AlgorithmGuard,
+                RuleDecision.Allow,
+                RuleScope.FileHash,
+                "ABC123",
+                true,
+                100,
+                DateTimeOffset.UtcNow,
+                null,
+                [
+                    new SecurityRuleCondition(
+                        RuleScope.UserName,
+                        @"DESKTOP\User"),
+
+                    new SecurityRuleCondition(
+                        RuleScope.ParentProcess,
+                        "backup.exe")
+                ]);
+
+        var engine =
+            new RuleEngine(
+                new FakeRuleRepository(
+                    [rule]));
+
+        var result =
+            await engine.EvaluateAsync(
+                SecurityModuleKind.AlgorithmGuard,
+                new RuleMatchContext(
+                    FileHash:
+                        "ABC123",
+                    UserName:
+                        @"DESKTOP\User",
+                    ParentProcess:
+                        "explorer.exe"));
+
+        Assert.False(
+            result.Matched);
     }
 }

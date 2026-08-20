@@ -5,6 +5,7 @@ using SecurityGuard.Core.Models;
 namespace SecurityGuard.UI.Services;
 
 public sealed class SecurityGuardClient
+    : ISecurityGuardClient
 {
     public async Task<bool> PingAsync(
         CancellationToken cancellationToken = default)
@@ -47,16 +48,64 @@ public sealed class SecurityGuardClient
             response.Payload);
     }
 
+    public async Task<IReadOnlyList<SecurityRule>> GetRulesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var request =
+            PipeRequest.Create(
+                PipeMessageType.GetRules);
+
+        var response =
+            await SendAsync(
+                request,
+                cancellationToken);
+
+        EnsureSuccess(response);
+
+        if (string.IsNullOrWhiteSpace(
+                response.Payload))
+        {
+            return [];
+        }
+
+        return PipeJsonSerializer.Deserialize<List<SecurityRule>>(
+            response.Payload);
+    }
+
     public async Task SubmitDecisionAsync(
         SecurityDecision decision,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(decision);
+        ArgumentNullException.ThrowIfNull(
+            decision);
 
         var request =
             PipeRequest.Create(
                 PipeMessageType.SubmitDecision,
-                PipeJsonSerializer.Serialize(decision));
+                PipeJsonSerializer.Serialize(
+                    decision));
+
+        var response =
+            await SendAsync(
+                request,
+                cancellationToken);
+
+        EnsureSuccess(response);
+    }
+
+    public async Task DeleteRuleAsync(
+        Guid ruleId,
+        CancellationToken cancellationToken = default)
+    {
+        var payload =
+            new DeleteSecurityRuleRequest(
+                ruleId);
+
+        var request =
+            PipeRequest.Create(
+                PipeMessageType.DeleteRule,
+                PipeJsonSerializer.Serialize(
+                    payload));
 
         var response =
             await SendAsync(
@@ -91,7 +140,8 @@ public sealed class SecurityGuardClient
                 pipe,
                 cancellationToken);
 
-        if (response.RequestId != request.Id)
+        if (response.RequestId !=
+            request.Id)
         {
             throw new InvalidDataException(
                 "IPC response does not match request.");

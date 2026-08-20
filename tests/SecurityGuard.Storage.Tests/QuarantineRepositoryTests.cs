@@ -1,46 +1,188 @@
+using SecurityGuard.Core.Contracts;
+using SecurityGuard.Core.Ipc;
 using SecurityGuard.Core.Models;
-using SecurityGuard.Storage.Repositories;
+using SecurityGuard.Service.Ipc;
 
-namespace SecurityGuard.Storage.Tests;
+namespace SecurityGuard.Service.Tests;
 
-public sealed class QuarantineRepositoryTests
+public sealed class PipeRequestHandlerTests
 {
     [Fact]
-    public async Task Quarantine_record_can_be_saved()
+    public async Task Ping_returns_pong()
     {
-        await using var database =
-            await TestDatabase.CreateAsync();
+        var handler =
+            CreateHandler();
 
-        var repository =
-            new SqliteQuarantineRepository(
-                database.ConnectionFactory);
+        var request =
+            PipeRequest.Create(
+                PipeMessageType.Ping);
 
-        var record =
-            new QuarantineRecord(
-                Guid.NewGuid(),
-                @"C:\Downloads\test.ps1",
-                @"C:\ProgramData\SecurityGuard\Quarantine\Q001.sgq",
-                "test.ps1",
-                "ABC123",
-                512,
-                "AlgorithmGuard",
-                "Unauthorized execution",
+        var response =
+            await handler.HandleAsync(
+                request);
+
+        Assert.True(
+            response.Success);
+
+        Assert.Equal(
+            "PONG",
+            response.Payload);
+
+        Assert.Equal(
+            request.Id,
+            response.RequestId);
+    }
+
+    [Fact]
+    public async Task Snapshot_is_serialized()
+    {
+        var snapshot =
+            new SecuritySnapshot(
+                [],
+                [],
+                [],
+                3,
                 DateTimeOffset.UtcNow);
 
-        await repository.AddAsync(record);
+        var handler =
+            new PipeRequestHandler(
+                new FakeSnapshotService(snapshot),
+                new FakeDecisionService());
 
-        var stored =
-            await repository.GetByIdAsync(
-                record.Id);
+        var request =
+            PipeRequest.Create(
+                PipeMessageType.GetSnapshot);
 
-        Assert.NotNull(stored);
+        var response =
+            await handler.HandleAsync(
+                request);
+
+        Assert.True(
+            response.Success);
+
+        Assert.NotNull(
+            response.Payload);
+
+        var restored =
+            PipeJsonSerializer.Deserialize<SecuritySnapshot>(
+                response.Payload);
 
         Assert.Equal(
-            record.Sha256,
-            stored.Sha256);
+            3,
+            restored.QuarantineCount);
+    }
+
+    [Fact]
+    public async Task Decision_is_forwarded()
+    {
+        var decisionService =
+            new FakeDecisionService();
+
+        var handler =
+            new PipeRequestHandler(
+                new FakeSnapshotService(
+                    CreateEmptySnapshot()),
+                decisionService);
+
+        var decision =
+            new SecurityDecision(
+                Guid.NewGuid(),
+                SecurityGuard.Core.Enums.SecurityAction.AllowOnce,
+                false,
+                DateTimeOffset.UtcNow);
+
+        var request =
+            PipeRequest.Create(
+                PipeMessageType.SubmitDecision,
+                PipeJsonSerializer.Serialize(
+                    decision));
+
+        var response =
+            await handler.HandleAsync(
+                request);
+
+        Assert.True(
+            response.Success);
+
+        Assert.NotNull(
+            decisionService.Decision);
 
         Assert.Equal(
-            "AlgorithmGuard",
-            stored.SourceModule);
+            decision.RequestId,
+            decisionService.Decision.RequestId);
+    }
+
+    [Fact]
+    public async Task Missing_decision_payload_is_rejected()
+    {
+        var handler =
+            CreateHandler();
+
+        var request =
+            PipeRequest.Create(
+                PipeMessageType.SubmitDecision);
+
+        var response =
+            await handler.HandleAsync(
+                request);
+
+        Assert.False(
+            response.Success);
+
+        Assert.Equal(
+            "Decision payload is required.",
+            response.Error);
+    }
+
+    private static PipeRequestHandler CreateHandler()
+    {
+        return new PipeRequestHandler(
+            new FakeSnapshotService(
+                CreateEmptySnapshot()),
+            new FakeDecisionService());
+    }
+
+    private static SecuritySnapshot CreateEmptySnapshot()
+    {
+        return new SecuritySnapshot(
+            [],
+            [],
+            [],
+            0,
+            DateTimeOffset.UtcNow);
+    }
+
+    private sealed class FakeSnapshotService
+        : ISecuritySnapshotService
+    {
+        private readonly SecuritySnapshot _snapshot;
+
+        public FakeSnapshotService(
+            SecuritySnapshot snapshot)
+        {
+            _snapshot = snapshot;
+        }
+
+        public Task<SecuritySnapshot> GetAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(
+                _snapshot);
+        }
+    }
+
+    private sealed class FakeDecisionService
+        : ISecurityDecisionService
+    {
+        public SecurityDecision? Decision { get; private set; }
+
+        public Task ApplyAsync(
+            SecurityDecision decision,
+            CancellationToken cancellationToken = default)
+        {
+            Decision = decision;
+
+            return Task.CompletedTask;
+        }
     }
 }

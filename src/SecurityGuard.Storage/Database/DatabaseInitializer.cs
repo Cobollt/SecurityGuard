@@ -56,6 +56,23 @@ public sealed class DatabaseInitializer
                 expires_at_utc TEXT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS rule_conditions
+            (
+                rule_id TEXT NOT NULL,
+                position INTEGER NOT NULL,
+                scope INTEGER NOT NULL,
+                value TEXT NOT NULL,
+
+                PRIMARY KEY (rule_id, position),
+
+                FOREIGN KEY (rule_id)
+                    REFERENCES rules(id)
+                    ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS ix_rule_conditions_rule_id
+            ON rule_conditions(rule_id);
+
             CREATE INDEX IF NOT EXISTS idx_rules_module
             ON rules(module);
 
@@ -108,6 +125,16 @@ public sealed class DatabaseInitializer
                 process_name TEXT NULL,
                 available_actions_json TEXT NOT NULL,
                 created_at_utc TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS decision_request_contexts
+            (
+                request_id TEXT PRIMARY KEY,
+                context_json TEXT NOT NULL,
+
+                FOREIGN KEY (request_id)
+                    REFERENCES decision_requests(id)
+                    ON DELETE CASCADE
             );
 
             CREATE INDEX IF NOT EXISTS idx_decision_requests_created
