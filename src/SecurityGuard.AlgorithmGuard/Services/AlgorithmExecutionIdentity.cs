@@ -1,37 +1,50 @@
+using System.Security.Cryptography;
+using System.Text;
 using SecurityGuard.AlgorithmGuard.Models;
 
 namespace SecurityGuard.AlgorithmGuard.Services;
 
 public static class AlgorithmExecutionIdentity
 {
-    private async Task<string> CreateIdentityAsync(
-    SecurityDecisionRequest request,
-    CancellationToken cancellationToken)
-{
-    if (!string.IsNullOrWhiteSpace(
-            request.FilePath) &&
-        File.Exists(
-            request.FilePath))
+    public static string Create(
+        AlgorithmExecutionAttempt attempt)
     {
+        ArgumentNullException.ThrowIfNull(
+            attempt);
+
+        var source =
+            string.Join(
+                "\n",
+                new[]
+                {
+                    attempt.Interpreter.ToString(),
+                    attempt.InvocationType.ToString(),
+                    Normalize(attempt.ScriptSha256),
+                    Normalize(attempt.ScriptPath),
+                    Normalize(attempt.ProcessName),
+                    Normalize(attempt.CommandLine),
+                    Normalize(attempt.UserName),
+                    Normalize(attempt.ParentProcessName),
+                    Normalize(attempt.ParentExecutablePath),
+                    Normalize(attempt.ProcessPublisher)
+                });
+
+        var bytes =
+            Encoding.UTF8.GetBytes(
+                source);
+
         var hash =
-            await _hashService.ComputeSha256Async(
-                request.FilePath,
-                cancellationToken);
+            SHA256.HashData(
+                bytes);
 
-        return $"HASH:{hash}";
+        return $"ALG:{Convert.ToHexString(hash)}";
     }
 
-    if (!string.IsNullOrWhiteSpace(
-            request.Description))
+    private static string Normalize(
+        string? value)
     {
-        return string.Join(
-            ":",
-            "COMMAND",
-            request.ProcessName ?? string.Empty,
-            request.Description);
+        return string.IsNullOrWhiteSpace(value)
+            ? string.Empty
+            : value.Trim().ToUpperInvariant();
     }
-
-    throw new InvalidOperationException(
-        "Unable to determine execution identity.");
-}
 }

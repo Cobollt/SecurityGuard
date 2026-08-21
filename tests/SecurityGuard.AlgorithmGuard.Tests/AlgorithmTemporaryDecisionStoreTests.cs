@@ -11,15 +11,33 @@ public sealed class AlgorithmTemporaryDecisionStoreTests
             new AlgorithmTemporaryDecisionStore();
 
         store.AllowOnce(
-            "HASH:ABC");
+            "ALG:ABC",
+            DateTimeOffset.UtcNow +
+            TimeSpan.FromMinutes(1));
 
         Assert.True(
             store.TryConsumeAllowOnce(
-                "HASH:ABC"));
+                "ALG:ABC"));
 
         Assert.False(
             store.TryConsumeAllowOnce(
-                "HASH:ABC"));
+                "ALG:ABC"));
+    }
+
+    [Fact]
+    public void Expired_allow_once_is_rejected()
+    {
+        var store =
+            new AlgorithmTemporaryDecisionStore();
+
+        store.AllowOnce(
+            "ALG:ABC",
+            DateTimeOffset.UtcNow -
+            TimeSpan.FromSeconds(1));
+
+        Assert.False(
+            store.TryConsumeAllowOnce(
+                "ALG:ABC"));
     }
 
     [Fact]
@@ -30,6 +48,6 @@ public sealed class AlgorithmTemporaryDecisionStoreTests
 
         Assert.False(
             store.TryConsumeAllowOnce(
-                "HASH:UNKNOWN"));
+                "ALG:UNKNOWN"));
     }
 }

@@ -113,4 +113,170 @@ public sealed class DecisionRequestRepositoryTests
             "explorer.exe",
             stored.RuleContext.ParentProcess);
     }
+
+    [Fact]
+    public async Task Duplicate_identity_is_not_added()
+    {
+        await using var database =
+            await TestDatabase.CreateAsync();
+
+        var repository =
+            new SqliteDecisionRequestRepository(
+                database.ConnectionFactory);
+
+        var first =
+            new SecurityDecisionRequest(
+                Guid.NewGuid(),
+                SecurityModuleKind.AlgorithmGuard,
+                SecurityEventType.AlgorithmExecution,
+                "Unknown",
+                "powershell.exe -File test.ps1",
+                @"C:\Temp\test.ps1",
+                "powershell.exe",
+                [
+                    SecurityAction.Allow,
+                    SecurityAction.Block
+                ],
+                DateTimeOffset.UtcNow,
+                null,
+                "ALG:ABC");
+
+        var second =
+            first with
+            {
+                Id =
+                    Guid.NewGuid()
+            };
+
+        var firstAdded =
+            await repository.TryAddAsync(
+                first);
+
+        var secondAdded =
+            await repository.TryAddAsync(
+                second);
+
+        Assert.True(
+            firstAdded);
+
+        Assert.False(
+            secondAdded);
+
+        var pending =
+            await repository.GetPendingAsync();
+
+        Assert.Single(
+            pending);
+    }
+
+    [Fact]
+    public async Task Decision_can_be_found_by_identity()
+    {
+        await using var database =
+            await TestDatabase.CreateAsync();
+
+        var repository =
+            new SqliteDecisionRequestRepository(
+                database.ConnectionFactory);
+
+        var request =
+            new SecurityDecisionRequest(
+                Guid.NewGuid(),
+                SecurityModuleKind.AlgorithmGuard,
+                SecurityEventType.AlgorithmExecution,
+                "Unknown",
+                "powershell.exe",
+                null,
+                "powershell.exe",
+                [
+                    SecurityAction.AllowOnce
+                ],
+                DateTimeOffset.UtcNow,
+                null,
+                "ALG:123");
+
+        await repository.AddAsync(
+            request);
+
+        var stored =
+            await repository.GetByIdentityAsync(
+                "ALG:123");
+
+        Assert.NotNull(
+            stored);
+
+        Assert.Equal(
+            request.Id,
+            stored.Id);
+    }
+
+    [Fact]
+    public async Task Old_decision_requests_are_removed()
+    {
+        await using var database =
+            await TestDatabase.CreateAsync();
+
+        var repository =
+            new SqliteDecisionRequestRepository(
+                database.ConnectionFactory);
+
+        var oldRequest =
+            new SecurityDecisionRequest(
+                Guid.NewGuid(),
+                SecurityModuleKind.AlgorithmGuard,
+                SecurityEventType.AlgorithmExecution,
+                "Old",
+                "Old",
+                null,
+                "powershell.exe",
+                [
+                    SecurityAction.AllowOnce
+                ],
+                DateTimeOffset.UtcNow -
+                TimeSpan.FromHours(1),
+                null,
+                "ALG:OLD");
+
+        var newRequest =
+            new SecurityDecisionRequest(
+                Guid.NewGuid(),
+                SecurityModuleKind.AlgorithmGuard,
+                SecurityEventType.AlgorithmExecution,
+                "New",
+                "New",
+                null,
+                "powershell.exe",
+                [
+                    SecurityAction.AllowOnce
+                ],
+                DateTimeOffset.UtcNow,
+                null,
+                "ALG:NEW");
+
+        await repository.AddAsync(
+            oldRequest);
+
+        await repository.AddAsync(
+            newRequest);
+
+        var removed =
+            await repository.RemoveOlderThanAsync(
+                DateTimeOffset.UtcNow -
+                TimeSpan.FromMinutes(10));
+
+        Assert.Equal(
+            1,
+            removed);
+
+        var remaining =
+            await repository.GetPendingAsync();
+
+        var request =
+            Assert.Single(
+                remaining);
+
+        Assert.Equal(
+            newRequest.Id,
+            request.Id);
+    }
 }

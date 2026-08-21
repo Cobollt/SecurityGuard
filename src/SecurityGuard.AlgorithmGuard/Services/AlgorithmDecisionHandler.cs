@@ -3,6 +3,7 @@ using SecurityGuard.AlgorithmGuard.Models;
 using SecurityGuard.Core.Contracts;
 using SecurityGuard.Core.Enums;
 using SecurityGuard.Core.Models;
+using SecurityGuard.AlgorithmGuard.Configuration;
 
 namespace SecurityGuard.AlgorithmGuard.Services;
 
@@ -14,13 +15,15 @@ public sealed class AlgorithmDecisionHandler
     private readonly IQuarantineService _quarantineService;
     private readonly IAlgorithmTemporaryDecisionStore _temporaryDecisionStore;
     private readonly IAlgorithmEnforcementService _enforcementService;
+    private readonly AlgorithmGuardOptions _options;
 
     public AlgorithmDecisionHandler(
         IFileHashService hashService,
         IRuleRepository ruleRepository,
         IQuarantineService quarantineService,
         IAlgorithmTemporaryDecisionStore temporaryDecisionStore,
-        IAlgorithmEnforcementService enforcementService)
+        IAlgorithmEnforcementService enforcementService,
+        AlgorithmGuardOptions options)
     {
         _hashService =
             hashService;
@@ -36,6 +39,9 @@ public sealed class AlgorithmDecisionHandler
 
         _enforcementService =
             enforcementService;
+
+        _options =
+            options;
     }
 
     public SecurityModuleKind Module =>
@@ -131,12 +137,21 @@ public sealed class AlgorithmDecisionHandler
         CancellationToken cancellationToken)
     {
         var identity =
-            await CreateIdentityAsync(
-                request,
-                cancellationToken);
+            request.Identity;
+
+        if (string.IsNullOrWhiteSpace(
+                identity))
+        {
+            identity =
+                await CreateLegacyIdentityAsync(
+                    request,
+                    cancellationToken);
+        }
 
         _temporaryDecisionStore.AllowOnce(
-            identity);
+            identity,
+            DateTimeOffset.UtcNow +
+            _options.AllowOnceLifetime);
     }
 
     private async Task CreateRuleAsync(
@@ -403,5 +418,29 @@ public sealed class AlgorithmDecisionHandler
             RuleDecision.Allow => 100,
             _ => 0
         };
+    }
+
+    private async Task<string> CreateLegacyIdentityAsync(
+        SecurityDecisionRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(
+                request.FilePath) &&
+            File.Exists(
+                request.FilePath))
+        {
+            var hash =
+                await _hashService.ComputeSha256Async(
+                    request.FilePath,
+                    cancellationToken);
+
+            return $"LEGACY-HASH:{hash}";
+        }
+
+        return string.Join(
+            ":",
+            "LEGACY-COMMAND",
+            request.ProcessName ?? string.Empty,
+            request.Description);
     }
 }

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SecurityGuard.AlgorithmGuard.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+61f0569a9a7dae154e71451829ddbee1711141cc")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+fd8f869751cd409ed7201e4a09eb1c3175924a51")]
 [assembly: System.Reflection.AssemblyProductAttribute("SecurityGuard.AlgorithmGuard.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SecurityGuard.AlgorithmGuard.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

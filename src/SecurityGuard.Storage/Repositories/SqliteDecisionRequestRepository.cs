@@ -24,6 +24,25 @@ public sealed class SqliteDecisionRequestRepository
         SecurityDecisionRequest request,
         CancellationToken cancellationToken = default)
     {
+        var added =
+            await TryAddAsync(
+                request,
+                cancellationToken);
+
+        if (!added)
+        {
+            throw new InvalidOperationException(
+                $"Pending decision with identity '{request.Identity}' already exists.");
+        }
+    }
+
+    public async Task<bool> TryAddAsync(
+        SecurityDecisionRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(
+            request);
+
         await using var connection =
             await _connectionFactory.OpenAsync(
                 cancellationToken);
@@ -130,10 +149,7 @@ public sealed class SqliteDecisionRequestRepository
                     (
                         $requestId,
                         $context
-                    )
-                    ON CONFLICT(request_id)
-                    DO UPDATE SET
-                        context_json = excluded.context_json;
+                    );
                     """;
 
                 contextCommand.Parameters.AddWithValue(
@@ -149,8 +165,54 @@ public sealed class SqliteDecisionRequestRepository
                     cancellationToken);
             }
 
+            if (!string.IsNullOrWhiteSpace(
+                    request.Identity))
+            {
+                await using var identityCommand =
+                    connection.CreateCommand();
+
+                identityCommand.Transaction =
+                    (SqliteTransaction)transaction;
+
+                identityCommand.CommandText =
+                    """
+                    INSERT OR IGNORE INTO decision_request_identities
+                    (
+                        request_id,
+                        identity
+                    )
+                    VALUES
+                    (
+                        $requestId,
+                        $identity
+                    );
+                    """;
+
+                identityCommand.Parameters.AddWithValue(
+                    "$requestId",
+                    request.Id.ToString());
+
+                identityCommand.Parameters.AddWithValue(
+                    "$identity",
+                    request.Identity);
+
+                var affected =
+                    await identityCommand.ExecuteNonQueryAsync(
+                        cancellationToken);
+
+                if (affected == 0)
+                {
+                    await transaction.RollbackAsync(
+                        cancellationToken);
+
+                    return false;
+                }
+            }
+
             await transaction.CommitAsync(
                 cancellationToken);
+
+            return true;
         }
         catch
         {
@@ -172,21 +234,8 @@ public sealed class SqliteDecisionRequestRepository
             connection.CreateCommand();
 
         command.CommandText =
+            BuildSelectSql() +
             """
-            SELECT
-                d.id,
-                d.module,
-                d.event_type,
-                d.title,
-                d.description,
-                d.file_path,
-                d.process_name,
-                d.available_actions_json,
-                d.created_at_utc,
-                c.context_json
-            FROM decision_requests d
-            LEFT JOIN decision_request_contexts c
-                ON c.request_id = d.id
             ORDER BY d.created_at_utc ASC;
             """;
 
@@ -207,21 +256,8 @@ public sealed class SqliteDecisionRequestRepository
             connection.CreateCommand();
 
         command.CommandText =
+            BuildSelectSql() +
             """
-            SELECT
-                d.id,
-                d.module,
-                d.event_type,
-                d.title,
-                d.description,
-                d.file_path,
-                d.process_name,
-                d.available_actions_json,
-                d.created_at_utc,
-                c.context_json
-            FROM decision_requests d
-            LEFT JOIN decision_request_contexts c
-                ON c.request_id = d.id
             WHERE d.id = $id
             LIMIT 1;
             """;
@@ -236,6 +272,64 @@ public sealed class SqliteDecisionRequestRepository
                 cancellationToken);
 
         return results.FirstOrDefault();
+    }
+
+    public async Task<SecurityDecisionRequest?> GetByIdentityAsync(
+        string identity,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(
+            identity);
+
+        await using var connection =
+            await _connectionFactory.OpenAsync(
+                cancellationToken);
+
+        await using var command =
+            connection.CreateCommand();
+
+        command.CommandText =
+            BuildSelectSql() +
+            """
+            WHERE i.identity = $identity
+            LIMIT 1;
+            """;
+
+        command.Parameters.AddWithValue(
+            "$identity",
+            identity);
+
+        var results =
+            await ReadAsync(
+                command,
+                cancellationToken);
+
+        return results.FirstOrDefault();
+    }
+
+    public async Task<int> RemoveOlderThanAsync(
+        DateTimeOffset cutoffUtc,
+        CancellationToken cancellationToken = default)
+    {
+        await using var connection =
+            await _connectionFactory.OpenAsync(
+                cancellationToken);
+
+        await using var command =
+            connection.CreateCommand();
+
+        command.CommandText =
+            """
+            DELETE FROM decision_requests
+            WHERE created_at_utc < $cutoff;
+            """;
+
+        command.Parameters.AddWithValue(
+            "$cutoff",
+            cutoffUtc.ToString("O"));
+
+        return await command.ExecuteNonQueryAsync(
+            cancellationToken);
     }
 
     public async Task RemoveAsync(
@@ -261,6 +355,30 @@ public sealed class SqliteDecisionRequestRepository
 
         await command.ExecuteNonQueryAsync(
             cancellationToken);
+    }
+
+    private static string BuildSelectSql()
+    {
+        return
+            """
+            SELECT
+                d.id,
+                d.module,
+                d.event_type,
+                d.title,
+                d.description,
+                d.file_path,
+                d.process_name,
+                d.available_actions_json,
+                d.created_at_utc,
+                c.context_json,
+                i.identity
+            FROM decision_requests d
+            LEFT JOIN decision_request_contexts c
+                ON c.request_id = d.id
+            LEFT JOIN decision_request_identities i
+                ON i.request_id = d.id
+            """;
     }
 
     private static async Task<IReadOnlyList<SecurityDecisionRequest>> ReadAsync(
@@ -292,6 +410,11 @@ public sealed class SqliteDecisionRequestRepository
                         reader.GetString(9));
             }
 
+            var identity =
+                reader.IsDBNull(10)
+                    ? null
+                    : reader.GetString(10);
+
             results.Add(
                 new SecurityDecisionRequest(
                     Guid.Parse(
@@ -311,7 +434,8 @@ public sealed class SqliteDecisionRequestRepository
                         reader.GetString(8),
                         CultureInfo.InvariantCulture,
                         DateTimeStyles.RoundtripKind),
-                    context));
+                    context,
+                    identity));
         }
 
         return results;

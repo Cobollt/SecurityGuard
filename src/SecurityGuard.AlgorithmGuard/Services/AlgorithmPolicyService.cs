@@ -4,6 +4,7 @@ using SecurityGuard.AlgorithmGuard.Models;
 using SecurityGuard.Core.Contracts;
 using SecurityGuard.Core.Enums;
 using SecurityGuard.Core.Models;
+using SecurityGuard.AlgorithmGuard.Configuration;
 
 namespace SecurityGuard.AlgorithmGuard.Services;
 
@@ -15,6 +16,7 @@ public sealed class AlgorithmPolicyService
     private readonly IRuleEngine _ruleEngine;
     private readonly IDecisionRequestRepository _decisionRepository;
     private readonly IAuditService _auditService;
+    private readonly AlgorithmGuardOptions _options;
 
     public AlgorithmPolicyService(
         AlgorithmObservationService observationService,
@@ -22,7 +24,8 @@ public sealed class AlgorithmPolicyService
         IAlgorithmTemporaryDecisionStore temporaryDecisionStore,
         IRuleEngine ruleEngine,
         IDecisionRequestRepository decisionRepository,
-        IAuditService auditService)
+        IAuditService auditService,
+        AlgorithmGuardOptions options)
     {
         _observationService =
             observationService;
@@ -41,6 +44,9 @@ public sealed class AlgorithmPolicyService
 
         _auditService =
             auditService;
+
+        _options =
+            options;
     }
 
     public async Task HandleAsync(
@@ -85,10 +91,10 @@ public sealed class AlgorithmPolicyService
 
             return;
         }
-
             await CreateDecisionRequestAsync(
                 enriched,
                 context,
+                identity,
                 cancellationToken);
     }
 
@@ -149,8 +155,16 @@ public sealed class AlgorithmPolicyService
     private async Task CreateDecisionRequestAsync(
         AlgorithmExecutionAttempt attempt,
         RuleMatchContext context,
+        string identity,
         CancellationToken cancellationToken)
     {
+        var now =
+            DateTimeOffset.UtcNow;
+
+        await _decisionRepository.RemoveOlderThanAsync(
+            now - _options.PendingDecisionLifetime,
+            cancellationToken);
+
         var actions =
             GetAvailableActions(
                 attempt);
@@ -166,12 +180,19 @@ public sealed class AlgorithmPolicyService
                 attempt.ScriptPath,
                 attempt.ProcessName,
                 actions,
-                DateTimeOffset.UtcNow,
-                context);
+                now,
+                context,
+                identity);
 
-        await _decisionRepository.AddAsync(
-            request,
-            cancellationToken);
+        var added =
+            await _decisionRepository.TryAddAsync(
+                request,
+                cancellationToken);
+
+        if (!added)
+        {
+            return;
+        }
 
         await _auditService.WriteAsync(
             SecurityModuleKind.AlgorithmGuard,

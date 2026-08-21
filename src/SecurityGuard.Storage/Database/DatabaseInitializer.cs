@@ -137,6 +137,20 @@ public sealed class DatabaseInitializer
                     ON DELETE CASCADE
             );
 
+            CREATE TABLE IF NOT EXISTS decision_request_identities
+            (
+                request_id TEXT NOT NULL PRIMARY KEY,
+                identity TEXT NOT NULL UNIQUE,
+
+                FOREIGN KEY (request_id)
+                    REFERENCES decision_requests(id)
+                    ON DELETE CASCADE
+            );
+
+            CREATE UNIQUE INDEX IF NOT EXISTS
+            ix_decision_request_identities_identity
+            ON decision_request_identities(identity);
+
             CREATE INDEX IF NOT EXISTS idx_decision_requests_created
             ON decision_requests(created_at_utc);
 

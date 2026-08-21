@@ -16,6 +16,7 @@ using SecurityGuard.AlgorithmGuard.Contracts;
 using SecurityGuard.AlgorithmGuard.Monitoring;
 using SecurityGuard.AlgorithmGuard.Parsing;
 using SecurityGuard.AlgorithmGuard.Services;
+using SecurityGuard.AlgorithmGuard.Configuration;
 
 namespace SecurityGuard.Service.DependencyInjection;
 
@@ -50,6 +51,12 @@ public static class ServiceRegistration
 
         services.AddSingleton<IFileHashService, Sha256FileHashService>();
         services.AddSingleton<IAuditService, AuditService>();
+
+        services.AddSingleton(
+            new AlgorithmGuardOptions());
+
+        services.AddSingleton<
+            AlgorithmDecisionMaintenanceService>();
 
         services.AddSingleton<
             IFileAccessProtectionService,
@@ -134,6 +141,8 @@ public static class ServiceRegistration
         services.AddHostedService<SecurityGuardPipeServer>();
         services.AddHostedService<AlgorithmGuardHostedService>();
         services.AddHostedService<SecurityGuardWorker>();
+        services.AddHostedService<
+            AlgorithmDecisionMaintenanceHostedService>();
 
         return services;
     }
