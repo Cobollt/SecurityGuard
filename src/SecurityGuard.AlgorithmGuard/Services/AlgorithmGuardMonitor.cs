@@ -7,22 +7,29 @@ public sealed class AlgorithmGuardMonitor
 {
     private readonly IProcessStartMonitor _processStartMonitor;
     private readonly IProcessMetadataProvider _metadataProvider;
+    private readonly IProcessAncestryProvider _ancestryProvider;
     private readonly IAlgorithmExecutionAnalyzer _analyzer;
     private readonly AlgorithmPolicyService _policyService;
     private readonly IInternalProcessRegistry _internalProcessRegistry;
+    private readonly InterpreterCatalog _interpreterCatalog;
 
     public AlgorithmGuardMonitor(
         IProcessStartMonitor processStartMonitor,
         IProcessMetadataProvider metadataProvider,
+        IProcessAncestryProvider ancestryProvider,
         IAlgorithmExecutionAnalyzer analyzer,
         AlgorithmPolicyService policyService,
-        IInternalProcessRegistry internalProcessRegistry)
+        IInternalProcessRegistry internalProcessRegistry,
+        InterpreterCatalog interpreterCatalog)
     {
         _processStartMonitor =
             processStartMonitor;
 
         _metadataProvider =
             metadataProvider;
+
+        _ancestryProvider =
+            ancestryProvider;
 
         _analyzer =
             analyzer;
@@ -32,6 +39,9 @@ public sealed class AlgorithmGuardMonitor
 
         _internalProcessRegistry =
             internalProcessRegistry;
+
+        _interpreterCatalog =
+            interpreterCatalog;
     }
 
     public async Task RunAsync(
@@ -75,6 +85,27 @@ public sealed class AlgorithmGuardMonitor
                 {
                     continue;
                 }
+
+                var ancestry =
+                    await _ancestryProvider.GetAsync(
+                        metadata,
+                        cancellationToken);
+
+                var correlationId =
+                    AlgorithmExecutionChainId.Create(
+                        metadata,
+                        ancestry,
+                        _interpreterCatalog);
+
+                attempt =
+                    attempt with
+                    {
+                        ExecutionChain =
+                            ancestry,
+
+                        CorrelationId =
+                            correlationId
+                    };
 
                 await _policyService.HandleAsync(
                     attempt,

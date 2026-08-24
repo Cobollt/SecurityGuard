@@ -87,6 +87,10 @@ public static class ServiceRegistration
             WmiProcessStartMonitor>();
 
         services.AddSingleton<
+            IProcessAncestryProvider,
+            WmiProcessAncestryProvider>();
+
+        services.AddSingleton<
             IProcessMetadataProvider,
             WmiProcessMetadataProvider>();
 

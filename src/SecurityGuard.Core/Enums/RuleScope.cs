@@ -17,5 +17,8 @@ public enum RuleScope
     CommandLine = 12,
     UserName = 13,
     ProcessPublisher = 14,
-    ParentProcessPath = 15
+    ParentProcessPath = 15,
+    RootProcess = 16,
+    RootProcessPath = 17,
+    ExecutionChain = 18
 }

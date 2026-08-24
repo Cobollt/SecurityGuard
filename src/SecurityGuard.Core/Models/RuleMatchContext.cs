@@ -16,4 +16,7 @@ public sealed record RuleMatchContext(
     string? CommandLine = null,
     string? UserName = null,
     string? ProcessPublisher = null,
-    string? ParentProcessPath = null);
+    string? ParentProcessPath = null,
+    string? RootProcess = null,
+    string? RootProcessPath = null,
+    string? ExecutionChain = null);

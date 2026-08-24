@@ -26,7 +26,8 @@ public static class AlgorithmExecutionIdentity
                     Normalize(attempt.UserName),
                     Normalize(attempt.ParentProcessName),
                     Normalize(attempt.ParentExecutablePath),
-                    Normalize(attempt.ProcessPublisher)
+                    Normalize(attempt.ProcessPublisher),
+                    Normalize(BuildExecutionChain(attempt))
                 });
 
         var bytes =
@@ -46,5 +47,23 @@ public static class AlgorithmExecutionIdentity
         return string.IsNullOrWhiteSpace(value)
             ? string.Empty
             : value.Trim().ToUpperInvariant();
+    }
+
+    private static string BuildExecutionChain(
+        AlgorithmExecutionAttempt attempt)
+    {
+        var ancestry =
+            attempt.ExecutionChain ??
+            [];
+
+        return string.Join(
+            ">",
+            ancestry
+                .Reverse()
+                .Select(
+                    item =>
+                        $"{item.ProcessName}|{item.ExecutablePath}")
+                .Append(
+                    $"{attempt.ProcessName}|{attempt.ExecutablePath}"));
     }
 }

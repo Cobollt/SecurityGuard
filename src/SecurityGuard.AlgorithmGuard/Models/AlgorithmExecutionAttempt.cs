@@ -20,4 +20,6 @@ public sealed record AlgorithmExecutionAttempt(
     string? ProcessPublisher = null,
     string? ProcessSignatureStatus = null,
     string? ScriptPublisher = null,
-    string? ScriptSignatureStatus = null);
+    string? ScriptSignatureStatus = null,
+    IReadOnlyList<ProcessAncestryEntry>? ExecutionChain = null,
+    Guid? CorrelationId = null);

@@ -15,8 +15,11 @@ public sealed class AlgorithmExecutionAnalyzer
         InterpreterCatalog catalog,
         WindowsCommandLineParser commandLineParser)
     {
-        _catalog = catalog;
-        _commandLineParser = commandLineParser;
+        _catalog =
+            catalog;
+
+        _commandLineParser =
+            commandLineParser;
     }
 
     public AlgorithmExecutionAttempt? Analyze(
@@ -30,7 +33,8 @@ public sealed class AlgorithmExecutionAnalyzer
             return null;
         }
 
-        IReadOnlyList<string> arguments = [];
+        IReadOnlyList<string> arguments =
+            [];
 
         if (!string.IsNullOrWhiteSpace(
                 metadata.CommandLine))
@@ -43,13 +47,15 @@ public sealed class AlgorithmExecutionAnalyzer
             }
             catch
             {
-                arguments = [];
+                arguments =
+                    [];
             }
         }
 
         var analysis =
             AnalyzeArguments(
                 interpreter,
+                metadata.ProcessName,
                 arguments);
 
         return new AlgorithmExecutionAttempt(
@@ -71,6 +77,7 @@ public sealed class AlgorithmExecutionAnalyzer
 
     private static InvocationAnalysis AnalyzeArguments(
         InterpreterKind interpreter,
+        string processName,
         IReadOnlyList<string> arguments)
     {
         if (arguments.Count <= 1)
@@ -83,16 +90,21 @@ public sealed class AlgorithmExecutionAnalyzer
         return interpreter switch
         {
             InterpreterKind.PowerShell =>
-                AnalyzePowerShell(arguments),
+                AnalyzePowerShell(
+                    processName,
+                    arguments),
 
             InterpreterKind.CommandShell =>
-                AnalyzeCommandShell(arguments),
+                AnalyzeCommandShell(
+                    arguments),
 
             InterpreterKind.WindowsScriptHost =>
-                AnalyzeWindowsScriptHost(arguments),
+                AnalyzeWindowsScriptHost(
+                    arguments),
 
             InterpreterKind.Python =>
-                AnalyzePython(arguments),
+                AnalyzePython(
+                    arguments),
 
             _ =>
                 new InvocationAnalysis(
@@ -102,8 +114,16 @@ public sealed class AlgorithmExecutionAnalyzer
     }
 
     private static InvocationAnalysis AnalyzePowerShell(
+        string processName,
         IReadOnlyList<string> arguments)
     {
+        var isPwsh =
+            string.Equals(
+                Path.GetFileName(
+                    processName),
+                "pwsh.exe",
+                StringComparison.OrdinalIgnoreCase);
+
         for (var index = 1;
              index < arguments.Count;
              index++)
@@ -114,7 +134,12 @@ public sealed class AlgorithmExecutionAnalyzer
             if (Matches(
                     argument,
                     "-EncodedCommand",
-                    "-Enc"))
+                    "-Enc",
+                    "-EC") ||
+                isPwsh &&
+                Matches(
+                    argument,
+                    "-E"))
             {
                 return new InvocationAnalysis(
                     AlgorithmInvocationType.EncodedCommand,
@@ -126,6 +151,25 @@ public sealed class AlgorithmExecutionAnalyzer
                     "-Command",
                     "-C"))
             {
+                if (index + 1 <
+                    arguments.Count &&
+                    arguments[index + 1] == "-")
+                {
+                    return new InvocationAnalysis(
+                        AlgorithmInvocationType.StandardInput,
+                        null);
+                }
+
+                return new InvocationAnalysis(
+                    AlgorithmInvocationType.InlineCommand,
+                    null);
+            }
+
+            if (isPwsh &&
+                Matches(
+                    argument,
+                    "-CommandWithArgs"))
+            {
                 return new InvocationAnalysis(
                     AlgorithmInvocationType.InlineCommand,
                     null);
@@ -133,13 +177,30 @@ public sealed class AlgorithmExecutionAnalyzer
 
             if (Matches(
                     argument,
-                    "-File") &&
-                index + 1 < arguments.Count)
+                    "-File"))
             {
+                if (index + 1 >=
+                    arguments.Count)
+                {
+                    return new InvocationAnalysis(
+                        AlgorithmInvocationType.Unknown,
+                        null);
+                }
+
+                var file =
+                    arguments[index + 1];
+
+                if (file == "-")
+                {
+                    return new InvocationAnalysis(
+                        AlgorithmInvocationType.StandardInput,
+                        null);
+                }
+
                 return new InvocationAnalysis(
                     AlgorithmInvocationType.ScriptFile,
                     NormalizeScriptPath(
-                        arguments[index + 1]));
+                        file));
             }
 
             if (HasExtension(
@@ -148,7 +209,8 @@ public sealed class AlgorithmExecutionAnalyzer
             {
                 return new InvocationAnalysis(
                     AlgorithmInvocationType.ScriptFile,
-                    NormalizeScriptPath(argument));
+                    NormalizeScriptPath(
+                        argument));
             }
         }
 
@@ -172,24 +234,26 @@ public sealed class AlgorithmExecutionAnalyzer
                 continue;
             }
 
-            if (index + 1 >= arguments.Count)
+            if (index + 1 >=
+                arguments.Count)
             {
                 return new InvocationAnalysis(
                     AlgorithmInvocationType.InlineCommand,
                     null);
             }
 
-            var next =
+            var command =
                 arguments[index + 1];
 
             if (HasExtension(
-                    next,
+                    command,
                     ".cmd",
                     ".bat"))
             {
                 return new InvocationAnalysis(
                     AlgorithmInvocationType.ScriptFile,
-                    NormalizeScriptPath(next));
+                    NormalizeScriptPath(
+                        command));
             }
 
             return new InvocationAnalysis(
@@ -214,7 +278,12 @@ public sealed class AlgorithmExecutionAnalyzer
 
             if (argument.StartsWith(
                     "//",
-                    StringComparison.Ordinal))
+                    StringComparison.Ordinal) ||
+                argument.StartsWith(
+                    "/",
+                    StringComparison.Ordinal) &&
+                !Path.IsPathRooted(
+                    argument))
             {
                 continue;
             }
@@ -222,12 +291,16 @@ public sealed class AlgorithmExecutionAnalyzer
             if (HasExtension(
                     argument,
                     ".vbs",
+                    ".vbe",
                     ".js",
-                    ".wsf"))
+                    ".jse",
+                    ".wsf",
+                    ".ws"))
             {
                 return new InvocationAnalysis(
                     AlgorithmInvocationType.ScriptFile,
-                    NormalizeScriptPath(argument));
+                    NormalizeScriptPath(
+                        argument));
             }
         }
 
@@ -256,14 +329,33 @@ public sealed class AlgorithmExecutionAnalyzer
                     null);
             }
 
+            if (string.Equals(
+                    argument,
+                    "-m",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return new InvocationAnalysis(
+                    AlgorithmInvocationType.Module,
+                    null);
+            }
+
+            if (argument == "-")
+            {
+                return new InvocationAnalysis(
+                    AlgorithmInvocationType.StandardInput,
+                    null);
+            }
+
             if (HasExtension(
                     argument,
                     ".py",
-                    ".pyw"))
+                    ".pyw",
+                    ".pyz"))
             {
                 return new InvocationAnalysis(
                     AlgorithmInvocationType.ScriptFile,
-                    NormalizeScriptPath(argument));
+                    NormalizeScriptPath(
+                        argument));
             }
         }
 
@@ -289,7 +381,8 @@ public sealed class AlgorithmExecutionAnalyzer
         params string[] extensions)
     {
         var extension =
-            Path.GetExtension(path);
+            Path.GetExtension(
+                path);
 
         return extensions.Any(
             candidate =>
@@ -302,14 +395,16 @@ public sealed class AlgorithmExecutionAnalyzer
     private static string NormalizeScriptPath(
         string path)
     {
-        if (!Path.IsPathRooted(path))
+        if (!Path.IsPathRooted(
+                path))
         {
             return path;
         }
 
         try
         {
-            return Path.GetFullPath(path);
+            return Path.GetFullPath(
+                path);
         }
         catch
         {

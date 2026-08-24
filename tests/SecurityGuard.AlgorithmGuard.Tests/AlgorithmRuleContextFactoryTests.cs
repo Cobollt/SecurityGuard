@@ -106,4 +106,55 @@ public sealed class AlgorithmRuleContextFactoryTests
             "Microsoft Corporation",
             context.Publisher);
     }
+
+    [Fact]
+    public void Execution_chain_is_mapped()
+    {
+        var attempt =
+            new AlgorithmExecutionAttempt(
+                Guid.NewGuid(),
+                300,
+                200,
+                "powershell.exe",
+                @"C:\Windows\powershell.exe",
+                "powershell.exe -File test.ps1",
+                InterpreterKind.PowerShell,
+                AlgorithmInvocationType.ScriptFile,
+                @"C:\Temp\test.ps1",
+                "ABC",
+                DateTimeOffset.UtcNow,
+                ExecutionChain:
+                [
+                    new ProcessAncestryEntry(
+                        200,
+                        100,
+                        "cmd.exe",
+                        @"C:\Windows\System32\cmd.exe",
+                        DateTimeOffset.UtcNow),
+
+                    new ProcessAncestryEntry(
+                        100,
+                        50,
+                        "explorer.exe",
+                        @"C:\Windows\explorer.exe",
+                        DateTimeOffset.UtcNow)
+                ]);
+
+        var context =
+            new AlgorithmRuleContextFactory()
+                .Create(
+                    attempt);
+
+        Assert.Equal(
+            "explorer.exe",
+            context.RootProcess);
+
+        Assert.Equal(
+            @"C:\Windows\explorer.exe",
+            context.RootProcessPath);
+
+        Assert.Equal(
+            "explorer.exe > cmd.exe > powershell.exe",
+            context.ExecutionChain);
+    }
 }

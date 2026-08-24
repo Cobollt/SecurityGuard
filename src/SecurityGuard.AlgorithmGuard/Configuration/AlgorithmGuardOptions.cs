@@ -10,4 +10,7 @@ public sealed class AlgorithmGuardOptions
 
     public TimeSpan MaintenanceInterval { get; init; } =
         TimeSpan.FromMinutes(1);
+
+    public int MaxAncestorDepth { get; init; } =
+        8;
 }

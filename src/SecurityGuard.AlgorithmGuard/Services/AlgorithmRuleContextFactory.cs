@@ -26,6 +26,13 @@ public sealed class AlgorithmRuleContextFactory
                     attempt.ScriptPath);
         }
 
+        var ancestry =
+            attempt.ExecutionChain ??
+            [];
+
+        var root =
+            ancestry.LastOrDefault();
+
         return new RuleMatchContext(
             FileHash:
                 attempt.ScriptSha256,
@@ -62,6 +69,37 @@ public sealed class AlgorithmRuleContextFactory
                 attempt.ProcessPublisher,
 
             ParentProcessPath:
-                attempt.ParentExecutablePath);
+                attempt.ParentExecutablePath,
+
+            RootProcess:
+                root?.ProcessName,
+
+            RootProcessPath:
+                root?.ExecutablePath,
+
+            ExecutionChain:
+                BuildExecutionChain(
+                    attempt));
+    }
+
+    private static string BuildExecutionChain(
+        AlgorithmExecutionAttempt attempt)
+    {
+        var ancestors =
+            attempt.ExecutionChain ??
+            [];
+
+        var names =
+            ancestors
+                .Reverse()
+                .Select(
+                    item =>
+                        item.ProcessName)
+                .Append(
+                    attempt.ProcessName);
+
+        return string.Join(
+            " > ",
+            names);
     }
 }

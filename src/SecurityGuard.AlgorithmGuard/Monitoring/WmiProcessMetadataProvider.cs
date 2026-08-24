@@ -50,7 +50,8 @@ public sealed class WmiProcessMetadataProvider
                     ParentProcessId,
                     Name,
                     ExecutablePath,
-                    CommandLine
+                    CommandLine,
+                    CreationDatex
                 FROM Win32_Process
                 WHERE ProcessId = {processId}
                 """);
@@ -97,11 +98,41 @@ public sealed class WmiProcessMetadataProvider
                         process["CommandLine"]),
                     owner,
                     parentName,
-                    parentPath);
+                    parentPath,
+                    GetCreationTime(
+                        process["CreationDate"]));
             }
         }
 
         return null;
+    }
+
+    private static DateTimeOffset? GetCreationTime(
+        object? value)
+    {
+        var text =
+            Convert.ToString(
+                value);
+
+        if (string.IsNullOrWhiteSpace(
+                text))
+        {
+            return null;
+        }
+
+        try
+        {
+            var dateTime =
+                ManagementDateTimeConverter.ToDateTime(
+                    text);
+
+            return new DateTimeOffset(
+                dateTime.ToUniversalTime());
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static string? GetOwner(

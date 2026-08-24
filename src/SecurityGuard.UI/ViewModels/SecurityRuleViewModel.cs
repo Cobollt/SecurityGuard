@@ -185,6 +185,15 @@ public sealed class SecurityRuleViewModel
             RuleScope.DestinationProcess =>
                 "Процесс назначения",
 
+            RuleScope.RootProcess =>
+                "Исходный процесс",
+
+            RuleScope.RootProcessPath =>
+                "Путь исходного процесса",
+
+            RuleScope.ExecutionChain =>
+                "Цепочка запуска",
+
             _ =>
                 scope.ToString()
         };

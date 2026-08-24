@@ -9,12 +9,17 @@ public sealed class InterpreterCatalog
         {
             ["powershell.exe"] = InterpreterKind.PowerShell,
             ["pwsh.exe"] = InterpreterKind.PowerShell,
+
             ["cmd.exe"] = InterpreterKind.CommandShell,
+
             ["wscript.exe"] = InterpreterKind.WindowsScriptHost,
             ["cscript.exe"] = InterpreterKind.WindowsScriptHost,
+
             ["python.exe"] = InterpreterKind.Python,
             ["python3.exe"] = InterpreterKind.Python,
-            ["pythonw.exe"] = InterpreterKind.Python
+            ["pythonw.exe"] = InterpreterKind.Python,
+            ["py.exe"] = InterpreterKind.Python,
+            ["pyw.exe"] = InterpreterKind.Python
         };
 
     public bool TryGetInterpreter(
@@ -24,11 +29,9 @@ public sealed class InterpreterCatalog
         ArgumentException.ThrowIfNullOrWhiteSpace(
             processName);
 
-        var name =
-            Path.GetFileName(processName);
-
         return Interpreters.TryGetValue(
-            name,
+            Path.GetFileName(
+                processName),
             out interpreter);
     }
 }

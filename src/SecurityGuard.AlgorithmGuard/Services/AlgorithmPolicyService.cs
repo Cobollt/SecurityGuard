@@ -108,6 +108,7 @@ public sealed class AlgorithmPolicyService
             SecuritySeverity.Info,
             "Algorithm allowed once",
             BuildDetails(attempt),
+            correlationId: attempt.CorrelationId,
             SecurityAction.AllowOnce,
             cancellationToken: cancellationToken);
     }
@@ -149,6 +150,7 @@ public sealed class AlgorithmPolicyService
             title,
             BuildDetails(attempt),
             action,
+            correlationId: attempt.CorrelationId,
             cancellationToken: cancellationToken);
     }
 
@@ -201,7 +203,25 @@ public sealed class AlgorithmPolicyService
             "Algorithm requires decision",
             BuildDetails(attempt),
             SecurityAction.None,
+            correlationId: attempt.CorrelationId,
             cancellationToken: cancellationToken);
+    }
+    private static string BuildExecutionChain(
+        AlgorithmExecutionAttempt attempt)
+    {
+        var ancestry =
+            attempt.ExecutionChain ??
+            [];
+
+        return string.Join(
+            " > ",
+            ancestry
+                .Reverse()
+                .Select(
+                    item =>
+                        item.ProcessName)
+                .Append(
+                    attempt.ProcessName));
     }
     private static IReadOnlyList<SecurityAction> GetAvailableActions(
         AlgorithmExecutionAttempt attempt)
@@ -245,6 +265,7 @@ public sealed class AlgorithmPolicyService
                 $"Parent PID: {attempt.ParentProcessId?.ToString() ?? "Unknown"}",
                 $"Parent process: {attempt.ParentProcessName ?? "Unknown"}",
                 $"Parent executable: {attempt.ParentExecutablePath ?? "Unknown"}",
+                $"Execution chain: {BuildExecutionChain(attempt)}",
                 $"Interpreter: {attempt.Interpreter}",
                 $"Invocation: {attempt.InvocationType}",
                 $"Script: {attempt.ScriptPath ?? "None"}",

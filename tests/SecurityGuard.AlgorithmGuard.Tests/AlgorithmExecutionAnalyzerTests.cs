@@ -190,4 +190,73 @@ public sealed class AlgorithmExecutionAnalyzerTests
             signal,
             metadata);
     }
+
+    [Fact]
+    public void PowerShell_file_stdin_is_detected()
+    {
+        var result =
+            Analyze(
+                "powershell.exe",
+                "powershell.exe -File -");
+
+        Assert.NotNull(
+            result);
+
+        Assert.Equal(
+            AlgorithmInvocationType.StandardInput,
+            result.InvocationType);
+    }
+
+    [Fact]
+    public void Pwsh_command_with_args_is_detected()
+    {
+        var result =
+            Analyze(
+                "pwsh.exe",
+                """
+                pwsh.exe -CommandWithArgs "Get-Process"
+                """);
+
+        Assert.NotNull(
+            result);
+
+        Assert.Equal(
+            AlgorithmInvocationType.InlineCommand,
+            result.InvocationType);
+    }
+
+    [Fact]
+    public void Python_module_is_detected()
+    {
+        var result =
+            Analyze(
+                "python.exe",
+                "python.exe -m http.server");
+
+        Assert.NotNull(
+            result);
+
+        Assert.Equal(
+            AlgorithmInvocationType.Module,
+            result.InvocationType);
+
+        Assert.Null(
+            result.ScriptPath);
+    }
+
+    [Fact]
+    public void Python_stdin_is_detected()
+    {
+        var result =
+            Analyze(
+                "python.exe",
+                "python.exe -");
+
+        Assert.NotNull(
+            result);
+
+        Assert.Equal(
+            AlgorithmInvocationType.StandardInput,
+            result.InvocationType);
+    }
 }

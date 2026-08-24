@@ -147,6 +147,14 @@ public sealed class RuleEngine
                 RuleScope.ParentProcessPath =>
                     context.ParentProcessPath,
 
+                RuleScope.RootProcess =>
+                    context.RootProcess,
+
+                RuleScope.RootProcessPath =>
+                    context.RootProcessPath,
+
+                RuleScope.ExecutionChain =>
+                    context.ExecutionChain,
                 _ =>
                     null
             };

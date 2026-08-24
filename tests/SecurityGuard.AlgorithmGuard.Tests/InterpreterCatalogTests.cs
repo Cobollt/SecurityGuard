@@ -14,6 +14,8 @@ public sealed class InterpreterCatalogTests
     [InlineData("python.exe", InterpreterKind.Python)]
     [InlineData("python3.exe", InterpreterKind.Python)]
     [InlineData("pythonw.exe", InterpreterKind.Python)]
+    [InlineData("py.exe", InterpreterKind.Python)]
+    [InlineData("pyw.exe", InterpreterKind.Python)]
     public void Known_interpreter_is_detected(
         string processName,
         InterpreterKind expected)
@@ -45,5 +47,27 @@ public sealed class InterpreterCatalogTests
                 out _);
 
         Assert.False(result);
+    }
+
+    [Theory]
+    [InlineData("test.wsf")]
+    [InlineData("test.vbs")]
+    [InlineData("test.vbe")]
+    [InlineData("test.js")]
+    [InlineData("test.jse")]
+    public void Windows_script_host_file_is_detected(
+        string fileName)
+    {
+        var result =
+            Analyze(
+                "cscript.exe",
+                $"cscript.exe C:\\Temp\\{fileName}");
+
+        Assert.NotNull(
+            result);
+
+        Assert.Equal(
+            AlgorithmInvocationType.ScriptFile,
+            result.InvocationType);
     }
 }
