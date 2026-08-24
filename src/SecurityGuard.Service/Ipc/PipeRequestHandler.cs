@@ -1,6 +1,8 @@
 using SecurityGuard.Core.Contracts;
 using SecurityGuard.Core.Ipc;
 using SecurityGuard.Core.Models;
+using SecurityGuard.AlgorithmGuard.Contracts;
+using SecurityGuard.AlgorithmGuard.Models;
 
 namespace SecurityGuard.Service.Ipc;
 
@@ -9,11 +11,13 @@ public sealed class PipeRequestHandler
     private readonly ISecuritySnapshotService _snapshotService;
     private readonly ISecurityDecisionService _decisionService;
     private readonly IRuleManagementService _ruleManagementService;
+    private readonly IAlgorithmGuardSettingsCoordinator _algorithmGuardSettings;
 
     public PipeRequestHandler(
         ISecuritySnapshotService snapshotService,
         ISecurityDecisionService decisionService,
-        IRuleManagementService ruleManagementService)
+        IRuleManagementService ruleManagementService,
+        IAlgorithmGuardSettingsCoordinator algorithmGuardSettings)
     {
         _snapshotService =
             snapshotService;
@@ -23,6 +27,9 @@ public sealed class PipeRequestHandler
 
         _ruleManagementService =
             ruleManagementService;
+
+        _algorithmGuardSettings =
+            algorithmGuardSettings;
     }
 
     public async Task<PipeResponse> HandleAsync(
@@ -55,6 +62,16 @@ public sealed class PipeRequestHandler
 
                 PipeMessageType.DeleteRule =>
                     await DeleteRuleAsync(
+                        request,
+                        cancellationToken),
+
+                PipeMessageType.GetAlgorithmGuardSettings =>
+                    await GetAlgorithmGuardSettingsAsync(
+                        request,
+                        cancellationToken),
+
+                PipeMessageType.UpdateAlgorithmGuardSettings =>
+                    await UpdateAlgorithmGuardSettingsAsync(
                         request,
                         cancellationToken),
 
@@ -142,6 +159,44 @@ public sealed class PipeRequestHandler
 
         await _ruleManagementService.DeleteAsync(
             deleteRequest.RuleId,
+            cancellationToken);
+
+        return PipeResponse.Ok(
+            request.Id);
+    }
+
+        private async Task<PipeResponse> GetAlgorithmGuardSettingsAsync(
+        PipeRequest request,
+        CancellationToken cancellationToken)
+    {
+        var settings =
+            await _algorithmGuardSettings.GetAsync(
+                cancellationToken);
+
+        return PipeResponse.Ok(
+            request.Id,
+            PipeJsonSerializer.Serialize(
+                settings));
+    }
+
+    private async Task<PipeResponse> UpdateAlgorithmGuardSettingsAsync(
+        PipeRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(
+                request.Payload))
+        {
+            return PipeResponse.Fail(
+                request.Id,
+                "AlgorithmGuard settings payload is required.");
+        }
+
+        var settings =
+            PipeJsonSerializer.Deserialize<AlgorithmGuardSettings>(
+                request.Payload);
+
+        await _algorithmGuardSettings.UpdateAsync(
+            settings,
             cancellationToken);
 
         return PipeResponse.Ok(

@@ -118,8 +118,6 @@ public static class ServiceRegistration
             IAlgorithmEnforcementService,
             AppLockerAlgorithmEnforcementService>();
 
-        services.AddSingleton<AlgorithmEnforcementSynchronizer>();
-
         services.AddSingleton<
             ISecurityRuleLifecycleHandler,
             AlgorithmRuleLifecycleHandler>();
@@ -138,12 +136,36 @@ public static class ServiceRegistration
             IAlgorithmGuardMonitor,
             AlgorithmGuardMonitor>();
 
+        services.AddSingleton<
+            IAlgorithmGuardSettingsService,
+            AlgorithmGuardSettingsService>();
+
+        services.AddSingleton<
+            IAlgorithmEnforcementSynchronizer,
+            AlgorithmEnforcementSynchronizer>();
+
+        services.AddSingleton<
+            IAlgorithmGuardSettingsCoordinator,
+            AlgorithmGuardSettingsCoordinator>();
+
         services.AddHostedService<SecurityGuardPipeServer>();
         services.AddHostedService<SecurityGuardStartupService>();
         services.AddHostedService<SecurityGuardWorker>();
         services.AddHostedService<SecurityGuardStartupService>();
         services.AddHostedService<SecurityGuardPipeServer>();
-        services.AddHostedService<AlgorithmGuardHostedService>();
+        services.AddSingleton<AlgorithmGuardHostedService>();
+
+        services.AddSingleton<
+            IAlgorithmGuardRuntimeController>(
+                provider =>
+                    provider.GetRequiredService<
+                        AlgorithmGuardHostedService>());
+
+        services.AddHostedService(
+            provider =>
+                provider.GetRequiredService<
+                    AlgorithmGuardHostedService>());
+                    
         services.AddHostedService<SecurityGuardWorker>();
         services.AddHostedService<
             AlgorithmDecisionMaintenanceHostedService>();

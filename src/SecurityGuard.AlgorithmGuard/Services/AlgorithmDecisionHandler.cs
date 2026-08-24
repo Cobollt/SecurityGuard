@@ -16,6 +16,7 @@ public sealed class AlgorithmDecisionHandler
     private readonly IAlgorithmTemporaryDecisionStore _temporaryDecisionStore;
     private readonly IAlgorithmEnforcementService _enforcementService;
     private readonly AlgorithmGuardOptions _options;
+    private readonly IAlgorithmGuardRuntimeController _runtimeController;
 
     public AlgorithmDecisionHandler(
         IFileHashService hashService,
@@ -103,34 +104,81 @@ public sealed class AlgorithmDecisionHandler
                 RuleDecision.Block,
                 cancellationToken);
 
-        if (!string.IsNullOrWhiteSpace(
+        var settings =
+            _runtimeController.CurrentSettings;
+
+        if (!settings.Enabled ||
+            settings.Mode ==
+            Enums.AlgorithmGuardMode.Monitor)
+        {
+            await _ruleRepository.UpsertAsync(
+                rule,
+                cancellationToken);
+
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(
                 request.FilePath))
         {
-            var level =
-                _enforcementService.GetLevel(
-                    request.FilePath);
+            await _ruleRepository.UpsertAsync(
+                rule,
+                cancellationToken);
 
-            if (level !=
-                Enums.AlgorithmEnforcementLevel.Unsupported)
+            return;
+        }
+
+        var level =
+            _enforcementService.GetLevel(
+                request.FilePath);
+
+        if (level ==
+            Enums.AlgorithmEnforcementLevel.Unsupported)
+        {
+            await _ruleRepository.UpsertAsync(
+                rule,
+                cancellationToken);
+
+            return;
+        }
+
+        try
+        {
+            var result =
+                await _enforcementService.AddBlockAsync(
+                    rule.Id,
+                    request.FilePath,
+                    cancellationToken);
+
+            if (!result.Applied)
             {
-                var result =
-                    await _enforcementService.AddBlockAsync(
-                        rule.Id,
-                        request.FilePath,
-                        cancellationToken);
-
-                if (!result.Applied)
-                {
-                    throw new InvalidOperationException(
-                        result.Message);
-                }
+                throw new InvalidOperationException(
+                    result.Message);
             }
+        }
+        catch (Exception exception)
+        {
+            await _runtimeController.ReportEnforcementFailureAsync(
+                exception.Message,
+                cancellationToken);
+
+            if (settings.FailurePolicy ==
+                Enums.EnforcementFailurePolicy.FailClosed)
+            {
+                throw;
+            }
+
+            await _ruleRepository.UpsertAsync(
+                rule,
+                cancellationToken);
+
+            return;
         }
 
         await _ruleRepository.UpsertAsync(
             rule,
             cancellationToken);
-        }
+    }
 
     private async Task AllowOnceAsync(
         SecurityDecisionRequest request,

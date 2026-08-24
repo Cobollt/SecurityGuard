@@ -7,7 +7,7 @@ using SecurityGuard.Core.Models;
 
 namespace SecurityGuard.AlgorithmGuard.Services;
 
-public sealed class AlgorithmEnforcementSynchronizer
+public sealed class AlgorithmEnforcementSynchronizer : IAlgorithmEnforcementSynchronizer
 {
     private readonly IRuleRepository _ruleRepository;
     private readonly IProtectedObjectRepository _protectedObjectRepository;
@@ -293,5 +293,39 @@ public sealed class AlgorithmEnforcementSynchronizer
             title,
             details,
             cancellationToken: cancellationToken);
+    }
+
+    public async Task<int> DisableManagedRulesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var snapshot =
+            await _enforcementService.InspectAsync(
+                cancellationToken);
+
+        var removed =
+            0;
+
+        foreach (var ruleId in
+                snapshot.LocalManagedRuleIds)
+        {
+            await _enforcementService.RemoveBlockAsync(
+                ruleId,
+                cancellationToken);
+
+            removed++;
+        }
+
+        if (removed > 0)
+        {
+            await _auditService.WriteAsync(
+                SecurityModuleKind.AlgorithmGuard,
+                SecurityEventType.System,
+                SecuritySeverity.Info,
+                "AlgorithmGuard enforcement disabled",
+                $"Removed managed AppLocker rules: {removed}",
+                cancellationToken: cancellationToken);
+        }
+
+        return removed;
     }
 }

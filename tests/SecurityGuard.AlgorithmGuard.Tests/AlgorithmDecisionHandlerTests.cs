@@ -52,13 +52,18 @@ public sealed class AlgorithmDecisionHandlerTests
             var hashService =
                 new Sha256FileHashService();
 
+            var runtime =
+                new FakeRuntimeController();
+
             var handler =
                 new AlgorithmDecisionHandler(
                     hashService,
                     ruleRepository,
                     new FakeQuarantineService(),
                     new AlgorithmTemporaryDecisionStore(),
-                    new FakeEnforcementService());
+                    new FakeEnforcementService(),
+                    new AlgorithmGuardOptions(),
+                    runtime);
 
             var request =
                 new SecurityDecisionRequest(
@@ -171,13 +176,25 @@ public sealed class AlgorithmDecisionHandlerTests
             var enforcement =
                 new RecordingEnforcementService();
 
+            var runtime =
+                new FakeRuntimeController
+                {
+                    CurrentSettings =
+                        new AlgorithmGuardSettings(
+                            true,
+                            AlgorithmGuardMode.Enforce,
+                            EnforcementFailurePolicy.FailClosed)
+                };
+
             var handler =
                 new AlgorithmDecisionHandler(
-                    new Sha256FileHashService(),
-                    repository,
+                    hashService,
+                    ruleRepository,
                     new FakeQuarantineService(),
                     new AlgorithmTemporaryDecisionStore(),
-                    enforcement);
+                    new FakeEnforcementService(),
+                    new AlgorithmGuardOptions(),
+                    runtime);
 
             var request =
                 new SecurityDecisionRequest(
@@ -301,6 +318,142 @@ public sealed class AlgorithmDecisionHandlerTests
                     true,
                     SecurityGuard.AlgorithmGuard.Enums.AlgorithmEnforcementLevel.AppLockerBlocked,
                     "Applied"));
+        }
+    }
+
+    private sealed class FakeRuntimeController
+        : SecurityGuard.AlgorithmGuard.Contracts.IAlgorithmGuardRuntimeController
+    {
+        public AlgorithmGuardSettings CurrentSettings { get; set; } =
+            new(
+                true,
+                SecurityGuard.AlgorithmGuard.Enums.AlgorithmGuardMode.Monitor,
+                SecurityGuard.AlgorithmGuard.Enums.EnforcementFailurePolicy.FailOpen);
+
+        public string? EnforcementFailure { get; private set; }
+
+        public Task ApplyAsync(
+            AlgorithmGuardSettings settings,
+            CancellationToken cancellationToken = default)
+        {
+            CurrentSettings =
+                settings;
+
+            return Task.CompletedTask;
+        }
+
+        public Task ReportEnforcementFailureAsync(
+            string message,
+            CancellationToken cancellationToken = default)
+        {
+            EnforcementFailure =
+                message;
+
+            return Task.CompletedTask;
+        }
+    }
+
+    [Fact]
+    public async Task Block_in_monitor_mode_does_not_apply_os_enforcement()
+    {
+        var root =
+            Path.Combine(
+                Path.GetTempPath(),
+                "SecurityGuard.AlgorithmGuard.Tests",
+                Guid.NewGuid().ToString("N"));
+
+        Directory.CreateDirectory(
+            root);
+
+        try
+        {
+            var factory =
+                new SqliteConnectionFactory(
+                    new StorageOptions(
+                        Path.Combine(
+                            root,
+                            "test.db")));
+
+            await new DatabaseInitializer(
+                factory).InitializeAsync();
+
+            var repository =
+                new SqliteRuleRepository(
+                    factory);
+
+            var script =
+                Path.Combine(
+                    root,
+                    "monitor.cmd");
+
+            await File.WriteAllTextAsync(
+                script,
+                "echo monitor");
+
+            var enforcement =
+                new RecordingEnforcementService();
+
+            var runtime =
+                new FakeRuntimeController
+                {
+                    CurrentSettings =
+                        new AlgorithmGuardSettings(
+                            true,
+                            AlgorithmGuardMode.Monitor,
+                            EnforcementFailurePolicy.FailOpen)
+                };
+
+            var handler =
+                new AlgorithmDecisionHandler(
+                    new Sha256FileHashService(),
+                    repository,
+                    new FakeQuarantineService(),
+                    new AlgorithmTemporaryDecisionStore(),
+                    enforcement,
+                    new AlgorithmGuardOptions(),
+                    runtime);
+
+            var request =
+                new SecurityDecisionRequest(
+                    Guid.NewGuid(),
+                    SecurityModuleKind.AlgorithmGuard,
+                    SecurityEventType.AlgorithmExecution,
+                    "Unknown",
+                    $"cmd.exe /c \"{script}\"",
+                    script,
+                    "cmd.exe",
+                    [
+                        SecurityAction.Block
+                    ],
+                    DateTimeOffset.UtcNow);
+
+            await handler.HandleAsync(
+                request,
+                new SecurityDecision(
+                    request.Id,
+                    SecurityAction.Block,
+                    true,
+                    DateTimeOffset.UtcNow));
+
+            Assert.False(
+                enforcement.WasCalled);
+
+            var rules =
+                await repository.GetEnabledAsync();
+
+            var rule =
+                Assert.Single(
+                    rules);
+
+            Assert.Equal(
+                RuleDecision.Block,
+                rule.Decision);
+        }
+        finally
+        {
+            Directory.Delete(
+                root,
+                true);
         }
     }
 }

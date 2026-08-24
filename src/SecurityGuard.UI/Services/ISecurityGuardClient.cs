@@ -1,4 +1,5 @@
 using SecurityGuard.Core.Models;
+using SecurityGuard.AlgorithmGuard.Models;
 
 namespace SecurityGuard.UI.Services;
 
@@ -19,5 +20,12 @@ public interface ISecurityGuardClient
 
     Task DeleteRuleAsync(
         Guid ruleId,
+        CancellationToken cancellationToken = default);
+
+    Task<AlgorithmGuardSettings> GetAlgorithmGuardSettingsAsync(
+        CancellationToken cancellationToken = default);
+
+    Task UpdateAlgorithmGuardSettingsAsync(
+        AlgorithmGuardSettings settings,
         CancellationToken cancellationToken = default);
 }

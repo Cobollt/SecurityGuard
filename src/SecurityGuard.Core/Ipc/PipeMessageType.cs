@@ -6,5 +6,7 @@ public enum PipeMessageType
     GetSnapshot = 1,
     SubmitDecision = 2,
     GetRules = 3,
-    DeleteRule = 4
+    DeleteRule = 4,
+    GetAlgorithmGuardSettings = 5,
+    UpdateAlgorithmGuardSettings = 6
 }

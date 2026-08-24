@@ -46,9 +46,10 @@ public sealed class PipeRequestHandlerTests
 
         var handler =
             new PipeRequestHandler(
-                new FakeSnapshotService(snapshot),
-                new FakeDecisionService(),
-                new FakeRuleManagementService());
+                snapshot,
+                decision,
+                rules,
+                new FakeAlgorithmGuardSettingsCoordinator());
 
         var request =
             PipeRequest.Create(
@@ -307,5 +308,74 @@ public sealed class PipeRequestHandlerTests
         Assert.Equal(
             ruleId,
             ruleService.DeletedRuleId);
+    }
+
+    private sealed class FakeAlgorithmGuardSettingsCoordinator
+        : SecurityGuard.AlgorithmGuard.Contracts.IAlgorithmGuardSettingsCoordinator
+    {
+        public SecurityGuard.AlgorithmGuard.Models.AlgorithmGuardSettings Settings { get; set; } =
+            SecurityGuard.AlgorithmGuard.Models.AlgorithmGuardSettings.Default;
+
+        public Task<SecurityGuard.AlgorithmGuard.Models.AlgorithmGuardSettings> GetAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(
+                Settings);
+        }
+
+        public Task UpdateAsync(
+            SecurityGuard.AlgorithmGuard.Models.AlgorithmGuardSettings settings,
+            CancellationToken cancellationToken = default)
+        {
+            Settings =
+                settings;
+
+            return Task.CompletedTask;
+        }
+    }
+
+    [Fact]
+    public async Task Algorithm_guard_settings_are_returned()
+    {
+        var settings =
+            new SecurityGuard.AlgorithmGuard.Models.AlgorithmGuardSettings(
+                true,
+                SecurityGuard.AlgorithmGuard.Enums.AlgorithmGuardMode.Enforce,
+                SecurityGuard.AlgorithmGuard.Enums.EnforcementFailurePolicy.FailClosed);
+
+        var coordinator =
+            new FakeAlgorithmGuardSettingsCoordinator
+            {
+                Settings =
+                    settings
+            };
+
+        var handler =
+            new PipeRequestHandler(
+                new FakeSnapshotService(
+                    CreateEmptySnapshot()),
+                new FakeDecisionService(),
+                new FakeRuleManagementService(),
+                coordinator);
+
+        var request =
+            PipeRequest.Create(
+                PipeMessageType.GetAlgorithmGuardSettings);
+
+        var response =
+            await handler.HandleAsync(
+                request);
+
+        Assert.True(
+            response.Success);
+
+        var restored =
+            PipeJsonSerializer.Deserialize<
+                SecurityGuard.AlgorithmGuard.Models.AlgorithmGuardSettings>(
+                    response.Payload!);
+
+        Assert.Equal(
+            settings,
+            restored);
     }
 }

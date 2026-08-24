@@ -1,9 +1,11 @@
 {
   "version": 2,
-  "dgSpecHash": "bCkumNlMg8w=",
+  "dgSpecHash": "MIV8DNhQIjo=",
   "success": true,
   "projectFilePath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.UI/SecurityGuard.UI.csproj",
   "expectedPackageFiles": [
+    "/Users/designyousupova/.nuget/packages/system.codedom/10.0.11/system.codedom.10.0.11.nupkg.sha512",
+    "/Users/designyousupova/.nuget/packages/system.management/10.0.11/system.management.10.0.11.nupkg.sha512",
     "/Users/designyousupova/.nuget/packages/microsoft.windowsdesktop.app.ref/10.0.10/microsoft.windowsdesktop.app.ref.10.0.10.nupkg.sha512"
   ],
   "logs": []

@@ -1,6 +1,7 @@
 using System.IO.Pipes;
 using SecurityGuard.Core.Ipc;
 using SecurityGuard.Core.Models;
+using SecurityGuard.AlgorithmGuard.Models;
 
 namespace SecurityGuard.UI.Services;
 
@@ -159,5 +160,53 @@ public sealed class SecurityGuardClient
                 response.Error ??
                 "SecurityGuard service request failed.");
         }
+    }
+
+    public async Task<AlgorithmGuardSettings> GetAlgorithmGuardSettingsAsync(
+    CancellationToken cancellationToken = default)
+{
+    var request =
+        PipeRequest.Create(
+            PipeMessageType.GetAlgorithmGuardSettings);
+
+    var response =
+        await SendAsync(
+            request,
+            cancellationToken);
+
+    EnsureSuccess(
+        response);
+
+    if (string.IsNullOrWhiteSpace(
+            response.Payload))
+    {
+        throw new InvalidDataException(
+            "AlgorithmGuard settings response is empty.");
+    }
+
+    return PipeJsonSerializer.Deserialize<AlgorithmGuardSettings>(
+        response.Payload);
+}
+
+    public async Task UpdateAlgorithmGuardSettingsAsync(
+        AlgorithmGuardSettings settings,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(
+            settings);
+
+        var request =
+            PipeRequest.Create(
+                PipeMessageType.UpdateAlgorithmGuardSettings,
+                PipeJsonSerializer.Serialize(
+                    settings));
+
+        var response =
+            await SendAsync(
+                request,
+                cancellationToken);
+
+        EnsureSuccess(
+            response);
     }
 }

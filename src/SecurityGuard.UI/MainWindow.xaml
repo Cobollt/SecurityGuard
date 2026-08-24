@@ -826,27 +826,75 @@
                     <StackPanel>
 
                         <TextBlock Text="Настройки"
-                                   FontSize="28"
-                                   FontWeight="SemiBold" />
+                                FontSize="28"
+                                FontWeight="SemiBold" />
+
+                        <TextBlock Text="AlgorithmGuard"
+                                FontSize="20"
+                                FontWeight="SemiBold"
+                                Margin="0,24,0,12" />
+
+                        <CheckBox Content="Включить контроль алгоритмов"
+                                IsChecked="{Binding AlgorithmGuardEnabled}"
+                                FontSize="15"
+                                Margin="0,4,0,12" />
+
+                        <TextBlock Text="Режим"
+                                FontWeight="SemiBold"
+                                Margin="0,8,0,4" />
+
+                        <ComboBox ItemsSource="{Binding AlgorithmGuardModes}"
+                                SelectedItem="{Binding AlgorithmGuardMode}"
+                                Width="220"
+                                HorizontalAlignment="Left" />
+
+                        <TextBlock Text="Поведение при ошибке системной блокировки"
+                                FontWeight="SemiBold"
+                                Margin="0,18,0,4" />
+
+                        <ComboBox ItemsSource="{Binding AlgorithmGuardFailurePolicies}"
+                                SelectedItem="{Binding AlgorithmGuardFailurePolicy}"
+                                Width="220"
+                                HorizontalAlignment="Left" />
+
+                        <TextBlock Text="Monitor — только наблюдение и внутренние правила. Enforce — применение поддерживаемых Block-правил через Windows."
+                                TextWrapping="Wrap"
+                                MaxWidth="650"
+                                HorizontalAlignment="Left"
+                                Margin="0,14,0,0" />
+
+                        <TextBlock Text="FailOpen — при ошибке enforcement мониторинг продолжается. FailClosed — AlgorithmGuard переходит в Faulted."
+                                TextWrapping="Wrap"
+                                MaxWidth="650"
+                                HorizontalAlignment="Left"
+                                Margin="0,8,0,0" />
+
+                        <Button Content="Сохранить настройки"
+                                Width="200"
+                                HorizontalAlignment="Left"
+                                Margin="0,20,0,0"
+                                Command="{Binding SaveAlgorithmGuardSettingsCommand}" />
+
+                        <Separator Margin="0,28,0,20" />
 
                         <TextBlock Text="Состояние службы"
-                                   FontSize="16"
-                                   FontWeight="SemiBold"
-                                   Margin="0,24,0,4" />
+                                FontSize="16"
+                                FontWeight="SemiBold"
+                                Margin="0,4,0,4" />
 
                         <TextBlock Text="{Binding ServiceStatus}" />
 
                         <TextBlock Text="Объекты карантина"
-                                   FontSize="16"
-                                   FontWeight="SemiBold"
-                                   Margin="0,20,0,4" />
+                                FontSize="16"
+                                FontWeight="SemiBold"
+                                Margin="0,20,0,4" />
 
                         <TextBlock Text="{Binding QuarantineCount}" />
 
                         <TextBlock Text="Последнее обновление"
-                                   FontSize="16"
-                                   FontWeight="SemiBold"
-                                   Margin="0,20,0,4" />
+                                FontSize="16"
+                                FontWeight="SemiBold"
+                                Margin="0,20,0,4" />
 
                         <TextBlock Text="{Binding LastRefreshUtc}" />
 

@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SecurityGuard.Core\SecurityGuard.Core.csproj" />
+    <ProjectReference Include="..\SecurityGuard.AlgorithmGuard\SecurityGuard.AlgorithmGuard.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

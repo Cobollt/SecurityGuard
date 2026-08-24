@@ -1,5 +1,6 @@
 using SecurityGuard.Core.Models;
 using SecurityGuard.UI.Services;
+using SecurityGuard.AlgorithmGuard.Models;
 
 namespace SecurityGuard.UI.Tests;
 
@@ -24,6 +25,9 @@ internal sealed class FakeSecurityGuardClient
     public Guid? DeletedRuleId { get; private set; }
 
     public Exception? ExceptionToThrow { get; set; }
+
+    public AlgorithmGuardSettings AlgorithmGuardSettings { get; set; } =
+        AlgorithmGuardSettings.Default;
 
     public Task<bool> PingAsync(
         CancellationToken cancellationToken = default)
@@ -79,6 +83,27 @@ internal sealed class FakeSecurityGuardClient
                     rule =>
                         rule.Id != ruleId)
                 .ToArray();
+
+        return Task.CompletedTask;
+    }
+
+    public Task<AlgorithmGuardSettings> GetAlgorithmGuardSettingsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfConfigured();
+
+        return Task.FromResult(
+            AlgorithmGuardSettings);
+    }
+
+    public Task UpdateAlgorithmGuardSettingsAsync(
+        AlgorithmGuardSettings settings,
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfConfigured();
+
+        AlgorithmGuardSettings =
+            settings;
 
         return Task.CompletedTask;
     }

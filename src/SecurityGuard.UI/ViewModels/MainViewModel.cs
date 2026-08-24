@@ -3,6 +3,8 @@ using System.Windows.Input;
 using SecurityGuard.Core.Enums;
 using SecurityGuard.Core.Models;
 using SecurityGuard.UI.Services;
+using SecurityGuard.AlgorithmGuard.Enums;
+using SecurityGuard.AlgorithmGuard.Models;
 
 namespace SecurityGuard.UI.ViewModels;
 
@@ -17,6 +19,13 @@ public sealed class MainViewModel
     private string? _lastError;
     private int _quarantineCount;
     private DateTimeOffset? _lastRefreshUtc;
+    private bool _algorithmGuardEnabled;
+
+    private AlgorithmGuardMode _algorithmGuardMode =
+        AlgorithmGuardMode.Monitor;
+
+    private EnforcementFailurePolicy _algorithmGuardFailurePolicy =
+        EnforcementFailurePolicy.FailOpen;
 
     public ObservableCollection<ModuleStatus> Modules { get; } = [];
 
@@ -39,6 +48,41 @@ public sealed class MainViewModel
     public ICommand NavigateCommand { get; }
 
     public ICommand RefreshCommand { get; }
+
+    public IReadOnlyList<AlgorithmGuardMode> AlgorithmGuardModes { get; } =
+        Enum.GetValues<AlgorithmGuardMode>();
+
+    public IReadOnlyList<EnforcementFailurePolicy> AlgorithmGuardFailurePolicies { get; } =
+        Enum.GetValues<EnforcementFailurePolicy>();
+
+    public bool AlgorithmGuardEnabled
+    {
+        get => _algorithmGuardEnabled;
+
+        set => SetProperty(
+            ref _algorithmGuardEnabled,
+            value);
+    }
+
+    public AlgorithmGuardMode AlgorithmGuardMode
+    {
+        get => _algorithmGuardMode;
+
+        set => SetProperty(
+            ref _algorithmGuardMode,
+            value);
+    }
+
+    public EnforcementFailurePolicy AlgorithmGuardFailurePolicy
+    {
+        get => _algorithmGuardFailurePolicy;
+
+        set => SetProperty(
+            ref _algorithmGuardFailurePolicy,
+            value);
+    }
+
+    public ICommand SaveAlgorithmGuardSettingsCommand { get; }
 
     public int SelectedPageIndex
     {
@@ -130,6 +174,10 @@ public sealed class MainViewModel
             new AsyncRelayCommand(
                 RefreshAsync,
                 () => !IsBusy);
+        
+        SaveAlgorithmGuardSettingsCommand =
+            new AsyncRelayCommand(
+                SaveAlgorithmGuardSettingsAsync);
     }
 
     public async Task RefreshAsync()
@@ -162,15 +210,22 @@ public sealed class MainViewModel
             var rulesTask =
                 _client.GetRulesAsync();
 
+            var algorithmSettingsTask =
+                _client.GetAlgorithmGuardSettingsAsync();
+
             await Task.WhenAll(
                 snapshotTask,
-                rulesTask);
+                rulesTask,
+                algorithmSettingsTask);
 
             var snapshot =
                 await snapshotTask;
 
             var rules =
                 await rulesTask;
+
+            var algorithmSettings =
+                await algorithmSettingsTask;
 
             IsConnected = true;
             LastError = null;
@@ -180,6 +235,9 @@ public sealed class MainViewModel
 
             UpdateRules(
                 rules);
+
+            ApplyAlgorithmGuardSettings(
+                algorithmSettings);
 
             LastRefreshUtc =
                 DateTimeOffset.UtcNow;
@@ -342,6 +400,43 @@ public sealed class MainViewModel
         {
             await _client.DeleteRuleAsync(
                 ruleId);
+
+            LastError = null;
+
+            await RefreshAsync();
+        }
+        catch (Exception exception)
+        {
+            LastError =
+                exception.Message;
+        }
+    }
+
+    private void ApplyAlgorithmGuardSettings(
+        AlgorithmGuardSettings settings)
+    {
+        AlgorithmGuardEnabled =
+            settings.Enabled;
+
+        AlgorithmGuardMode =
+            settings.Mode;
+
+        AlgorithmGuardFailurePolicy =
+            settings.FailurePolicy;
+    }
+
+    private async Task SaveAlgorithmGuardSettingsAsync()
+    {
+        try
+        {
+            var settings =
+                new AlgorithmGuardSettings(
+                    AlgorithmGuardEnabled,
+                    AlgorithmGuardMode,
+                    AlgorithmGuardFailurePolicy);
+
+            await _client.UpdateAlgorithmGuardSettingsAsync(
+                settings);
 
             LastError = null;
 

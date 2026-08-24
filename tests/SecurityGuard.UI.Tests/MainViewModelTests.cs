@@ -258,4 +258,35 @@ public sealed class MainViewModelTests
         Assert.Single(
             viewModel.BlockRules);
     }
+
+    [Fact]
+    public async Task Refresh_loads_algorithm_guard_settings()
+    {
+        var client =
+            new FakeSecurityGuardClient
+            {
+                AlgorithmGuardSettings =
+                    new SecurityGuard.AlgorithmGuard.Models.AlgorithmGuardSettings(
+                        true,
+                        SecurityGuard.AlgorithmGuard.Enums.AlgorithmGuardMode.Enforce,
+                        SecurityGuard.AlgorithmGuard.Enums.EnforcementFailurePolicy.FailClosed)
+            };
+
+        var viewModel =
+            new MainViewModel(
+                client);
+
+        await viewModel.RefreshAsync();
+
+        Assert.True(
+            viewModel.AlgorithmGuardEnabled);
+
+        Assert.Equal(
+            SecurityGuard.AlgorithmGuard.Enums.AlgorithmGuardMode.Enforce,
+            viewModel.AlgorithmGuardMode);
+
+        Assert.Equal(
+            SecurityGuard.AlgorithmGuard.Enums.EnforcementFailurePolicy.FailClosed,
+            viewModel.AlgorithmGuardFailurePolicy);
+    }
 }
