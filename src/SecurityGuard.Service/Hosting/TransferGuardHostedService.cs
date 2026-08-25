@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Hosting;
 using SecurityGuard.Core.Contracts;
 using SecurityGuard.Core.Enums;
+using SecurityGuard.TransferGuard.Configuration;
 using SecurityGuard.TransferGuard.Contracts;
 
 namespace SecurityGuard.Service.Hosting;
@@ -9,16 +10,26 @@ public sealed class TransferGuardHostedService
     : BackgroundService
 {
     private readonly ITransferGuardMonitor _monitor;
+    private readonly IFilteringPlatformAuditPolicyService _auditPolicyService;
+    private readonly TransferGuardOptions _options;
     private readonly IModuleRegistry _moduleRegistry;
     private readonly IAuditService _auditService;
 
     public TransferGuardHostedService(
         ITransferGuardMonitor monitor,
+        IFilteringPlatformAuditPolicyService auditPolicyService,
+        TransferGuardOptions options,
         IModuleRegistry moduleRegistry,
         IAuditService auditService)
     {
         _monitor =
             monitor;
+
+        _auditPolicyService =
+            auditPolicyService;
+
+        _options =
+            options;
 
         _moduleRegistry =
             moduleRegistry;
@@ -37,17 +48,46 @@ public sealed class TransferGuardHostedService
 
         try
         {
+            var auditState =
+                _options.AutoEnableFilteringPlatformAudit
+                    ? await _auditPolicyService.EnsureSuccessEnabledAsync(
+                        stoppingToken)
+                    : await _auditPolicyService.GetAsync(
+                        stoppingToken);
+
+            if (!auditState.SuccessEnabled)
+            {
+                _moduleRegistry.Set(
+                    SecurityModuleKind.TransferGuard,
+                    ModuleOperationalState.Faulted,
+                    "Filtering Platform Connection auditing is disabled");
+
+                return;
+            }
+
+            if (auditState.Changed)
+            {
+                await _auditService.WriteAsync(
+                    SecurityModuleKind.TransferGuard,
+                    SecurityEventType.System,
+                    SecuritySeverity.Info,
+                    "WFP connection auditing enabled",
+                    "Filtering Platform Connection success auditing was enabled.",
+                    cancellationToken:
+                        stoppingToken);
+            }
+
             _moduleRegistry.Set(
                 SecurityModuleKind.TransferGuard,
                 ModuleOperationalState.Active,
-                "Passive TCP monitoring is active");
+                "Outbound WFP monitoring is active");
 
             await _auditService.WriteAsync(
                 SecurityModuleKind.TransferGuard,
                 SecurityEventType.System,
                 SecuritySeverity.Info,
                 "TransferGuard started",
-                "Passive TCP endpoint monitoring started",
+                "Outbound TCP and UDP connection monitoring started.",
                 cancellationToken:
                     stoppingToken);
 
@@ -58,12 +98,12 @@ public sealed class TransferGuardHostedService
             when (stoppingToken.IsCancellationRequested)
         {
         }
-        catch
+        catch (Exception exception)
         {
             _moduleRegistry.Set(
                 SecurityModuleKind.TransferGuard,
                 ModuleOperationalState.Faulted,
-                "TransferGuard monitoring failed");
+                exception.Message);
 
             throw;
         }

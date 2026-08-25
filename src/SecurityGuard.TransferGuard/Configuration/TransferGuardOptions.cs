@@ -7,4 +7,10 @@ public sealed class TransferGuardOptions
 
     public bool IgnoreLoopback { get; init; } =
         true;
+
+    public bool AutoEnableFilteringPlatformAudit { get; init; } =
+        true;
+
+    public TimeSpan PendingDecisionLifetime { get; init; } =
+        TimeSpan.FromMinutes(10);
 }

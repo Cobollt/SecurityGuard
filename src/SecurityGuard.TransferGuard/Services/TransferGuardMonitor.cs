@@ -5,18 +5,23 @@ namespace SecurityGuard.TransferGuard.Services;
 public sealed class TransferGuardMonitor
     : ITransferGuardMonitor
 {
-    private readonly ITransferConnectionMonitor _connectionMonitor;
+    private readonly IOutboundConnectionEventSource _eventSource;
     private readonly TransferObservationService _observationService;
+    private readonly TransferPolicyService _policyService;
 
     public TransferGuardMonitor(
-        ITransferConnectionMonitor connectionMonitor,
-        TransferObservationService observationService)
+        IOutboundConnectionEventSource eventSource,
+        TransferObservationService observationService,
+        TransferPolicyService policyService)
     {
-        _connectionMonitor =
-            connectionMonitor;
+        _eventSource =
+            eventSource;
 
         _observationService =
             observationService;
+
+        _policyService =
+            policyService;
     }
 
     public async Task RunAsync(
@@ -24,13 +29,18 @@ public sealed class TransferGuardMonitor
     {
         await foreach (
             var connection in
-            _connectionMonitor.WatchAsync(
+            _eventSource.WatchAsync(
                 cancellationToken))
         {
             try
             {
-                await _observationService.HandleAsync(
-                    connection,
+                var observation =
+                    await _observationService.EnrichAsync(
+                        connection,
+                        cancellationToken);
+
+                await _policyService.HandleAsync(
+                    observation,
                     cancellationToken);
             }
             catch (OperationCanceledException)

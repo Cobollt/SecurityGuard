@@ -155,6 +155,9 @@ public sealed class RuleEngine
 
                 RuleScope.ExecutionChain =>
                     context.ExecutionChain,
+                
+                RuleScope.ProcessPath =>
+                    context.ProcessPath,
                 _ =>
                     null
             };

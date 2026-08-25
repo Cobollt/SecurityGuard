@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "nkyLzVfI46c=",
+  "dgSpecHash": "TO0RAmJjSPA=",
   "success": true,
   "projectFilePath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/SecurityGuard.TransferGuard.csproj",
   "expectedPackageFiles": [
+    "/Users/designyousupova/.nuget/packages/system.diagnostics.eventlog/10.0.11/system.diagnostics.eventlog.10.0.11.nupkg.sha512",
     "/Users/designyousupova/.nuget/packages/microsoft.windowsdesktop.app.ref/10.0.10/microsoft.windowsdesktop.app.ref.10.0.10.nupkg.sha512"
   ],
   "logs": []

@@ -19,4 +19,5 @@ public sealed record RuleMatchContext(
     string? ParentProcessPath = null,
     string? RootProcess = null,
     string? RootProcessPath = null,
-    string? ExecutionChain = null);
+    string? ExecutionChain = null,
+    string? ProcessPath = null);

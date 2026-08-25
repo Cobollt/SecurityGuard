@@ -194,6 +194,9 @@ public sealed class SecurityRuleViewModel
             RuleScope.ExecutionChain =>
                 "Цепочка запуска",
 
+            RuleScope.ProcessPath =>
+                "Путь процесса",
+
             _ =>
                 scope.ToString()
         };

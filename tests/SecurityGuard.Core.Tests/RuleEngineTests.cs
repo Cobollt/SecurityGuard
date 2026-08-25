@@ -350,4 +350,40 @@ public async Task Compound_rule_matches_when_all_conditions_match()
         Assert.False(
             result.Matched);
     }
+
+    [Fact]
+    public async Task Process_path_rule_can_match()
+{
+    var rule =
+        new SecurityRule(
+            Guid.NewGuid(),
+            "Allowed network process",
+            SecurityModuleKind.TransferGuard,
+            RuleDecision.Allow,
+            RuleScope.ProcessPath,
+            @"\device\harddiskvolume3\apps\client.exe",
+            true,
+            100,
+            DateTimeOffset.UtcNow,
+            null);
+
+    var engine =
+        new RuleEngine(
+            new FakeRuleRepository(
+                [rule]));
+
+    var result =
+        await engine.EvaluateAsync(
+            SecurityModuleKind.TransferGuard,
+            new RuleMatchContext(
+                ProcessPath:
+                    @"\device\harddiskvolume3\apps\client.exe"));
+
+    Assert.True(
+        result.Matched);
+
+    Assert.Equal(
+        RuleDecision.Allow,
+        result.Decision);
+}
 }

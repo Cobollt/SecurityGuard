@@ -155,20 +155,29 @@ public static class ServiceRegistration
         services.AddSingleton(
             new TransferGuardOptions());
 
-        services.AddSingleton<
-            ITcpConnectionSnapshotProvider,
-            WindowsTcpConnectionSnapshotProvider>();
+        services.AddSingleton<FilteringPlatformEventParser>();
 
         services.AddSingleton<
-            ITransferConnectionMonitor,
-            PollingTransferConnectionMonitor>();
+            IFilteringPlatformAuditPolicyService,
+            WindowsFilteringPlatformAuditPolicyService>();
+
+        services.AddSingleton<
+            IOutboundConnectionEventSource,
+            WindowsOutboundConnectionEventSource>();
 
         services.AddSingleton<
             ITransferProcessResolver,
             WindowsTransferProcessResolver>();
 
+        services.AddSingleton<TransferObservationService>();
+
+        services.AddSingleton<TransferRuleContextFactory>();
+
+        services.AddSingleton<TransferPolicyService>();
+
         services.AddSingleton<
-            TransferObservationService>();
+            ISecurityDecisionHandler,
+            TransferDecisionHandler>();
 
         services.AddSingleton<
             ITransferGuardMonitor,

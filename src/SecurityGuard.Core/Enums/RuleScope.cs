@@ -20,5 +20,6 @@ public enum RuleScope
     ParentProcessPath = 15,
     RootProcess = 16,
     RootProcessPath = 17,
-    ExecutionChain = 18
+    ExecutionChain = 18,
+    ProcessPath = 19
 }

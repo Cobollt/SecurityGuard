@@ -1,7 +1,5 @@
-using SecurityGuard.Core.Contracts;
-using SecurityGuard.Core.Enums;
+using SecurityGuard.Core.Models;
 using SecurityGuard.TransferGuard.Contracts;
-using SecurityGuard.TransferGuard.Enums;
 using SecurityGuard.TransferGuard.Models;
 
 namespace SecurityGuard.TransferGuard.Services;
@@ -9,21 +7,16 @@ namespace SecurityGuard.TransferGuard.Services;
 public sealed class TransferObservationService
 {
     private readonly ITransferProcessResolver _processResolver;
-    private readonly IAuditService _auditService;
 
     public TransferObservationService(
-        ITransferProcessResolver processResolver,
-        IAuditService auditService)
+        ITransferProcessResolver processResolver)
     {
         _processResolver =
             processResolver;
-
-        _auditService =
-            auditService;
     }
 
-    public async Task<NetworkConnectionObservation> HandleAsync(
-        TcpConnectionSnapshot connection,
+    public async Task<NetworkConnectionObservation> EnrichAsync(
+        FilteringPlatformConnectionEvent connection,
         CancellationToken cancellationToken = default)
     {
         var process =
@@ -31,48 +24,46 @@ public sealed class TransferObservationService
                 connection.ProcessId,
                 cancellationToken);
 
-        var observation =
-            new NetworkConnectionObservation(
-                Guid.NewGuid(),
-                DateTimeOffset.UtcNow,
-                TransferProtocol.Tcp,
-                connection.AddressFamily,
-                connection.LocalAddress,
-                connection.LocalPort,
-                connection.RemoteAddress,
-                connection.RemotePort,
-                connection.State,
-                process);
+        if (process is null)
+        {
+            process =
+                CreateFallbackProcess(
+                    connection);
+        }
 
-        await _auditService.WriteAsync(
-            SecurityModuleKind.TransferGuard,
-            SecurityEventType.NetworkConnection,
-            SecuritySeverity.Info,
-            "Network connection detected",
-            BuildDetails(
-                observation),
-            SecurityAction.None,
-            cancellationToken:
-                cancellationToken);
-
-        return observation;
+        return new NetworkConnectionObservation(
+            Guid.NewGuid(),
+            connection.DetectedAtUtc,
+            connection.Protocol,
+            connection.AddressFamily,
+            connection.LocalAddress,
+            connection.LocalPort,
+            connection.RemoteAddress,
+            connection.RemotePort,
+            process,
+            connection.ApplicationPath);
     }
 
-    private static string BuildDetails(
-        NetworkConnectionObservation observation)
+    private static ProcessInfo? CreateFallbackProcess(
+        FilteringPlatformConnectionEvent connection)
     {
-        return string.Join(
-            Environment.NewLine,
-            new[]
-            {
-                $"Protocol: {observation.Protocol}",
-                $"Address family: {observation.AddressFamily}",
-                $"PID: {observation.Process?.ProcessId.ToString() ?? "Unknown"}",
-                $"Process: {observation.Process?.ProcessName ?? "Unknown"}",
-                $"Executable: {observation.Process?.ExecutablePath ?? "Unknown"}",
-                $"Local: {observation.LocalAddress}:{observation.LocalPort}",
-                $"Remote: {observation.RemoteAddress}:{observation.RemotePort}",
-                $"TCP state: {observation.TcpState}"
-            });
+        if (string.IsNullOrWhiteSpace(
+                connection.ApplicationPath))
+        {
+            return null;
+        }
+
+        var name =
+            Path.GetFileName(
+                connection.ApplicationPath);
+
+        return new ProcessInfo(
+            connection.ProcessId,
+            null,
+            name,
+            connection.ApplicationPath,
+            null,
+            null,
+            null);
     }
 }
