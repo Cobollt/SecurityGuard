@@ -17,6 +17,10 @@ using SecurityGuard.AlgorithmGuard.Monitoring;
 using SecurityGuard.AlgorithmGuard.Parsing;
 using SecurityGuard.AlgorithmGuard.Services;
 using SecurityGuard.AlgorithmGuard.Configuration;
+using SecurityGuard.TransferGuard.Configuration;
+using SecurityGuard.TransferGuard.Contracts;
+using SecurityGuard.TransferGuard.Monitoring;
+using SecurityGuard.TransferGuard.Services;
 
 namespace SecurityGuard.Service.DependencyInjection;
 
@@ -148,11 +152,34 @@ public static class ServiceRegistration
             IAlgorithmGuardSettingsCoordinator,
             AlgorithmGuardSettingsCoordinator>();
 
+        services.AddSingleton(
+            new TransferGuardOptions());
+
+        services.AddSingleton<
+            ITcpConnectionSnapshotProvider,
+            WindowsTcpConnectionSnapshotProvider>();
+
+        services.AddSingleton<
+            ITransferConnectionMonitor,
+            PollingTransferConnectionMonitor>();
+
+        services.AddSingleton<
+            ITransferProcessResolver,
+            WindowsTransferProcessResolver>();
+
+        services.AddSingleton<
+            TransferObservationService>();
+
+        services.AddSingleton<
+            ITransferGuardMonitor,
+            TransferGuardMonitor>();
+
         services.AddHostedService<SecurityGuardPipeServer>();
         services.AddHostedService<SecurityGuardStartupService>();
         services.AddHostedService<SecurityGuardWorker>();
         services.AddHostedService<SecurityGuardStartupService>();
         services.AddHostedService<SecurityGuardPipeServer>();
+        services.AddHostedService<TransferGuardHostedService>();
         services.AddSingleton<AlgorithmGuardHostedService>();
 
         services.AddSingleton<

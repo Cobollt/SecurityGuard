@@ -9,5 +9,6 @@ public enum SecurityEventType
     ArchiveScan = 4,
     Quarantine = 5,
     Rule = 6,
-    Audit = 7
+    Audit = 7,
+    NetworkConnection = 8
 }
