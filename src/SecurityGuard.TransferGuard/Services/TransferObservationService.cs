@@ -7,12 +7,17 @@ namespace SecurityGuard.TransferGuard.Services;
 public sealed class TransferObservationService
 {
     private readonly ITransferProcessResolver _processResolver;
+    private readonly ITransferPathNormalizer _pathNormalizer;
 
     public TransferObservationService(
-        ITransferProcessResolver processResolver)
+        ITransferProcessResolver processResolver,
+        ITransferPathNormalizer pathNormalizer)
     {
         _processResolver =
             processResolver;
+
+        _pathNormalizer =
+            pathNormalizer;
     }
 
     public async Task<NetworkConnectionObservation> EnrichAsync(
@@ -24,11 +29,31 @@ public sealed class TransferObservationService
                 connection.ProcessId,
                 cancellationToken);
 
+        var applicationPath =
+            _pathNormalizer.Normalize(
+                connection.ApplicationPath);
+
+        if (process is not null)
+        {
+            var executablePath =
+                _pathNormalizer.Normalize(
+                    process.ExecutablePath);
+
+            process =
+                process with
+                {
+                    ExecutablePath =
+                        executablePath ??
+                        process.ExecutablePath
+                };
+        }
+
         if (process is null)
         {
             process =
                 CreateFallbackProcess(
-                    connection);
+                    connection,
+                    applicationPath);
         }
 
         return new NetworkConnectionObservation(
@@ -41,27 +66,25 @@ public sealed class TransferObservationService
             connection.RemoteAddress,
             connection.RemotePort,
             process,
-            connection.ApplicationPath);
+            applicationPath);
     }
 
     private static ProcessInfo? CreateFallbackProcess(
-        FilteringPlatformConnectionEvent connection)
+        FilteringPlatformConnectionEvent connection,
+        string? applicationPath)
     {
         if (string.IsNullOrWhiteSpace(
-                connection.ApplicationPath))
+                applicationPath))
         {
             return null;
         }
 
-        var name =
-            Path.GetFileName(
-                connection.ApplicationPath);
-
         return new ProcessInfo(
             connection.ProcessId,
             null,
-            name,
-            connection.ApplicationPath,
+            Path.GetFileName(
+                applicationPath),
+            applicationPath,
             null,
             null,
             null);

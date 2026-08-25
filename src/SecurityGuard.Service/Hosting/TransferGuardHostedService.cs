@@ -11,6 +11,7 @@ public sealed class TransferGuardHostedService
 {
     private readonly ITransferGuardMonitor _monitor;
     private readonly IFilteringPlatformAuditPolicyService _auditPolicyService;
+    private readonly ITransferEnforcementSynchronizer _synchronizer;
     private readonly TransferGuardOptions _options;
     private readonly IModuleRegistry _moduleRegistry;
     private readonly IAuditService _auditService;
@@ -18,6 +19,7 @@ public sealed class TransferGuardHostedService
     public TransferGuardHostedService(
         ITransferGuardMonitor monitor,
         IFilteringPlatformAuditPolicyService auditPolicyService,
+        ITransferEnforcementSynchronizer synchronizer,
         TransferGuardOptions options,
         IModuleRegistry moduleRegistry,
         IAuditService auditService)
@@ -27,6 +29,9 @@ public sealed class TransferGuardHostedService
 
         _auditPolicyService =
             auditPolicyService;
+
+        _synchronizer =
+            synchronizer;
 
         _options =
             options;
@@ -65,29 +70,29 @@ public sealed class TransferGuardHostedService
                 return;
             }
 
-            if (auditState.Changed)
-            {
-                await _auditService.WriteAsync(
-                    SecurityModuleKind.TransferGuard,
-                    SecurityEventType.System,
-                    SecuritySeverity.Info,
-                    "WFP connection auditing enabled",
-                    "Filtering Platform Connection success auditing was enabled.",
-                    cancellationToken:
-                        stoppingToken);
-            }
+            var synchronization =
+                await _synchronizer.SynchronizeAsync(
+                    stoppingToken);
 
             _moduleRegistry.Set(
                 SecurityModuleKind.TransferGuard,
-                ModuleOperationalState.Active,
-                "Outbound WFP monitoring is active");
+                synchronization.Healthy
+                    ? ModuleOperationalState.Active
+                    : ModuleOperationalState.Degraded,
+                synchronization.Healthy
+                    ? "Outbound monitoring and Firewall enforcement are active"
+                    : "Outbound monitoring is active; Firewall synchronization has warnings");
 
             await _auditService.WriteAsync(
                 SecurityModuleKind.TransferGuard,
                 SecurityEventType.System,
-                SecuritySeverity.Info,
+                synchronization.Healthy
+                    ? SecuritySeverity.Info
+                    : SecuritySeverity.Medium,
                 "TransferGuard started",
-                "Outbound TCP and UDP connection monitoring started.",
+                synchronization.Healthy
+                    ? "Outbound TCP/UDP monitoring and Windows Firewall enforcement started."
+                    : "Outbound monitoring started with enforcement warnings.",
                 cancellationToken:
                     stoppingToken);
 

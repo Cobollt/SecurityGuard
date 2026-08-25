@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "dgSpecHash": "9/30OF5R95w=",
-  "success": true,
+  "dgSpecHash": "k/bZOF0evHU=",
+  "success": false,
   "projectFilePath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Service/SecurityGuard.Service.csproj",
   "expectedPackageFiles": [
     "/Users/designyousupova/.nuget/packages/microsoft.data.sqlite/10.0.11/microsoft.data.sqlite.10.0.11.nupkg.sha512",
@@ -11,8 +11,22 @@
     "/Users/designyousupova/.nuget/packages/sqlitepclraw.lib.e_sqlite3/2.1.12/sqlitepclraw.lib.e_sqlite3.2.1.12.nupkg.sha512",
     "/Users/designyousupova/.nuget/packages/sqlitepclraw.provider.e_sqlite3/2.1.12/sqlitepclraw.provider.e_sqlite3.2.1.12.nupkg.sha512",
     "/Users/designyousupova/.nuget/packages/system.codedom/10.0.11/system.codedom.10.0.11.nupkg.sha512",
+    "/Users/designyousupova/.nuget/packages/system.diagnostics.eventlog/10.0.11/system.diagnostics.eventlog.10.0.11.nupkg.sha512",
+    "/Users/designyousupova/.nuget/packages/system.io.pipes.accesscontrol/5.0.0/system.io.pipes.accesscontrol.5.0.0.nupkg.sha512",
     "/Users/designyousupova/.nuget/packages/system.management/10.0.11/system.management.10.0.11.nupkg.sha512",
     "/Users/designyousupova/.nuget/packages/microsoft.windowsdesktop.app.ref/10.0.10/microsoft.windowsdesktop.app.ref.10.0.10.nupkg.sha512"
   ],
-  "logs": []
+  "logs": [
+    {
+      "code": "NU1510",
+      "level": "Error",
+      "message": "Warning As Error: PackageReference System.IO.Pipes.AccessControl will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary.",
+      "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Service/SecurityGuard.Service.csproj",
+      "filePath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Service/SecurityGuard.Service.csproj",
+      "libraryId": "System.IO.Pipes.AccessControl",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    }
+  ]
 }

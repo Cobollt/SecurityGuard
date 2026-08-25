@@ -1,6 +1,7 @@
 using SecurityGuard.Core.Contracts;
 using SecurityGuard.Core.Enums;
 using SecurityGuard.Core.Models;
+using SecurityGuard.TransferGuard.Contracts;
 
 namespace SecurityGuard.TransferGuard.Services;
 
@@ -8,12 +9,22 @@ public sealed class TransferDecisionHandler
     : ISecurityDecisionHandler
 {
     private readonly IRuleRepository _ruleRepository;
+    private readonly ITransferEnforcementService _enforcementService;
+    private readonly TransferEnforcementRuleFactory _enforcementRuleFactory;
 
     public TransferDecisionHandler(
-        IRuleRepository ruleRepository)
+        IRuleRepository ruleRepository,
+        ITransferEnforcementService enforcementService,
+        TransferEnforcementRuleFactory enforcementRuleFactory)
     {
         _ruleRepository =
             ruleRepository;
+
+        _enforcementService =
+            enforcementService;
+
+        _enforcementRuleFactory =
+            enforcementRuleFactory;
     }
 
     public SecurityModuleKind Module =>
@@ -43,6 +54,32 @@ public sealed class TransferDecisionHandler
                 request,
                 ruleDecision);
 
+        if (ruleDecision ==
+            RuleDecision.Block)
+        {
+            if (!_enforcementRuleFactory.TryCreate(
+                    rule,
+                    out var enforcementRule,
+                    out var error) ||
+                enforcementRule is null)
+            {
+                throw new InvalidOperationException(
+                    error ??
+                    "Unable to build Windows Firewall rule.");
+            }
+
+            var result =
+                await _enforcementService.AddBlockAsync(
+                    enforcementRule,
+                    cancellationToken);
+
+            if (!result.Applied)
+            {
+                throw new InvalidOperationException(
+                    result.Message);
+            }
+        }
+
         await _ruleRepository.UpsertAsync(
             rule,
             cancellationToken);
@@ -57,40 +94,11 @@ public sealed class TransferDecisionHandler
             throw new InvalidOperationException(
                 "TransferGuard rule context is missing.");
 
-        RuleScope primaryScope;
-        string primaryValue;
-
-        if (!string.IsNullOrWhiteSpace(
+        if (string.IsNullOrWhiteSpace(
                 context.ProcessPath))
         {
-            primaryScope =
-                RuleScope.ProcessPath;
-
-            primaryValue =
-                context.ProcessPath;
-        }
-        else if (!string.IsNullOrWhiteSpace(
-                     context.Process))
-        {
-            primaryScope =
-                RuleScope.Process;
-
-            primaryValue =
-                context.Process;
-        }
-        else if (!string.IsNullOrWhiteSpace(
-                     context.RemoteAddress))
-        {
-            primaryScope =
-                RuleScope.RemoteAddress;
-
-            primaryValue =
-                context.RemoteAddress;
-        }
-        else
-        {
             throw new InvalidOperationException(
-                "Unable to determine TransferGuard rule identity.");
+                "TransferGuard requires ProcessPath for persistent network rules.");
         }
 
         var conditions =
@@ -99,33 +107,25 @@ public sealed class TransferDecisionHandler
         AddCondition(
             conditions,
             RuleScope.RemoteAddress,
-            context.RemoteAddress,
-            primaryScope,
-            primaryValue);
+            context.RemoteAddress);
 
         AddCondition(
             conditions,
             RuleScope.RemotePort,
-            context.RemotePort?.ToString(),
-            primaryScope,
-            primaryValue);
+            context.RemotePort?.ToString());
 
         AddCondition(
             conditions,
             RuleScope.Protocol,
-            context.Protocol,
-            primaryScope,
-            primaryValue);
+            context.Protocol);
 
         return new SecurityRule(
             Guid.NewGuid(),
-            BuildName(
-                request,
-                decision),
+            $"{decision}: {request.ProcessName ?? "network connection"}",
             SecurityModuleKind.TransferGuard,
             decision,
-            primaryScope,
-            primaryValue,
+            RuleScope.ProcessPath,
+            context.ProcessPath,
             true,
             decision ==
             RuleDecision.Block
@@ -139,22 +139,10 @@ public sealed class TransferDecisionHandler
     private static void AddCondition(
         ICollection<SecurityRuleCondition> conditions,
         RuleScope scope,
-        string? value,
-        RuleScope primaryScope,
-        string primaryValue)
+        string? value)
     {
         if (string.IsNullOrWhiteSpace(
                 value))
-        {
-            return;
-        }
-
-        if (scope ==
-            primaryScope &&
-            string.Equals(
-                value,
-                primaryValue,
-                StringComparison.OrdinalIgnoreCase))
         {
             return;
         }
@@ -163,13 +151,5 @@ public sealed class TransferDecisionHandler
             new SecurityRuleCondition(
                 scope,
                 value));
-    }
-
-    private static string BuildName(
-        SecurityDecisionRequest request,
-        RuleDecision decision)
-    {
-        return
-            $"{decision}: {request.ProcessName ?? "network connection"}";
     }
 }

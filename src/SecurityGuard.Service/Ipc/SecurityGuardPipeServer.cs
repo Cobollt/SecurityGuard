@@ -1,6 +1,4 @@
-using System.IO.Pipes;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using SecurityGuard.Core.Ipc;
 
 namespace SecurityGuard.Service.Ipc;
@@ -9,14 +7,27 @@ public sealed class SecurityGuardPipeServer
     : BackgroundService
 {
     private readonly PipeRequestHandler _requestHandler;
-    private readonly ILogger<SecurityGuardPipeServer> _logger;
+    private readonly SecurityGuardPipeFactory _pipeFactory;
+    private readonly PipeClientContextFactory _clientContextFactory;
+    private readonly PipeAuthorizationService _authorizationService;
 
     public SecurityGuardPipeServer(
         PipeRequestHandler requestHandler,
-        ILogger<SecurityGuardPipeServer> logger)
+        SecurityGuardPipeFactory pipeFactory,
+        PipeClientContextFactory clientContextFactory,
+        PipeAuthorizationService authorizationService)
     {
-        _requestHandler = requestHandler;
-        _logger = logger;
+        _requestHandler =
+            requestHandler;
+
+        _pipeFactory =
+            pipeFactory;
+
+        _clientContextFactory =
+            clientContextFactory;
+
+        _authorizationService =
+            authorizationService;
     }
 
     protected override async Task ExecuteAsync(
@@ -24,70 +35,75 @@ public sealed class SecurityGuardPipeServer
     {
         while (!stoppingToken.IsCancellationRequested)
         {
+            var pipe =
+                _pipeFactory.Create();
+
             try
             {
-                await ProcessConnectionAsync(
+                await pipe.WaitForConnectionAsync(
                     stoppingToken);
             }
-            catch (OperationCanceledException)
-                when (stoppingToken.IsCancellationRequested)
+            catch
             {
-                break;
+                await pipe.DisposeAsync();
+                throw;
             }
-            catch (Exception exception)
-            {
-                _logger.LogError(
-                    exception,
-                    "Named Pipe server failure");
 
-                await Task.Delay(
-                    TimeSpan.FromSeconds(1),
+            _ =
+                HandleClientAsync(
+                    pipe,
                     stoppingToken);
-            }
         }
     }
 
-    private async Task ProcessConnectionAsync(
+    private async Task HandleClientAsync(
+        NamedPipeServerStream pipe,
         CancellationToken cancellationToken)
     {
-        await using var pipe =
-            new NamedPipeServerStream(
-                PipeProtocol.PipeName,
-                PipeDirection.InOut,
-                NamedPipeServerStream.MaxAllowedServerInstances,
-                PipeTransmissionMode.Byte,
-                PipeOptions.Asynchronous);
-
-        await pipe.WaitForConnectionAsync(
-            cancellationToken);
-
-        try
+        await using (pipe)
         {
-            var request =
-                await PipeMessageIO.ReadAsync<PipeRequest>(
+            try
+            {
+                var request =
+                    await PipeMessageIO.ReadAsync<PipeRequest>(
+                        pipe,
+                        cancellationToken);
+
+                var context =
+                    _clientContextFactory.Create(
+                        pipe);
+
+                PipeResponse response;
+
+                if (!_authorizationService.IsAuthorized(
+                        request.Type,
+                        context))
+                {
+                    response =
+                        PipeResponse.Fail(
+                            request.Id,
+                            "Administrator privileges are required for this operation.");
+                }
+                else
+                {
+                    response =
+                        await _requestHandler.HandleAsync(
+                            request,
+                            cancellationToken);
+                }
+
+                await PipeMessageIO.WriteAsync(
                     pipe,
+                    response,
                     cancellationToken);
-
-            var response =
-                await _requestHandler.HandleAsync(
-                    request,
-                    cancellationToken);
-
-            await PipeMessageIO.WriteAsync(
-                pipe,
-                response,
-                cancellationToken);
-        }
-        catch (EndOfStreamException)
-        {
-            _logger.LogWarning(
-                "IPC client disconnected before completing request");
-        }
-        catch (InvalidDataException exception)
-        {
-            _logger.LogWarning(
-                exception,
-                "Invalid IPC message received");
+            }
+            catch (OperationCanceledException)
+                when (cancellationToken.IsCancellationRequested)
+            {
+            }
+            catch
+            {
+            }
         }
     }
 }

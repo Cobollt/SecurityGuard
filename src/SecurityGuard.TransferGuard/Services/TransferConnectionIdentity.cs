@@ -14,11 +14,11 @@ public static class TransferConnectionIdentity
 
         var process =
             !string.IsNullOrWhiteSpace(
-                observation.ApplicationPath)
-                ? observation.ApplicationPath
-                : observation.Process?.ExecutablePath ??
-                  observation.Process?.ProcessName ??
-                  string.Empty;
+                observation.Process?.ExecutablePath)
+                    ? observation.Process.ExecutablePath
+                    : observation.ApplicationPath ??
+                    observation.Process?.ProcessName ??
+                    string.Empty;
 
         var source =
             string.Join(

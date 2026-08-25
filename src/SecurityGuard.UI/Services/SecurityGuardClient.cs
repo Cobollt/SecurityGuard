@@ -2,6 +2,7 @@ using System.IO.Pipes;
 using SecurityGuard.Core.Ipc;
 using SecurityGuard.Core.Models;
 using SecurityGuard.AlgorithmGuard.Models;
+using System.Security.Principal;
 
 namespace SecurityGuard.UI.Services;
 
@@ -125,7 +126,8 @@ public sealed class SecurityGuardClient
                 ".",
                 PipeProtocol.PipeName,
                 PipeDirection.InOut,
-                PipeOptions.Asynchronous);
+                PipeOptions.Asynchronous,
+                TokenImpersonationLevel.Impersonation);
 
         await pipe.ConnectAsync(
             3000,

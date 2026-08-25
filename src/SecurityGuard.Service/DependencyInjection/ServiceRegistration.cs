@@ -56,6 +56,12 @@ public static class ServiceRegistration
         services.AddSingleton<IFileHashService, Sha256FileHashService>();
         services.AddSingleton<IAuditService, AuditService>();
 
+        services.AddSingleton<SecurityGuardPipeFactory>();
+
+        services.AddSingleton<PipeClientContextFactory>();
+
+        services.AddSingleton<PipeAuthorizationService>();
+
         services.AddSingleton(
             new AlgorithmGuardOptions());
 
@@ -160,6 +166,28 @@ public static class ServiceRegistration
         services.AddSingleton<
             IFilteringPlatformAuditPolicyService,
             WindowsFilteringPlatformAuditPolicyService>();
+
+        services.AddSingleton<
+            ITransferPathNormalizer,
+            WindowsTransferPathNormalizer>();
+
+        services.AddSingleton<
+            TransferPowerShellRunner>();
+
+        services.AddSingleton<
+            ITransferEnforcementService,
+            WindowsFirewallTransferEnforcementService>();
+
+        services.AddSingleton<
+            TransferEnforcementRuleFactory>();
+
+        services.AddSingleton<
+            ITransferEnforcementSynchronizer,
+            TransferEnforcementSynchronizer>();
+
+        services.AddSingleton<
+            ISecurityRuleLifecycleHandler,
+            TransferRuleLifecycleHandler>();
 
         services.AddSingleton<
             IOutboundConnectionEventSource,

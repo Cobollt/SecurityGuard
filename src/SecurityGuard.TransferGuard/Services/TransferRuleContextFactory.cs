@@ -13,9 +13,9 @@ public sealed class TransferRuleContextFactory
 
         var processPath =
             !string.IsNullOrWhiteSpace(
-                observation.ApplicationPath)
-                ? observation.ApplicationPath
-                : observation.Process?.ExecutablePath;
+                observation.Process?.ExecutablePath)
+                    ? observation.Process.ExecutablePath
+                    : observation.ApplicationPath;
 
         return new RuleMatchContext(
             Process:
