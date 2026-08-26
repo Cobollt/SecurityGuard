@@ -238,4 +238,58 @@ public sealed class TransferEnforcementSynchronizer
             healthy,
             warnings);
     }
+
+    public async Task<int> DisableManagedRulesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var snapshot =
+            await _enforcementService.InspectAsync(
+                cancellationToken);
+
+        var ids =
+            snapshot.PersistentManagedRuleIds
+                .ToArray();
+
+        var removed =
+            0;
+
+        foreach (var id in ids)
+        {
+            await _enforcementService.RemoveBlockAsync(
+                id,
+                cancellationToken);
+
+            removed++;
+        }
+
+        var finalSnapshot =
+            await _enforcementService.InspectAsync(
+                cancellationToken);
+
+        if (finalSnapshot.PersistentManagedRuleIds.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "SecurityGuard Firewall rules remain in PersistentStore.");
+        }
+
+        if (finalSnapshot.ActiveManagedRuleIds.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "SecurityGuard Firewall rules remain in ActiveStore.");
+        }
+
+        if (removed > 0)
+        {
+            await _auditService.WriteAsync(
+                SecurityModuleKind.TransferGuard,
+                SecurityEventType.System,
+                SecuritySeverity.Info,
+                "TransferGuard enforcement disabled",
+                $"Removed managed Windows Firewall rules: {removed}",
+                cancellationToken:
+                    cancellationToken);
+        }
+
+        return removed;
+    }
 }

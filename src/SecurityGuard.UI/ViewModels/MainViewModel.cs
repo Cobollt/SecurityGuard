@@ -5,6 +5,8 @@ using SecurityGuard.Core.Models;
 using SecurityGuard.UI.Services;
 using SecurityGuard.AlgorithmGuard.Enums;
 using SecurityGuard.AlgorithmGuard.Models;
+using SecurityGuard.TransferGuard.Enums;
+using SecurityGuard.TransferGuard.Models;
 
 namespace SecurityGuard.UI.ViewModels;
 
@@ -27,6 +29,14 @@ public sealed class MainViewModel
     private EnforcementFailurePolicy _algorithmGuardFailurePolicy =
         EnforcementFailurePolicy.FailOpen;
 
+    private bool _transferGuardEnabled;
+
+    private TransferGuardMode _transferGuardMode =
+        TransferGuardMode.Monitor;
+
+    private TransferEnforcementFailurePolicy _transferGuardFailurePolicy =
+        TransferEnforcementFailurePolicy.FailOpen;
+
     public ObservableCollection<ModuleStatus> Modules { get; } = [];
 
     public ObservableCollection<SecurityEvent> RecentEvents { get; } = [];
@@ -48,6 +58,41 @@ public sealed class MainViewModel
     public ICommand NavigateCommand { get; }
 
     public ICommand RefreshCommand { get; }
+
+    public IReadOnlyList<TransferGuardMode> TransferGuardModes { get; } =
+        Enum.GetValues<TransferGuardMode>();
+
+    public IReadOnlyList<TransferEnforcementFailurePolicy> TransferGuardFailurePolicies { get; } =
+        Enum.GetValues<TransferEnforcementFailurePolicy>();
+
+    public bool TransferGuardEnabled
+    {
+        get => _transferGuardEnabled;
+
+        set => SetProperty(
+            ref _transferGuardEnabled,
+            value);
+    }
+
+    public TransferGuardMode TransferGuardMode
+    {
+        get => _transferGuardMode;
+
+        set => SetProperty(
+            ref _transferGuardMode,
+            value);
+    }
+
+    public TransferEnforcementFailurePolicy TransferGuardFailurePolicy
+    {
+        get => _transferGuardFailurePolicy;
+
+        set => SetProperty(
+            ref _transferGuardFailurePolicy,
+            value);
+    }
+
+    public ICommand SaveTransferGuardSettingsCommand { get; }
 
     public IReadOnlyList<AlgorithmGuardMode> AlgorithmGuardModes { get; } =
         Enum.GetValues<AlgorithmGuardMode>();
@@ -178,6 +223,10 @@ public sealed class MainViewModel
         SaveAlgorithmGuardSettingsCommand =
             new AsyncRelayCommand(
                 SaveAlgorithmGuardSettingsAsync);
+
+        SaveTransferGuardSettingsCommand =
+            new AsyncRelayCommand(
+                SaveTransferGuardSettingsAsync);
     }
 
     public async Task RefreshAsync()
@@ -213,10 +262,14 @@ public sealed class MainViewModel
             var algorithmSettingsTask =
                 _client.GetAlgorithmGuardSettingsAsync();
 
+            var transferSettingsTask =
+                _client.GetTransferGuardSettingsAsync();
+
             await Task.WhenAll(
                 snapshotTask,
                 rulesTask,
-                algorithmSettingsTask);
+                algorithmSettingsTask,
+                transferSettingsTask);
 
             var snapshot =
                 await snapshotTask;
@@ -226,6 +279,9 @@ public sealed class MainViewModel
 
             var algorithmSettings =
                 await algorithmSettingsTask;
+
+            var transferSettings =
+                await transferSettingsTask;
 
             IsConnected = true;
             LastError = null;
@@ -238,6 +294,9 @@ public sealed class MainViewModel
 
             ApplyAlgorithmGuardSettings(
                 algorithmSettings);
+
+            ApplyTransferGuardSettings(
+                transferSettings);
 
             LastRefreshUtc =
                 DateTimeOffset.UtcNow;
@@ -436,6 +495,43 @@ public sealed class MainViewModel
                     AlgorithmGuardFailurePolicy);
 
             await _client.UpdateAlgorithmGuardSettingsAsync(
+                settings);
+
+            LastError = null;
+
+            await RefreshAsync();
+        }
+        catch (Exception exception)
+        {
+            LastError =
+                exception.Message;
+        }
+    }
+
+    private void ApplyTransferGuardSettings(
+        TransferGuardSettings settings)
+    {
+        TransferGuardEnabled =
+            settings.Enabled;
+
+        TransferGuardMode =
+            settings.Mode;
+
+        TransferGuardFailurePolicy =
+            settings.FailurePolicy;
+    }
+
+    private async Task SaveTransferGuardSettingsAsync()
+    {
+        try
+        {
+            var settings =
+                new TransferGuardSettings(
+                    TransferGuardEnabled,
+                    TransferGuardMode,
+                    TransferGuardFailurePolicy);
+
+            await _client.UpdateTransferGuardSettingsAsync(
                 settings);
 
             LastError = null;

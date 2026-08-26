@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\SecurityGuard.Core\SecurityGuard.Core.csproj" />
     <ProjectReference Include="..\..\src\SecurityGuard.TransferGuard\SecurityGuard.TransferGuard.csproj" />
+    <ProjectReference Include="..\..\src\SecurityGuard.Storage\SecurityGuard.Storage.csproj" />
   </ItemGroup>
 
 </Project>

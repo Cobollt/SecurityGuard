@@ -19,6 +19,9 @@ public sealed class PipeAuthorizationService
             PipeMessageType.UpdateAlgorithmGuardSettings =>
                 context.IsAdministrator,
 
+            PipeMessageType.UpdateTransferGuardSettings =>
+                context.IsAdministrator,
+
             _ =>
                 true
         };

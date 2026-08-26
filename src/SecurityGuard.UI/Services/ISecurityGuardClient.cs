@@ -1,5 +1,6 @@
 using SecurityGuard.Core.Models;
 using SecurityGuard.AlgorithmGuard.Models;
+using SecurityGuard.TransferGuard.Models;
 
 namespace SecurityGuard.UI.Services;
 
@@ -12,6 +13,13 @@ public interface ISecurityGuardClient
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<SecurityRule>> GetRulesAsync(
+        CancellationToken cancellationToken = default);
+
+    Task<TransferGuardSettings> GetTransferGuardSettingsAsync(
+        CancellationToken cancellationToken = default);
+
+    Task UpdateTransferGuardSettingsAsync(
+        TransferGuardSettings settings,
         CancellationToken cancellationToken = default);
 
     Task SubmitDecisionAsync(

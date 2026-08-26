@@ -2,6 +2,9 @@ using SecurityGuard.Core.Contracts;
 using SecurityGuard.Core.Ipc;
 using SecurityGuard.Core.Models;
 using SecurityGuard.Service.Ipc;
+using SecurityGuard.TransferGuard.Contracts;
+using SecurityGuard.TransferGuard.Enums;
+using SecurityGuard.TransferGuard.Models;
 
 namespace SecurityGuard.Service.Tests;
 
@@ -376,6 +379,78 @@ public sealed class PipeRequestHandlerTests
 
         Assert.Equal(
             settings,
+            restored);
+    }
+
+    private sealed class FakeTransferGuardSettingsCoordinator
+        : ITransferGuardSettingsCoordinator
+    {
+        public TransferGuardSettings Settings { get; set; } =
+            TransferGuardSettings.Default;
+
+        public Task<TransferGuardSettings> GetAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(
+                Settings);
+        }
+
+        public Task UpdateAsync(
+            TransferGuardSettings settings,
+            CancellationToken cancellationToken = default)
+        {
+            Settings =
+                settings;
+
+            return Task.CompletedTask;
+        }
+    }
+
+    [Fact]
+    public async Task Transfer_guard_settings_are_returned()
+    {
+        var expected =
+            new TransferGuardSettings(
+                true,
+                TransferGuardMode.Enforce,
+                TransferEnforcementFailurePolicy.FailClosed);
+
+        var transferSettings =
+            new FakeTransferGuardSettingsCoordinator
+            {
+                Settings =
+                    expected
+            };
+
+        var handler =
+            new PipeRequestHandler(
+                new FakeSnapshotService(
+                    CreateEmptySnapshot()),
+                new FakeDecisionService(),
+                new FakeRuleManagementService(),
+                new FakeAlgorithmGuardSettingsCoordinator(),
+                transferSettings);
+
+        var request =
+            PipeRequest.Create(
+                PipeMessageType.GetTransferGuardSettings);
+
+        var response =
+            await handler.HandleAsync(
+                request);
+
+        Assert.True(
+            response.Success);
+
+        Assert.NotNull(
+            response.Payload);
+
+        var restored =
+            PipeJsonSerializer.Deserialize<TransferGuardSettings>(
+                response.Payload);
+
+        Assert.Equal(
+            expected,
             restored);
     }
 }

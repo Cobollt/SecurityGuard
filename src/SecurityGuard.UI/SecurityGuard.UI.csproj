@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\SecurityGuard.Core\SecurityGuard.Core.csproj" />
     <ProjectReference Include="..\SecurityGuard.AlgorithmGuard\SecurityGuard.AlgorithmGuard.csproj" />
+    <ProjectReference Include="..\SecurityGuard.TransferGuard\SecurityGuard.TransferGuard.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

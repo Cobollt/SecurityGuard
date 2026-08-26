@@ -3,6 +3,7 @@ using SecurityGuard.Core.Ipc;
 using SecurityGuard.Core.Models;
 using SecurityGuard.AlgorithmGuard.Models;
 using System.Security.Principal;
+using SecurityGuard.TransferGuard.Models;
 
 namespace SecurityGuard.UI.Services;
 
@@ -200,6 +201,54 @@ public sealed class SecurityGuardClient
         var request =
             PipeRequest.Create(
                 PipeMessageType.UpdateAlgorithmGuardSettings,
+                PipeJsonSerializer.Serialize(
+                    settings));
+
+        var response =
+            await SendAsync(
+                request,
+                cancellationToken);
+
+        EnsureSuccess(
+            response);
+    }
+
+    public async Task<TransferGuardSettings> GetTransferGuardSettingsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var request =
+            PipeRequest.Create(
+                PipeMessageType.GetTransferGuardSettings);
+
+        var response =
+            await SendAsync(
+                request,
+                cancellationToken);
+
+        EnsureSuccess(
+            response);
+
+        if (string.IsNullOrWhiteSpace(
+                response.Payload))
+        {
+            throw new InvalidDataException(
+                "TransferGuard settings response is empty.");
+        }
+
+        return PipeJsonSerializer.Deserialize<TransferGuardSettings>(
+            response.Payload);
+    }
+
+    public async Task UpdateTransferGuardSettingsAsync(
+        TransferGuardSettings settings,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(
+            settings);
+
+        var request =
+            PipeRequest.Create(
+                PipeMessageType.UpdateTransferGuardSettings,
                 PipeJsonSerializer.Serialize(
                     settings));
 

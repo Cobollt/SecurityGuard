@@ -1,6 +1,8 @@
 using SecurityGuard.Core.Enums;
 using SecurityGuard.Core.Models;
 using SecurityGuard.UI.ViewModels;
+using SecurityGuard.TransferGuard.Enums;
+using SecurityGuard.TransferGuard.Models;
 
 namespace SecurityGuard.UI.Tests;
 
@@ -288,5 +290,36 @@ public sealed class MainViewModelTests
         Assert.Equal(
             SecurityGuard.AlgorithmGuard.Enums.EnforcementFailurePolicy.FailClosed,
             viewModel.AlgorithmGuardFailurePolicy);
+    }
+
+    [Fact]
+    public async Task Refresh_loads_transfer_guard_settings()
+    {
+        var client =
+            new FakeSecurityGuardClient
+            {
+                TransferGuardSettings =
+                    new TransferGuardSettings(
+                        true,
+                        TransferGuardMode.Enforce,
+                        TransferEnforcementFailurePolicy.FailClosed)
+            };
+
+        var viewModel =
+            new MainViewModel(
+                client);
+
+        await viewModel.RefreshAsync();
+
+        Assert.True(
+            viewModel.TransferGuardEnabled);
+
+        Assert.Equal(
+            TransferGuardMode.Enforce,
+            viewModel.TransferGuardMode);
+
+        Assert.Equal(
+            TransferEnforcementFailurePolicy.FailClosed,
+            viewModel.TransferGuardFailurePolicy);
     }
 }

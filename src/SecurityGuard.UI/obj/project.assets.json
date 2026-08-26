@@ -18,6 +18,32 @@
           "buildTransitive/net8.0/_._": {}
         }
       },
+      "System.Diagnostics.EventLog/10.0.11": {
+        "type": "package",
+        "compile": {
+          "lib/net10.0/System.Diagnostics.EventLog.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net10.0/System.Diagnostics.EventLog.dll": {
+            "related": ".xml"
+          }
+        },
+        "build": {
+          "buildTransitive/net8.0/_._": {}
+        },
+        "runtimeTargets": {
+          "runtimes/win/lib/net10.0/System.Diagnostics.EventLog.Messages.dll": {
+            "assetType": "runtime",
+            "rid": "win"
+          },
+          "runtimes/win/lib/net10.0/System.Diagnostics.EventLog.dll": {
+            "assetType": "runtime",
+            "rid": "win"
+          }
+        }
+      },
       "System.Management/10.0.11": {
         "type": "package",
         "dependencies": {
@@ -66,6 +92,20 @@
         "runtime": {
           "bin/placeholder/SecurityGuard.Core.dll": {}
         }
+      },
+      "SecurityGuard.TransferGuard/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "dependencies": {
+          "SecurityGuard.Core": "1.0.0",
+          "System.Diagnostics.EventLog": "10.0.11"
+        },
+        "compile": {
+          "bin/placeholder/SecurityGuard.TransferGuard.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/SecurityGuard.TransferGuard.dll": {}
+        }
       }
     }
   },
@@ -96,6 +136,44 @@
         "lib/netstandard2.0/System.CodeDom.xml",
         "system.codedom.10.0.11.nupkg.sha512",
         "system.codedom.nuspec",
+        "useSharedDesignerContext.txt"
+      ]
+    },
+    "System.Diagnostics.EventLog/10.0.11": {
+      "sha512": "QTXEoQBzz00SFWbo7nAg1Ogd4f99lwqcO9uAJ7MYSLEUR28f6As32QktrqG2Fr9cfAfd1GjLyGYspE7Ipj7P6w==",
+      "type": "package",
+      "path": "system.diagnostics.eventlog/10.0.11",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "Icon.png",
+        "PACKAGE.md",
+        "THIRD-PARTY-NOTICES.TXT",
+        "buildTransitive/net461/System.Diagnostics.EventLog.targets",
+        "buildTransitive/net462/_._",
+        "buildTransitive/net8.0/_._",
+        "buildTransitive/netcoreapp2.0/System.Diagnostics.EventLog.targets",
+        "lib/net10.0/System.Diagnostics.EventLog.dll",
+        "lib/net10.0/System.Diagnostics.EventLog.xml",
+        "lib/net462/System.Diagnostics.EventLog.dll",
+        "lib/net462/System.Diagnostics.EventLog.xml",
+        "lib/net8.0/System.Diagnostics.EventLog.dll",
+        "lib/net8.0/System.Diagnostics.EventLog.xml",
+        "lib/net9.0/System.Diagnostics.EventLog.dll",
+        "lib/net9.0/System.Diagnostics.EventLog.xml",
+        "lib/netstandard2.0/System.Diagnostics.EventLog.dll",
+        "lib/netstandard2.0/System.Diagnostics.EventLog.xml",
+        "runtimes/win/lib/net10.0/System.Diagnostics.EventLog.Messages.dll",
+        "runtimes/win/lib/net10.0/System.Diagnostics.EventLog.dll",
+        "runtimes/win/lib/net10.0/System.Diagnostics.EventLog.xml",
+        "runtimes/win/lib/net8.0/System.Diagnostics.EventLog.Messages.dll",
+        "runtimes/win/lib/net8.0/System.Diagnostics.EventLog.dll",
+        "runtimes/win/lib/net8.0/System.Diagnostics.EventLog.xml",
+        "runtimes/win/lib/net9.0/System.Diagnostics.EventLog.Messages.dll",
+        "runtimes/win/lib/net9.0/System.Diagnostics.EventLog.dll",
+        "runtimes/win/lib/net9.0/System.Diagnostics.EventLog.xml",
+        "system.diagnostics.eventlog.10.0.11.nupkg.sha512",
+        "system.diagnostics.eventlog.nuspec",
         "useSharedDesignerContext.txt"
       ]
     },
@@ -140,12 +218,18 @@
       "type": "project",
       "path": "../SecurityGuard.Core/SecurityGuard.Core.csproj",
       "msbuildProject": "../SecurityGuard.Core/SecurityGuard.Core.csproj"
+    },
+    "SecurityGuard.TransferGuard/1.0.0": {
+      "type": "project",
+      "path": "../SecurityGuard.TransferGuard/SecurityGuard.TransferGuard.csproj",
+      "msbuildProject": "../SecurityGuard.TransferGuard/SecurityGuard.TransferGuard.csproj"
     }
   },
   "projectFileDependencyGroups": {
     "net10.0": [
       "SecurityGuard.AlgorithmGuard >= 1.0.0",
-      "SecurityGuard.Core >= 1.0.0"
+      "SecurityGuard.Core >= 1.0.0",
+      "SecurityGuard.TransferGuard >= 1.0.0"
     ]
   },
   "packageFolders": {
@@ -179,6 +263,9 @@
             },
             "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj": {
               "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj"
+            },
+            "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/SecurityGuard.TransferGuard.csproj": {
+              "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/SecurityGuard.TransferGuard.csproj"
             }
           }
         }

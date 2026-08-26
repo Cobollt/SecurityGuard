@@ -11,11 +11,13 @@ public sealed class TransferDecisionHandler
     private readonly IRuleRepository _ruleRepository;
     private readonly ITransferEnforcementService _enforcementService;
     private readonly TransferEnforcementRuleFactory _enforcementRuleFactory;
+    private readonly ITransferGuardRuntimeController _runtimeController;
 
     public TransferDecisionHandler(
         IRuleRepository ruleRepository,
         ITransferEnforcementService enforcementService,
-        TransferEnforcementRuleFactory enforcementRuleFactory)
+        TransferEnforcementRuleFactory enforcementRuleFactory,
+        ITransferGuardRuntimeController runtimeController)
     {
         _ruleRepository =
             ruleRepository;
@@ -25,6 +27,9 @@ public sealed class TransferDecisionHandler
 
         _enforcementRuleFactory =
             enforcementRuleFactory;
+
+        _runtimeController =
+            runtimeController;
     }
 
     public SecurityModuleKind Module =>
@@ -55,19 +60,59 @@ public sealed class TransferDecisionHandler
                 ruleDecision);
 
         if (ruleDecision ==
-            RuleDecision.Block)
+            RuleDecision.Allow)
         {
-            if (!_enforcementRuleFactory.TryCreate(
-                    rule,
-                    out var enforcementRule,
-                    out var error) ||
-                enforcementRule is null)
+            await _ruleRepository.UpsertAsync(
+                rule,
+                cancellationToken);
+
+            return;
+        }
+
+        var settings =
+            _runtimeController.CurrentSettings;
+
+        if (!settings.Enabled ||
+            settings.Mode ==
+            Enums.TransferGuardMode.Monitor)
+        {
+            await _ruleRepository.UpsertAsync(
+                rule,
+                cancellationToken);
+
+            return;
+        }
+
+        if (!_enforcementRuleFactory.TryCreate(
+                rule,
+                out var enforcementRule,
+                out var error) ||
+            enforcementRule is null)
+        {
+            var message =
+                error ??
+                "Unable to build Windows Firewall rule.";
+
+            await _runtimeController.ReportEnforcementFailureAsync(
+                message,
+                cancellationToken);
+
+            if (settings.FailurePolicy ==
+                Enums.TransferEnforcementFailurePolicy.FailClosed)
             {
                 throw new InvalidOperationException(
-                    error ??
-                    "Unable to build Windows Firewall rule.");
+                    message);
             }
 
+            await _ruleRepository.UpsertAsync(
+                rule,
+                cancellationToken);
+
+            return;
+        }
+
+        try
+        {
             var result =
                 await _enforcementService.AddBlockAsync(
                     enforcementRule,
@@ -78,6 +123,24 @@ public sealed class TransferDecisionHandler
                 throw new InvalidOperationException(
                     result.Message);
             }
+        }
+        catch (Exception exception)
+        {
+            await _runtimeController.ReportEnforcementFailureAsync(
+                exception.Message,
+                cancellationToken);
+
+            if (settings.FailurePolicy ==
+                Enums.TransferEnforcementFailurePolicy.FailClosed)
+            {
+                throw;
+            }
+
+            await _ruleRepository.UpsertAsync(
+                rule,
+                cancellationToken);
+
+            return;
         }
 
         await _ruleRepository.UpsertAsync(

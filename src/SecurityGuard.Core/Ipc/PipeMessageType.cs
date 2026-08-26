@@ -8,5 +8,7 @@ public enum PipeMessageType
     GetRules = 3,
     DeleteRule = 4,
     GetAlgorithmGuardSettings = 5,
-    UpdateAlgorithmGuardSettings = 6
+    UpdateAlgorithmGuardSettings = 6,
+    GetTransferGuardSettings = 7,
+    UpdateTransferGuardSettings = 8
 }

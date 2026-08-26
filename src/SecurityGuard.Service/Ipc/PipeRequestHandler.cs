@@ -3,6 +3,8 @@ using SecurityGuard.Core.Ipc;
 using SecurityGuard.Core.Models;
 using SecurityGuard.AlgorithmGuard.Contracts;
 using SecurityGuard.AlgorithmGuard.Models;
+using SecurityGuard.TransferGuard.Contracts;
+using SecurityGuard.TransferGuard.Models;
 
 namespace SecurityGuard.Service.Ipc;
 
@@ -12,12 +14,14 @@ public sealed class PipeRequestHandler
     private readonly ISecurityDecisionService _decisionService;
     private readonly IRuleManagementService _ruleManagementService;
     private readonly IAlgorithmGuardSettingsCoordinator _algorithmGuardSettings;
+    private readonly ITransferGuardSettingsCoordinator _transferGuardSettings;
 
     public PipeRequestHandler(
         ISecuritySnapshotService snapshotService,
         ISecurityDecisionService decisionService,
         IRuleManagementService ruleManagementService,
-        IAlgorithmGuardSettingsCoordinator algorithmGuardSettings)
+        IAlgorithmGuardSettingsCoordinator algorithmGuardSettings,
+        ITransferGuardSettingsCoordinator transferGuardSettings)
     {
         _snapshotService =
             snapshotService;
@@ -30,6 +34,9 @@ public sealed class PipeRequestHandler
 
         _algorithmGuardSettings =
             algorithmGuardSettings;
+
+        _transferGuardSettings =
+            transferGuardSettings;
     }
 
     public async Task<PipeResponse> HandleAsync(
@@ -72,6 +79,16 @@ public sealed class PipeRequestHandler
 
                 PipeMessageType.UpdateAlgorithmGuardSettings =>
                     await UpdateAlgorithmGuardSettingsAsync(
+                        request,
+                        cancellationToken),
+
+                PipeMessageType.GetTransferGuardSettings =>
+                    await GetTransferGuardSettingsAsync(
+                        request,
+                        cancellationToken),
+
+                PipeMessageType.UpdateTransferGuardSettings =>
+                    await UpdateTransferGuardSettingsAsync(
                         request,
                         cancellationToken),
 
@@ -196,6 +213,44 @@ public sealed class PipeRequestHandler
                 request.Payload);
 
         await _algorithmGuardSettings.UpdateAsync(
+            settings,
+            cancellationToken);
+
+        return PipeResponse.Ok(
+            request.Id);
+    }
+
+    private async Task<PipeResponse> GetTransferGuardSettingsAsync(
+        PipeRequest request,
+        CancellationToken cancellationToken)
+    {
+        var settings =
+            await _transferGuardSettings.GetAsync(
+                cancellationToken);
+
+        return PipeResponse.Ok(
+            request.Id,
+            PipeJsonSerializer.Serialize(
+                settings));
+    }
+
+    private async Task<PipeResponse> UpdateTransferGuardSettingsAsync(
+        PipeRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(
+                request.Payload))
+        {
+            return PipeResponse.Fail(
+                request.Id,
+                "TransferGuard settings payload is required.");
+        }
+
+        var settings =
+            PipeJsonSerializer.Deserialize<TransferGuardSettings>(
+                request.Payload);
+
+        await _transferGuardSettings.UpdateAsync(
             settings,
             cancellationToken);
 

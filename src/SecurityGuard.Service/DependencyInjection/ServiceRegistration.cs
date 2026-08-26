@@ -158,6 +158,14 @@ public static class ServiceRegistration
             IAlgorithmGuardSettingsCoordinator,
             AlgorithmGuardSettingsCoordinator>();
 
+        services.AddSingleton<
+            ITransferGuardSettingsService,
+            TransferGuardSettingsService>();
+
+        services.AddSingleton<
+            ITransferGuardSettingsCoordinator,
+            TransferGuardSettingsCoordinator>();
+
         services.AddSingleton(
             new TransferGuardOptions());
 
@@ -216,8 +224,22 @@ public static class ServiceRegistration
         services.AddHostedService<SecurityGuardWorker>();
         services.AddHostedService<SecurityGuardStartupService>();
         services.AddHostedService<SecurityGuardPipeServer>();
-        services.AddHostedService<TransferGuardHostedService>();
         services.AddSingleton<AlgorithmGuardHostedService>();
+
+        services.AddSingleton<
+            TransferGuardHostedService>();
+
+        services.AddSingleton<
+            ITransferGuardRuntimeController>(
+                provider =>
+                    provider.GetRequiredService<
+                        TransferGuardHostedService>());
+
+        services.AddHostedService(
+            provider =>
+            
+                provider.GetRequiredService<
+                    TransferGuardHostedService>());
 
         services.AddSingleton<
             IAlgorithmGuardRuntimeController>(

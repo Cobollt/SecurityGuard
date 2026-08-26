@@ -2,11 +2,12 @@ using SecurityGuard.TransferGuard.Models;
 
 namespace SecurityGuard.TransferGuard.Contracts;
 
-public interface ITransferEnforcementSynchronizer
+public interface ITransferGuardSettingsService
 {
-    Task<TransferEnforcementSyncResult> SynchronizeAsync(
+    Task<TransferGuardSettings> GetAsync(
         CancellationToken cancellationToken = default);
 
-    Task<int> DisableManagedRulesAsync(
+    Task SaveAsync(
+        TransferGuardSettings settings,
         CancellationToken cancellationToken = default);
 }

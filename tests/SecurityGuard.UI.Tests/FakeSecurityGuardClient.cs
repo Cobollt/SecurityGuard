@@ -1,6 +1,7 @@
 using SecurityGuard.Core.Models;
 using SecurityGuard.UI.Services;
 using SecurityGuard.AlgorithmGuard.Models;
+using SecurityGuard.TransferGuard.Models;
 
 namespace SecurityGuard.UI.Tests;
 
@@ -8,6 +9,9 @@ internal sealed class FakeSecurityGuardClient
     : ISecurityGuardClient
 {
     public bool Connected { get; set; } = true;
+
+    public TransferGuardSettings TransferGuardSettings { get; set; } =
+    TransferGuardSettings.Default;
 
     public SecuritySnapshot Snapshot { get; set; } =
         new(
@@ -103,6 +107,27 @@ internal sealed class FakeSecurityGuardClient
         ThrowIfConfigured();
 
         AlgorithmGuardSettings =
+            settings;
+
+        return Task.CompletedTask;
+    }
+
+    public Task<TransferGuardSettings> GetTransferGuardSettingsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfConfigured();
+
+        return Task.FromResult(
+            TransferGuardSettings);
+    }
+
+    public Task UpdateTransferGuardSettingsAsync(
+        TransferGuardSettings settings,
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfConfigured();
+
+        TransferGuardSettings =
             settings;
 
         return Task.CompletedTask;

@@ -875,6 +875,60 @@
                                 Margin="0,20,0,0"
                                 Command="{Binding SaveAlgorithmGuardSettingsCommand}" />
 
+                        <Separator Margin="0,30,0,24" />
+
+                        <TextBlock Text="TransferGuard"
+                                FontSize="20"
+                                FontWeight="SemiBold"
+                                Margin="0,0,0,12" />
+
+                        <CheckBox Content="Включить контроль исходящих соединений"
+                                IsChecked="{Binding TransferGuardEnabled}"
+                                FontSize="15"
+                                Margin="0,4,0,12" />
+
+                        <TextBlock Text="Режим"
+                                FontWeight="SemiBold"
+                                Margin="0,8,0,4" />
+
+                        <ComboBox ItemsSource="{Binding TransferGuardModes}"
+                                SelectedItem="{Binding TransferGuardMode}"
+                                Width="220"
+                                HorizontalAlignment="Left" />
+
+                        <TextBlock Text="Поведение при ошибке сетевой блокировки"
+                                FontWeight="SemiBold"
+                                Margin="0,18,0,4" />
+
+                        <ComboBox ItemsSource="{Binding TransferGuardFailurePolicies}"
+                                SelectedItem="{Binding TransferGuardFailurePolicy}"
+                                Width="220"
+                                HorizontalAlignment="Left" />
+
+                        <TextBlock Text="Monitor — обнаружение соединений и внутренние правила без блокировки Windows Firewall."
+                                TextWrapping="Wrap"
+                                MaxWidth="650"
+                                HorizontalAlignment="Left"
+                                Margin="0,14,0,0" />
+
+                        <TextBlock Text="Enforce — поддерживаемые Block-правила применяются через Windows Firewall."
+                                TextWrapping="Wrap"
+                                MaxWidth="650"
+                                HorizontalAlignment="Left"
+                                Margin="0,6,0,0" />
+
+                        <TextBlock Text="FailOpen — при ошибке Firewall мониторинг продолжается. FailClosed — TransferGuard переходит в Faulted и прекращает мониторинг."
+                                TextWrapping="Wrap"
+                                MaxWidth="650"
+                                HorizontalAlignment="Left"
+                                Margin="0,6,0,0" />
+
+                        <Button Content="Сохранить настройки TransferGuard"
+                                Width="260"
+                                HorizontalAlignment="Left"
+                                Margin="0,20,0,0"
+                                Command="{Binding SaveTransferGuardSettingsCommand}" />
+
                         <Separator Margin="0,28,0,20" />
 
                         <TextBlock Text="Состояние службы"

@@ -3,23 +3,43 @@ using SecurityGuard.Core.Contracts;
 using SecurityGuard.Core.Enums;
 using SecurityGuard.TransferGuard.Configuration;
 using SecurityGuard.TransferGuard.Contracts;
+using SecurityGuard.TransferGuard.Enums;
+using SecurityGuard.TransferGuard.Models;
 
 namespace SecurityGuard.Service.Hosting;
 
 public sealed class TransferGuardHostedService
-    : BackgroundService
+    : BackgroundService,
+      ITransferGuardRuntimeController
 {
     private readonly ITransferGuardMonitor _monitor;
     private readonly IFilteringPlatformAuditPolicyService _auditPolicyService;
     private readonly ITransferEnforcementSynchronizer _synchronizer;
+    private readonly ITransferGuardSettingsService _settingsService;
     private readonly TransferGuardOptions _options;
     private readonly IModuleRegistry _moduleRegistry;
     private readonly IAuditService _auditService;
+
+    private readonly SemaphoreSlim _gate =
+        new(1, 1);
+
+    private CancellationTokenSource? _monitorCancellation;
+    private Task? _monitorTask;
+
+    private CancellationToken _hostStoppingToken =
+        CancellationToken.None;
+
+    private TransferGuardSettings _currentSettings =
+        TransferGuardSettings.Default;
+
+    public TransferGuardSettings CurrentSettings =>
+        _currentSettings;
 
     public TransferGuardHostedService(
         ITransferGuardMonitor monitor,
         IFilteringPlatformAuditPolicyService auditPolicyService,
         ITransferEnforcementSynchronizer synchronizer,
+        ITransferGuardSettingsService settingsService,
         TransferGuardOptions options,
         IModuleRegistry moduleRegistry,
         IAuditService auditService)
@@ -32,6 +52,9 @@ public sealed class TransferGuardHostedService
 
         _synchronizer =
             synchronizer;
+
+        _settingsService =
+            settingsService;
 
         _options =
             options;
@@ -46,57 +69,21 @@ public sealed class TransferGuardHostedService
     protected override async Task ExecuteAsync(
         CancellationToken stoppingToken)
     {
-        _moduleRegistry.Set(
-            SecurityModuleKind.TransferGuard,
-            ModuleOperationalState.Starting,
-            "TransferGuard is starting");
+        _hostStoppingToken =
+            stoppingToken;
 
         try
         {
-            var auditState =
-                _options.AutoEnableFilteringPlatformAudit
-                    ? await _auditPolicyService.EnsureSuccessEnabledAsync(
-                        stoppingToken)
-                    : await _auditPolicyService.GetAsync(
-                        stoppingToken);
-
-            if (!auditState.SuccessEnabled)
-            {
-                _moduleRegistry.Set(
-                    SecurityModuleKind.TransferGuard,
-                    ModuleOperationalState.Faulted,
-                    "Filtering Platform Connection auditing is disabled");
-
-                return;
-            }
-
-            var synchronization =
-                await _synchronizer.SynchronizeAsync(
+            var settings =
+                await _settingsService.GetAsync(
                     stoppingToken);
 
-            _moduleRegistry.Set(
-                SecurityModuleKind.TransferGuard,
-                synchronization.Healthy
-                    ? ModuleOperationalState.Active
-                    : ModuleOperationalState.Degraded,
-                synchronization.Healthy
-                    ? "Outbound monitoring and Firewall enforcement are active"
-                    : "Outbound monitoring is active; Firewall synchronization has warnings");
+            await ApplyAsync(
+                settings,
+                stoppingToken);
 
-            await _auditService.WriteAsync(
-                SecurityModuleKind.TransferGuard,
-                SecurityEventType.System,
-                synchronization.Healthy
-                    ? SecuritySeverity.Info
-                    : SecuritySeverity.Medium,
-                "TransferGuard started",
-                synchronization.Healthy
-                    ? "Outbound TCP/UDP monitoring and Windows Firewall enforcement started."
-                    : "Outbound monitoring started with enforcement warnings.",
-                cancellationToken:
-                    stoppingToken);
-
-            await _monitor.RunAsync(
+            await Task.Delay(
+                Timeout.InfiniteTimeSpan,
                 stoppingToken);
         }
         catch (OperationCanceledException)
@@ -110,19 +97,392 @@ public sealed class TransferGuardHostedService
                 ModuleOperationalState.Faulted,
                 exception.Message);
 
+            try
+            {
+                await _auditService.WriteAsync(
+                    SecurityModuleKind.TransferGuard,
+                    SecurityEventType.System,
+                    SecuritySeverity.Critical,
+                    "TransferGuard startup failed",
+                    exception.Message,
+                    cancellationToken:
+                        CancellationToken.None);
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                await Task.Delay(
+                    Timeout.InfiniteTimeSpan,
+                    stoppingToken);
+            }
+            catch (OperationCanceledException)
+                when (stoppingToken.IsCancellationRequested)
+            {
+            }
+        }
+        finally
+        {
+            await _gate.WaitAsync(
+                CancellationToken.None);
+
+            try
+            {
+                await StopMonitorAsync();
+
+                _moduleRegistry.Set(
+                    SecurityModuleKind.TransferGuard,
+                    ModuleOperationalState.Disabled,
+                    "TransferGuard is stopped");
+            }
+            finally
+            {
+                _gate.Release();
+            }
+        }
+    }
+
+    public async Task ApplyAsync(
+        TransferGuardSettings settings,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(
+            settings);
+
+        await _gate.WaitAsync(
+            cancellationToken);
+
+        try
+        {
+            _currentSettings =
+                settings;
+
+            if (!settings.Enabled)
+            {
+                await StopMonitorAsync();
+
+                await DisableEnforcementAsync(
+                    "TransferGuard is disabled",
+                    cancellationToken);
+
+                _moduleRegistry.Set(
+                    SecurityModuleKind.TransferGuard,
+                    ModuleOperationalState.Disabled,
+                    "TransferGuard is disabled");
+
+                await WriteModeChangedAsync(
+                    settings,
+                    cancellationToken);
+
+                return;
+            }
+
+            await EnsureMonitoringPrerequisitesAsync(
+                cancellationToken);
+
+            if (settings.Mode ==
+                TransferGuardMode.Monitor)
+            {
+                await StopMonitorAsync();
+
+                await DisableEnforcementAsync(
+                    "TransferGuard Monitor mode",
+                    cancellationToken);
+
+                StartMonitor();
+
+                _moduleRegistry.Set(
+                    SecurityModuleKind.TransferGuard,
+                    ModuleOperationalState.Active,
+                    "Monitor mode is active");
+
+                await WriteModeChangedAsync(
+                    settings,
+                    cancellationToken);
+
+                return;
+            }
+
+            var synchronization =
+                await _synchronizer.SynchronizeAsync(
+                    cancellationToken);
+
+            if (synchronization.Healthy)
+            {
+                StartMonitor();
+
+                _moduleRegistry.Set(
+                    SecurityModuleKind.TransferGuard,
+                    ModuleOperationalState.Active,
+                    "Enforce mode is active");
+
+                await WriteModeChangedAsync(
+                    settings,
+                    cancellationToken);
+
+                return;
+            }
+
+            if (settings.FailurePolicy ==
+                TransferEnforcementFailurePolicy.FailOpen)
+            {
+                StartMonitor();
+
+                _moduleRegistry.Set(
+                    SecurityModuleKind.TransferGuard,
+                    ModuleOperationalState.Degraded,
+                    "Firewall enforcement has warnings; monitoring remains active");
+
+                await _auditService.WriteAsync(
+                    SecurityModuleKind.TransferGuard,
+                    SecurityEventType.System,
+                    SecuritySeverity.High,
+                    "TransferGuard enforcement degraded",
+                    string.Join(
+                        Environment.NewLine,
+                        synchronization.Warnings),
+                    cancellationToken:
+                        cancellationToken);
+
+                return;
+            }
+
+            await StopMonitorAsync();
+
+            _moduleRegistry.Set(
+                SecurityModuleKind.TransferGuard,
+                ModuleOperationalState.Faulted,
+                "Firewall enforcement validation failed");
+
+            await _auditService.WriteAsync(
+                SecurityModuleKind.TransferGuard,
+                SecurityEventType.System,
+                SecuritySeverity.Critical,
+                "TransferGuard fail-closed",
+                string.Join(
+                    Environment.NewLine,
+                    synchronization.Warnings),
+                cancellationToken:
+                    cancellationToken);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    public async Task ReportEnforcementFailureAsync(
+        string message,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(
+            message);
+
+        await _gate.WaitAsync(
+            cancellationToken);
+
+        try
+        {
+            await _auditService.WriteAsync(
+                SecurityModuleKind.TransferGuard,
+                SecurityEventType.System,
+                SecuritySeverity.Critical,
+                "TransferGuard enforcement failure",
+                message,
+                cancellationToken:
+                    cancellationToken);
+
+            if (_currentSettings.FailurePolicy ==
+                TransferEnforcementFailurePolicy.FailOpen)
+            {
+                StartMonitor();
+
+                _moduleRegistry.Set(
+                    SecurityModuleKind.TransferGuard,
+                    ModuleOperationalState.Degraded,
+                    "Firewall enforcement failure; monitoring remains active");
+
+                return;
+            }
+
+            await StopMonitorAsync();
+
+            _moduleRegistry.Set(
+                SecurityModuleKind.TransferGuard,
+                ModuleOperationalState.Faulted,
+                "Firewall enforcement failure");
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    private async Task EnsureMonitoringPrerequisitesAsync(
+        CancellationToken cancellationToken)
+    {
+        var state =
+            _options.AutoEnableFilteringPlatformAudit
+                ? await _auditPolicyService.EnsureSuccessEnabledAsync(
+                    cancellationToken)
+                : await _auditPolicyService.GetAsync(
+                    cancellationToken);
+
+        if (!state.SuccessEnabled)
+        {
+            throw new InvalidOperationException(
+                "Filtering Platform Connection success auditing is disabled.");
+        }
+
+        if (!state.Changed)
+        {
+            return;
+        }
+
+        await _auditService.WriteAsync(
+            SecurityModuleKind.TransferGuard,
+            SecurityEventType.System,
+            SecuritySeverity.Info,
+            "WFP connection auditing enabled",
+            "Filtering Platform Connection success auditing was enabled.",
+            cancellationToken:
+                cancellationToken);
+    }
+
+    private async Task DisableEnforcementAsync(
+        string reason,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _synchronizer.DisableManagedRulesAsync(
+                cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            _moduleRegistry.Set(
+                SecurityModuleKind.TransferGuard,
+                ModuleOperationalState.Faulted,
+                "Unable to disable Windows Firewall enforcement");
+
+            await _auditService.WriteAsync(
+                SecurityModuleKind.TransferGuard,
+                SecurityEventType.System,
+                SecuritySeverity.Critical,
+                "Unable to disable TransferGuard enforcement",
+                $"{reason}: {exception.Message}",
+                cancellationToken:
+                    cancellationToken);
+
             throw;
         }
     }
 
-    public override async Task StopAsync(
+    private void StartMonitor()
+    {
+        if (_monitorTask is
+            {
+                IsCompleted: false
+            })
+        {
+            return;
+        }
+
+        _monitorCancellation?.Dispose();
+
+        _monitorCancellation =
+            CancellationTokenSource.CreateLinkedTokenSource(
+                _hostStoppingToken);
+
+        var token =
+            _monitorCancellation.Token;
+
+        _monitorTask =
+            Task.Run(
+                () =>
+                    RunMonitorAsync(
+                        token),
+                CancellationToken.None);
+    }
+
+    private async Task RunMonitorAsync(
         CancellationToken cancellationToken)
     {
-        _moduleRegistry.Set(
-            SecurityModuleKind.TransferGuard,
-            ModuleOperationalState.Disabled,
-            "TransferGuard is stopped");
+        try
+        {
+            await _monitor.RunAsync(
+                cancellationToken);
+        }
+        catch (OperationCanceledException)
+            when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            _moduleRegistry.Set(
+                SecurityModuleKind.TransferGuard,
+                ModuleOperationalState.Faulted,
+                "TransferGuard monitoring failed");
 
-        await base.StopAsync(
-            cancellationToken);
+            try
+            {
+                await _auditService.WriteAsync(
+                    SecurityModuleKind.TransferGuard,
+                    SecurityEventType.System,
+                    SecuritySeverity.Critical,
+                    "TransferGuard monitoring failed",
+                    exception.Message,
+                    cancellationToken:
+                        CancellationToken.None);
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    private async Task StopMonitorAsync()
+    {
+        if (_monitorCancellation is null)
+        {
+            return;
+        }
+
+        await _monitorCancellation.CancelAsync();
+
+        if (_monitorTask is not null)
+        {
+            try
+            {
+                await _monitorTask;
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        }
+
+        _monitorCancellation.Dispose();
+
+        _monitorCancellation =
+            null;
+
+        _monitorTask =
+            null;
+    }
+
+    private Task WriteModeChangedAsync(
+        TransferGuardSettings settings,
+        CancellationToken cancellationToken)
+    {
+        return _auditService.WriteAsync(
+            SecurityModuleKind.TransferGuard,
+            SecurityEventType.System,
+            SecuritySeverity.Info,
+            "TransferGuard mode applied",
+            $"Enabled={settings.Enabled}; Mode={settings.Mode}; FailurePolicy={settings.FailurePolicy}",
+            cancellationToken:
+                cancellationToken);
     }
 }
