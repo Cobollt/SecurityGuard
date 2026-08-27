@@ -23,11 +23,14 @@ public sealed class TransferGuardOptions
     public int MaxTrackedConnectionsPerProcess { get; init; } =
         32;
 
+    public int MaxTrackedNetworkDestinationsPerProcess { get; init; } =
+        64;
+
     public int MaxCandidatesPerConnection { get; init; } =
         5;
 
-    public int FileReadChannelCapacity { get; init; } =
-        8192;
+    public int KernelTelemetryChannelCapacity { get; init; } =
+        16384;
 
     public long MaxImmediateHashFileSizeBytes { get; init; } =
         32L * 1024L * 1024L;

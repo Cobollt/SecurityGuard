@@ -9,7 +9,9 @@ public sealed record FileTransferCandidate(
     string FilePath,
     string? Sha256,
     long ObservedReadBytes,
+    long ObservedSentBytes,
     long? FileSize,
     TimeSpan TimeDifference,
+    double VolumeSimilarity,
     TransferCorrelationConfidence Confidence,
     NetworkConnectionObservation Connection);

@@ -196,4 +196,98 @@ public sealed class TransferCorrelationStateTests
             observation.Id,
             restored.Id);
     }
+
+    [Fact]
+    public void Repeated_network_sends_are_aggregated()
+    {
+        var now =
+            DateTimeOffset.UtcNow;
+
+        var state =
+            new TransferCorrelationState(
+                new TransferGuardOptions());
+
+        state.RecordNetworkSend(
+            new NetworkSendActivity(
+                100,
+                TransferProtocol.Tcp,
+                NetworkAddressFamily.IPv4,
+                "192.168.1.10",
+                51000,
+                "1.1.1.1",
+                443,
+                4096,
+                now));
+
+        state.RecordNetworkSend(
+            new NetworkSendActivity(
+                100,
+                TransferProtocol.Tcp,
+                NetworkAddressFamily.IPv4,
+                "192.168.1.10",
+                51000,
+                "1.1.1.1",
+                443,
+                8192,
+                now +
+                TimeSpan.FromMilliseconds(50)));
+
+        var sends =
+            state.GetRecentNetworkSends(
+                100,
+                now +
+                TimeSpan.FromSeconds(1));
+
+        var send =
+            Assert.Single(
+                sends);
+
+        Assert.Equal(
+            12288,
+            send.ObservedSentBytes);
+    }
+
+    [Fact]
+    public void Different_destinations_are_not_aggregated()
+    {
+        var now =
+            DateTimeOffset.UtcNow;
+
+        var state =
+            new TransferCorrelationState(
+                new TransferGuardOptions());
+
+        state.RecordNetworkSend(
+            new NetworkSendActivity(
+                100,
+                TransferProtocol.Tcp,
+                NetworkAddressFamily.IPv4,
+                "192.168.1.10",
+                51000,
+                "1.1.1.1",
+                443,
+                4096,
+                now));
+
+        state.RecordNetworkSend(
+            new NetworkSendActivity(
+                100,
+                TransferProtocol.Tcp,
+                NetworkAddressFamily.IPv4,
+                "192.168.1.10",
+                51001,
+                "8.8.8.8",
+                443,
+                4096,
+                now));
+
+        var sends =
+            state.GetRecentNetworkSends(
+                100,
+                now);
+
+        Assert.Equal(
+            2,
+            sends.Count);
+    }
 }

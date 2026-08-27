@@ -75,8 +75,11 @@ public static class ServiceRegistration
         services.AddSingleton<DirectoryBootstrapper>();
 
         services.AddSingleton<
-            IFileReadActivitySource,
-            EtwFileReadActivitySource>();
+            ITransferKernelTelemetrySource,
+            EtwTransferKernelTelemetrySource>();
+
+        services.AddSingleton<
+            TransferCorrelationConfidenceCalculator>();
 
         services.AddSingleton<
             ITransferCorrelationState,

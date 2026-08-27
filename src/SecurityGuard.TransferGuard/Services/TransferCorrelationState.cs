@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using SecurityGuard.TransferGuard.Configuration;
 using SecurityGuard.TransferGuard.Contracts;
+using SecurityGuard.TransferGuard.Enums;
 using SecurityGuard.TransferGuard.Models;
 
 namespace SecurityGuard.TransferGuard.Services;
@@ -34,10 +35,8 @@ public sealed class TransferCorrelationState
         }
 
         var state =
-            _states.GetOrAdd(
-                activity.ProcessId,
-                _ =>
-                    new ProcessState());
+            GetState(
+                activity.ProcessId);
 
         lock (state.Gate)
         {
@@ -92,10 +91,8 @@ public sealed class TransferCorrelationState
         }
 
         var state =
-            _states.GetOrAdd(
-                processId.Value,
-                _ =>
-                    new ProcessState());
+            GetState(
+                processId.Value);
 
         lock (state.Gate)
         {
@@ -106,14 +103,75 @@ public sealed class TransferCorrelationState
             state.Connections.Add(
                 observation);
 
-            if (state.Connections.Count >
-                _options.MaxTrackedConnectionsPerProcess)
+            TrimConnections(
+                state);
+        }
+    }
+
+    public void RecordNetworkSend(
+        NetworkSendActivity activity)
+    {
+        ArgumentNullException.ThrowIfNull(
+            activity);
+
+        if (activity.ProcessId <= 0 ||
+            activity.BytesSent <= 0)
+        {
+            return;
+        }
+
+        var state =
+            GetState(
+                activity.ProcessId);
+
+        lock (state.Gate)
+        {
+            Cleanup(
+                state,
+                activity.SentAtUtc);
+
+            var key =
+                new NetworkDestinationKey(
+                    activity.Protocol,
+                    activity.AddressFamily,
+                    activity.LocalAddress,
+                    activity.LocalPort,
+                    activity.RemoteAddress,
+                    activity.RemotePort);
+
+            if (state.NetworkSends.TryGetValue(
+                    key,
+                    out var existing))
             {
-                state.Connections.RemoveRange(
-                    0,
-                    state.Connections.Count -
-                    _options.MaxTrackedConnectionsPerProcess);
+                state.NetworkSends[key] =
+                    existing with
+                    {
+                        ObservedSentBytes =
+                            existing.ObservedSentBytes +
+                            activity.BytesSent,
+
+                        LastSendAtUtc =
+                            activity.SentAtUtc
+                    };
             }
+            else
+            {
+                state.NetworkSends[key] =
+                    new RecentNetworkSend(
+                        activity.ProcessId,
+                        activity.Protocol,
+                        activity.AddressFamily,
+                        activity.LocalAddress,
+                        activity.LocalPort,
+                        activity.RemoteAddress,
+                        activity.RemotePort,
+                        activity.BytesSent,
+                        activity.SentAtUtc,
+                        activity.SentAtUtc);
+            }
+
+            TrimNetworkSends(
+                state);
         }
     }
 
@@ -136,16 +194,16 @@ public sealed class TransferCorrelationState
 
             return state.Files.Values
                 .Where(
-                    file =>
+                    item =>
                         IsWithinWindow(
-                            file.LastReadAtUtc,
+                            item.LastReadAtUtc,
                             referenceTime))
                 .OrderByDescending(
-                    file =>
-                        file.LastReadAtUtc)
+                    item =>
+                        item.LastReadAtUtc)
                 .ThenByDescending(
-                    file =>
-                        file.ObservedReadBytes)
+                    item =>
+                        item.ObservedReadBytes)
                 .Take(
                     _options.MaxCandidatesPerConnection)
                 .ToArray();
@@ -171,25 +229,62 @@ public sealed class TransferCorrelationState
 
             return state.Connections
                 .Where(
-                    connection =>
+                    item =>
                         IsWithinWindow(
-                            connection.DetectedAtUtc,
+                            item.DetectedAtUtc,
                             referenceTime))
                 .OrderByDescending(
-                    connection =>
-                        connection.DetectedAtUtc)
+                    item =>
+                        item.DetectedAtUtc)
                 .ToArray();
         }
+    }
+
+    public IReadOnlyList<RecentNetworkSend> GetRecentNetworkSends(
+        int processId,
+        DateTimeOffset referenceTime)
+    {
+        if (!_states.TryGetValue(
+                processId,
+                out var state))
+        {
+            return [];
+        }
+
+        lock (state.Gate)
+        {
+            Cleanup(
+                state,
+                referenceTime);
+
+            return state.NetworkSends.Values
+                .Where(
+                    item =>
+                        IsWithinWindow(
+                            item.LastSendAtUtc,
+                            referenceTime))
+                .OrderByDescending(
+                    item =>
+                        item.LastSendAtUtc)
+                .ToArray();
+        }
+    }
+
+    private ProcessState GetState(
+        int processId)
+    {
+        return _states.GetOrAdd(
+            processId,
+            _ =>
+                new ProcessState());
     }
 
     private bool IsWithinWindow(
         DateTimeOffset first,
         DateTimeOffset second)
     {
-        var difference =
-            (first - second).Duration();
-
-        return difference <=
+        return (first - second)
+                   .Duration() <=
                _options.FileCorrelationWindow;
     }
 
@@ -214,23 +309,43 @@ public sealed class TransferCorrelationState
                         item.Key)
                 .ToArray();
 
-        foreach (var path in oldFiles)
+        foreach (var key in oldFiles)
         {
             state.Files.Remove(
-                path);
+                key);
         }
 
         state.Connections.RemoveAll(
-            connection =>
-                connection.DetectedAtUtc <
+            item =>
+                item.DetectedAtUtc <
                 cutoff);
+
+        var oldNetworkSends =
+            state.NetworkSends
+                .Where(
+                    item =>
+                        item.Value.LastSendAtUtc <
+                        cutoff)
+                .Select(
+                    item =>
+                        item.Key)
+                .ToArray();
+
+        foreach (var key in oldNetworkSends)
+        {
+            state.NetworkSends.Remove(
+                key);
+        }
     }
 
     private void TrimFiles(
         ProcessState state)
     {
-        if (state.Files.Count <=
-            _options.MaxTrackedFilesPerProcess)
+        var overflow =
+            state.Files.Count -
+            _options.MaxTrackedFilesPerProcess;
+
+        if (overflow <= 0)
         {
             return;
         }
@@ -238,20 +353,67 @@ public sealed class TransferCorrelationState
         var remove =
             state.Files.Values
                 .OrderBy(
-                    file =>
-                        file.LastReadAtUtc)
+                    item =>
+                        item.LastReadAtUtc)
                 .Take(
-                    state.Files.Count -
-                    _options.MaxTrackedFilesPerProcess)
+                    overflow)
                 .Select(
-                    file =>
-                        file.FilePath)
+                    item =>
+                        item.FilePath)
                 .ToArray();
 
-        foreach (var path in remove)
+        foreach (var key in remove)
         {
             state.Files.Remove(
-                path);
+                key);
+        }
+    }
+
+    private void TrimConnections(
+        ProcessState state)
+    {
+        var overflow =
+            state.Connections.Count -
+            _options.MaxTrackedConnectionsPerProcess;
+
+        if (overflow <= 0)
+        {
+            return;
+        }
+
+        state.Connections.RemoveRange(
+            0,
+            overflow);
+    }
+
+    private void TrimNetworkSends(
+        ProcessState state)
+    {
+        var overflow =
+            state.NetworkSends.Count -
+            _options.MaxTrackedNetworkDestinationsPerProcess;
+
+        if (overflow <= 0)
+        {
+            return;
+        }
+
+        var remove =
+            state.NetworkSends
+                .OrderBy(
+                    item =>
+                        item.Value.LastSendAtUtc)
+                .Take(
+                    overflow)
+                .Select(
+                    item =>
+                        item.Key)
+                .ToArray();
+
+        foreach (var key in remove)
+        {
+            state.NetworkSends.Remove(
+                key);
         }
     }
 
@@ -266,5 +428,18 @@ public sealed class TransferCorrelationState
 
         public List<NetworkConnectionObservation> Connections { get; } =
             [];
+
+        public Dictionary<
+            NetworkDestinationKey,
+            RecentNetworkSend> NetworkSends { get; } =
+            [];
     }
+
+    private sealed record NetworkDestinationKey(
+        TransferProtocol Protocol,
+        NetworkAddressFamily AddressFamily,
+        string LocalAddress,
+        int LocalPort,
+        string RemoteAddress,
+        int RemotePort);
 }

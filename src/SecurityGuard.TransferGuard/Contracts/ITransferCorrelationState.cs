@@ -10,11 +10,18 @@ public interface ITransferCorrelationState
     void RecordConnection(
         NetworkConnectionObservation observation);
 
+    void RecordNetworkSend(
+        NetworkSendActivity activity);
+
     IReadOnlyList<RecentFileRead> GetRecentFiles(
         int processId,
         DateTimeOffset referenceTime);
 
     IReadOnlyList<NetworkConnectionObservation> GetRecentConnections(
+        int processId,
+        DateTimeOffset referenceTime);
+
+    IReadOnlyList<RecentNetworkSend> GetRecentNetworkSends(
         int processId,
         DateTimeOffset referenceTime);
 }

@@ -2,8 +2,8 @@ using SecurityGuard.TransferGuard.Models;
 
 namespace SecurityGuard.TransferGuard.Contracts;
 
-public interface IFileReadActivitySource
+public interface ITransferKernelTelemetrySource
 {
-    IAsyncEnumerable<FileReadActivity> WatchAsync(
+    IAsyncEnumerable<TransferKernelActivity> WatchAsync(
         CancellationToken cancellationToken = default);
 }

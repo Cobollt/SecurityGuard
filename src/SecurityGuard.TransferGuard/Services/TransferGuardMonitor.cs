@@ -1,6 +1,7 @@
 using SecurityGuard.Core.Contracts;
 using SecurityGuard.Core.Enums;
 using SecurityGuard.TransferGuard.Contracts;
+using SecurityGuard.TransferGuard.Models;
 
 namespace SecurityGuard.TransferGuard.Services;
 
@@ -8,7 +9,7 @@ public sealed class TransferGuardMonitor
     : ITransferGuardMonitor
 {
     private readonly IOutboundConnectionEventSource _eventSource;
-    private readonly IFileReadActivitySource _fileReadSource;
+    private readonly ITransferKernelTelemetrySource _kernelTelemetrySource;
     private readonly TransferObservationService _observationService;
     private readonly TransferCorrelationService _correlationService;
     private readonly TransferPolicyService _policyService;
@@ -16,7 +17,7 @@ public sealed class TransferGuardMonitor
 
     public TransferGuardMonitor(
         IOutboundConnectionEventSource eventSource,
-        IFileReadActivitySource fileReadSource,
+        ITransferKernelTelemetrySource kernelTelemetrySource,
         TransferObservationService observationService,
         TransferCorrelationService correlationService,
         TransferPolicyService policyService,
@@ -25,8 +26,8 @@ public sealed class TransferGuardMonitor
         _eventSource =
             eventSource;
 
-        _fileReadSource =
-            fileReadSource;
+        _kernelTelemetrySource =
+            kernelTelemetrySource;
 
         _observationService =
             observationService;
@@ -44,8 +45,8 @@ public sealed class TransferGuardMonitor
     public async Task RunAsync(
         CancellationToken cancellationToken = default)
     {
-        var fileReadTask =
-            TrackFileReadsAsync(
+        var kernelTask =
+            TrackKernelTelemetryAsync(
                 cancellationToken);
 
         try
@@ -77,7 +78,7 @@ public sealed class TransferGuardMonitor
                 }
                 catch (Exception exception)
                 {
-                    await WriteMonitorWarningAsync(
+                    await WriteWarningAsync(
                         "TransferGuard connection processing failed",
                         exception.Message);
                 }
@@ -87,7 +88,7 @@ public sealed class TransferGuardMonitor
         {
             try
             {
-                await fileReadTask;
+                await kernelTask;
             }
             catch (OperationCanceledException)
             {
@@ -95,19 +96,32 @@ public sealed class TransferGuardMonitor
         }
     }
 
-    private async Task TrackFileReadsAsync(
+    private async Task TrackKernelTelemetryAsync(
         CancellationToken cancellationToken)
     {
         try
         {
             await foreach (
                 var activity in
-                _fileReadSource.WatchAsync(
+                _kernelTelemetrySource.WatchAsync(
                     cancellationToken))
             {
-                await _correlationService.HandleFileReadAsync(
-                    activity,
-                    cancellationToken);
+                switch (activity)
+                {
+                    case FileReadKernelActivity fileRead:
+                        await _correlationService.HandleFileReadAsync(
+                            fileRead.Activity,
+                            cancellationToken);
+
+                        break;
+
+                    case NetworkSendKernelActivity networkSend:
+                        await _correlationService.HandleNetworkSendAsync(
+                            networkSend.Activity,
+                            cancellationToken);
+
+                        break;
+                }
             }
         }
         catch (OperationCanceledException)
@@ -116,13 +130,13 @@ public sealed class TransferGuardMonitor
         }
         catch (Exception exception)
         {
-            await WriteMonitorWarningAsync(
-                "TransferGuard file correlation unavailable",
+            await WriteWarningAsync(
+                "TransferGuard kernel telemetry unavailable",
                 exception.Message);
         }
     }
 
-    private Task WriteMonitorWarningAsync(
+    private Task WriteWarningAsync(
         string title,
         string details)
     {
