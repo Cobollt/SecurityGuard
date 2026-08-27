@@ -1801,6 +1801,10 @@
           "framework": "net10.0",
           "targetAlias": "net10.0",
           "dependencies": {
+            "Microsoft.Diagnostics.Tracing.TraceEvent": {
+              "target": "Package",
+              "version": "[3.2.6, )"
+            },
             "System.Diagnostics.EventLog": {
               "target": "Package",
               "version": "[10.0.11, )"

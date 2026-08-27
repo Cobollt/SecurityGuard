@@ -13,4 +13,25 @@ public sealed class TransferGuardOptions
 
     public TimeSpan PendingDecisionLifetime { get; init; } =
         TimeSpan.FromMinutes(10);
+
+    public TimeSpan FileCorrelationWindow { get; init; } =
+        TimeSpan.FromSeconds(15);
+
+    public int MaxTrackedFilesPerProcess { get; init; } =
+        64;
+
+    public int MaxTrackedConnectionsPerProcess { get; init; } =
+        32;
+
+    public int MaxCandidatesPerConnection { get; init; } =
+        5;
+
+    public int FileReadChannelCapacity { get; init; } =
+        8192;
+
+    public long MaxImmediateHashFileSizeBytes { get; init; } =
+        32L * 1024L * 1024L;
+
+    public TimeSpan CandidateDeduplicationLifetime { get; init; } =
+        TimeSpan.FromSeconds(30);
 }

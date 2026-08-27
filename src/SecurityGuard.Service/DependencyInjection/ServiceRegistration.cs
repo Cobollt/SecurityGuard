@@ -75,6 +75,17 @@ public static class ServiceRegistration
         services.AddSingleton<DirectoryBootstrapper>();
 
         services.AddSingleton<
+            IFileReadActivitySource,
+            EtwFileReadActivitySource>();
+
+        services.AddSingleton<
+            ITransferCorrelationState,
+            TransferCorrelationState>();
+
+        services.AddSingleton<
+            TransferCorrelationService>();
+
+        services.AddSingleton<
             IQuarantineService,
             QuarantineManager>();
 
