@@ -1,6 +1,7 @@
 using System.Diagnostics.Eventing.Reader;
 using System.Net;
 using System.Runtime.CompilerServices;
+using System.Runtime.Versioning;
 using System.Threading.Channels;
 using SecurityGuard.TransferGuard.Configuration;
 using SecurityGuard.TransferGuard.Contracts;
@@ -25,7 +26,21 @@ public sealed class WindowsOutboundConnectionEventSource
             options;
     }
 
-    public async IAsyncEnumerable<FilteringPlatformConnectionEvent> WatchAsync(
+    public IAsyncEnumerable<FilteringPlatformConnectionEvent> WatchAsync(
+        CancellationToken cancellationToken = default)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            throw new PlatformNotSupportedException(
+                "Windows Filtering Platform event monitoring is available only on Windows.");
+        }
+
+        return WatchWindowsAsync(
+            cancellationToken);
+    }
+
+    [SupportedOSPlatform("windows")]
+    private async IAsyncEnumerable<FilteringPlatformConnectionEvent> WatchWindowsAsync(
         [EnumeratorCancellation]
         CancellationToken cancellationToken = default)
     {

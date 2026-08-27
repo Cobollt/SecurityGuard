@@ -5,6 +5,7 @@
     <Project Path="src/SecurityGuard.Infrastructure/SecurityGuard.Infrastructure.csproj" />
     <Project Path="src/SecurityGuard.Service/SecurityGuard.Service.csproj" />
     <Project Path="src/SecurityGuard.Storage/SecurityGuard.Storage.csproj" />
+    <Project Path="src/SecurityGuard.TransferGuard/SecurityGuard.TransferGuard.csproj" />
     <Project Path="src/SecurityGuard.UI/SecurityGuard.UI.csproj" />
   </Folder>
   <Folder Name="/tests/">

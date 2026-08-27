@@ -1,0 +1,16 @@
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/bin/Debug/net10.0/SecurityGuard.TransferGuard.deps.json
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/bin/Debug/net10.0/SecurityGuard.TransferGuard.dll
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/bin/Debug/net10.0/SecurityGuard.TransferGuard.pdb
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/bin/Debug/net10.0/SecurityGuard.Core.dll
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/bin/Debug/net10.0/SecurityGuard.Core.pdb
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/obj/Debug/net10.0/SecurityGuard.TransferGuard.csproj.AssemblyReference.cache
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/obj/Debug/net10.0/SecurityGuard.TransferGuard.GeneratedMSBuildEditorConfig.editorconfig
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/obj/Debug/net10.0/SecurityGuard.TransferGuard.AssemblyInfoInputs.cache
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/obj/Debug/net10.0/SecurityGuard.TransferGuard.AssemblyInfo.cs
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/obj/Debug/net10.0/SecurityGuard.TransferGuard.csproj.CoreCompileInputs.cache
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/obj/Debug/net10.0/SecurityGuard.TransferGuard.sourcelink.json
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/obj/Debug/net10.0/Security.274B1550.Up2Date
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/obj/Debug/net10.0/SecurityGuard.TransferGuard.dll
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/obj/Debug/net10.0/refint/SecurityGuard.TransferGuard.dll
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/obj/Debug/net10.0/SecurityGuard.TransferGuard.pdb
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/obj/Debug/net10.0/ref/SecurityGuard.TransferGuard.dll

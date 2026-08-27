@@ -24,7 +24,8 @@ public sealed class AlgorithmDecisionHandler
         IQuarantineService quarantineService,
         IAlgorithmTemporaryDecisionStore temporaryDecisionStore,
         IAlgorithmEnforcementService enforcementService,
-        AlgorithmGuardOptions options)
+        AlgorithmGuardOptions options,
+        IAlgorithmGuardRuntimeController runtimeController)
     {
         _hashService =
             hashService;
@@ -43,6 +44,9 @@ public sealed class AlgorithmDecisionHandler
 
         _options =
             options;
+
+        _runtimeController =
+            runtimeController;
     }
 
     public SecurityModuleKind Module =>

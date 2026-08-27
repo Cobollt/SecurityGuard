@@ -3,3 +3,10 @@
 /Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/obj/Debug/net10.0/SecurityGuard.Core.AssemblyInfo.cs
 /Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/obj/Debug/net10.0/SecurityGuard.Core.csproj.CoreCompileInputs.cache
 /Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/obj/Debug/net10.0/SecurityGuard.Core.sourcelink.json
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/bin/Debug/net10.0/SecurityGuard.Core.deps.json
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/bin/Debug/net10.0/SecurityGuard.Core.dll
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/bin/Debug/net10.0/SecurityGuard.Core.pdb
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/obj/Debug/net10.0/SecurityGuard.Core.dll
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/obj/Debug/net10.0/refint/SecurityGuard.Core.dll
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/obj/Debug/net10.0/SecurityGuard.Core.pdb
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/obj/Debug/net10.0/ref/SecurityGuard.Core.dll

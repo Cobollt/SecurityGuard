@@ -222,8 +222,7 @@ public static class ServiceRegistration
         services.AddHostedService<SecurityGuardPipeServer>();
         services.AddHostedService<SecurityGuardStartupService>();
         services.AddHostedService<SecurityGuardWorker>();
-        services.AddHostedService<SecurityGuardStartupService>();
-        services.AddHostedService<SecurityGuardPipeServer>();
+
         services.AddSingleton<AlgorithmGuardHostedService>();
 
         services.AddSingleton<

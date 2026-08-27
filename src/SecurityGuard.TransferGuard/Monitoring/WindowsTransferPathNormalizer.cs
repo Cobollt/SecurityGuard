@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using System.Text;
 using SecurityGuard.TransferGuard.Contracts;
 
 namespace SecurityGuard.TransferGuard.Monitoring;
@@ -67,23 +66,46 @@ public sealed partial class WindowsTransferPathNormalizer
             var driveName =
                 root[..2];
 
-            var buffer =
-                new StringBuilder(
-                    1024);
+            Span<char> buffer =
+                stackalloc char[1024];
 
-            var length =
-                QueryDosDevice(
-                    driveName,
-                    buffer,
-                    buffer.Capacity);
+            uint length;
+
+            unsafe
+            {
+                fixed (char* targetPath = buffer)
+                {
+                    length =
+                        QueryDosDevice(
+                            driveName,
+                            targetPath,
+                            buffer.Length);
+                }
+            }
 
             if (length == 0)
             {
                 continue;
             }
 
+            var resultLength =
+                checked((int)length);
+
+            var target =
+                buffer[..resultLength];
+
+            var nullIndex =
+                target.IndexOf('\0');
+
+            if (nullIndex >= 0)
+            {
+                target =
+                    target[..nullIndex];
+            }
+
             var devicePath =
-                buffer.ToString();
+                new string(
+                    target);
 
             if (!value.StartsWith(
                     devicePath,
@@ -108,8 +130,8 @@ public sealed partial class WindowsTransferPathNormalizer
         EntryPoint = "QueryDosDeviceW",
         SetLastError = true,
         StringMarshalling = StringMarshalling.Utf16)]
-    private static partial uint QueryDosDevice(
+    private static unsafe partial uint QueryDosDevice(
         string deviceName,
-        StringBuilder targetPath,
+        char* targetPath,
         int maximumLength);
 }

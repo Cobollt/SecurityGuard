@@ -378,7 +378,8 @@ public sealed class SqliteDecisionRequestRepository
                 ON c.request_id = d.id
             LEFT JOIN decision_request_identities i
                 ON i.request_id = d.id
-            """;
+            """ +
+            Environment.NewLine;
     }
 
     private static async Task<IReadOnlyList<SecurityDecisionRequest>> ReadAsync(

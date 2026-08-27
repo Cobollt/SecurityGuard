@@ -194,10 +194,15 @@ public sealed class FilteringPlatformEventParser
 
         if (!data.TryGetValue(
                 addressKey,
-                out address))
+                out var addressValue) ||
+            string.IsNullOrWhiteSpace(
+                addressValue))
         {
             return false;
         }
+
+        address =
+            addressValue;
 
         if (!data.TryGetValue(
                 portKey,

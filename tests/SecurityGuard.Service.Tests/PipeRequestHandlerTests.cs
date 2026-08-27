@@ -49,10 +49,12 @@ public sealed class PipeRequestHandlerTests
 
         var handler =
             new PipeRequestHandler(
-                snapshot,
-                decision,
-                rules,
-                new FakeAlgorithmGuardSettingsCoordinator());
+                new FakeSnapshotService(
+                    snapshot),
+                new FakeDecisionService(),
+                new FakeRuleManagementService(),
+                new FakeAlgorithmGuardSettingsCoordinator(),
+                new FakeTransferGuardSettingsCoordinator());
 
         var request =
             PipeRequest.Create(
@@ -87,7 +89,10 @@ public sealed class PipeRequestHandlerTests
             new PipeRequestHandler(
                 new FakeSnapshotService(
                     CreateEmptySnapshot()),
-                decisionService);
+                decisionService,
+                new FakeRuleManagementService(),
+                new FakeAlgorithmGuardSettingsCoordinator(),
+                new FakeTransferGuardSettingsCoordinator());
 
         var decision =
             new SecurityDecision(
@@ -139,84 +144,6 @@ public sealed class PipeRequestHandlerTests
             response.Error);
     }
 
-    private static PipeRequestHandler CreateHandler()
-    {
-        return new PipeRequestHandler(
-            new FakeSnapshotService(
-                CreateEmptySnapshot()),
-            new FakeDecisionService());
-    }
-
-    private static SecuritySnapshot CreateEmptySnapshot()
-    {
-        return new SecuritySnapshot(
-            [],
-            [],
-            [],
-            0,
-            DateTimeOffset.UtcNow);
-    }
-
-    private sealed class FakeSnapshotService
-        : ISecuritySnapshotService
-    {
-        private readonly SecuritySnapshot _snapshot;
-
-        public FakeSnapshotService(
-            SecuritySnapshot snapshot)
-        {
-            _snapshot = snapshot;
-        }
-
-        public Task<SecuritySnapshot> GetAsync(
-            CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(
-                _snapshot);
-        }
-    }
-
-    private sealed class FakeDecisionService
-        : ISecurityDecisionService
-    {
-        public SecurityDecision? Decision { get; private set; }
-
-        public Task ApplyAsync(
-            SecurityDecision decision,
-            CancellationToken cancellationToken = default)
-        {
-            Decision = decision;
-
-            return Task.CompletedTask;
-        }
-    }
-
-    private sealed class FakeRuleManagementService
-        : IRuleManagementService
-    {
-        public IReadOnlyList<SecurityRule> Rules { get; set; } =
-            [];
-
-        public Guid? DeletedRuleId { get; private set; }
-
-        public Task<IReadOnlyList<SecurityRule>> GetAllAsync(
-            CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(
-                Rules);
-        }
-
-        public Task DeleteAsync(
-            Guid ruleId,
-            CancellationToken cancellationToken = default)
-        {
-            DeletedRuleId =
-                ruleId;
-
-            return Task.CompletedTask;
-        }
-    }
-
     [Fact]
     public async Task Rules_are_returned()
     {
@@ -247,7 +174,9 @@ public sealed class PipeRequestHandlerTests
                 new FakeSnapshotService(
                     CreateEmptySnapshot()),
                 new FakeDecisionService(),
-                ruleService);
+                ruleService,
+                new FakeAlgorithmGuardSettingsCoordinator(),
+                new FakeTransferGuardSettingsCoordinator());
 
         var request =
             PipeRequest.Create(
@@ -268,7 +197,8 @@ public sealed class PipeRequestHandlerTests
                 response.Payload);
 
         var restored =
-            Assert.Single(rules);
+            Assert.Single(
+                rules);
 
         Assert.Equal(
             rule.Id,
@@ -289,7 +219,9 @@ public sealed class PipeRequestHandlerTests
                 new FakeSnapshotService(
                     CreateEmptySnapshot()),
                 new FakeDecisionService(),
-                ruleService);
+                ruleService,
+                new FakeAlgorithmGuardSettingsCoordinator(),
+                new FakeTransferGuardSettingsCoordinator());
 
         var payload =
             new DeleteSecurityRuleRequest(
@@ -311,30 +243,6 @@ public sealed class PipeRequestHandlerTests
         Assert.Equal(
             ruleId,
             ruleService.DeletedRuleId);
-    }
-
-    private sealed class FakeAlgorithmGuardSettingsCoordinator
-        : SecurityGuard.AlgorithmGuard.Contracts.IAlgorithmGuardSettingsCoordinator
-    {
-        public SecurityGuard.AlgorithmGuard.Models.AlgorithmGuardSettings Settings { get; set; } =
-            SecurityGuard.AlgorithmGuard.Models.AlgorithmGuardSettings.Default;
-
-        public Task<SecurityGuard.AlgorithmGuard.Models.AlgorithmGuardSettings> GetAsync(
-            CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(
-                Settings);
-        }
-
-        public Task UpdateAsync(
-            SecurityGuard.AlgorithmGuard.Models.AlgorithmGuardSettings settings,
-            CancellationToken cancellationToken = default)
-        {
-            Settings =
-                settings;
-
-            return Task.CompletedTask;
-        }
     }
 
     [Fact]
@@ -359,7 +267,8 @@ public sealed class PipeRequestHandlerTests
                     CreateEmptySnapshot()),
                 new FakeDecisionService(),
                 new FakeRuleManagementService(),
-                coordinator);
+                coordinator,
+                new FakeTransferGuardSettingsCoordinator());
 
         var request =
             PipeRequest.Create(
@@ -372,38 +281,17 @@ public sealed class PipeRequestHandlerTests
         Assert.True(
             response.Success);
 
+        Assert.NotNull(
+            response.Payload);
+
         var restored =
             PipeJsonSerializer.Deserialize<
                 SecurityGuard.AlgorithmGuard.Models.AlgorithmGuardSettings>(
-                    response.Payload!);
+                    response.Payload);
 
         Assert.Equal(
             settings,
             restored);
-    }
-
-    private sealed class FakeTransferGuardSettingsCoordinator
-        : ITransferGuardSettingsCoordinator
-    {
-        public TransferGuardSettings Settings { get; set; } =
-            TransferGuardSettings.Default;
-
-        public Task<TransferGuardSettings> GetAsync(
-            CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(
-                Settings);
-        }
-
-        public Task UpdateAsync(
-            TransferGuardSettings settings,
-            CancellationToken cancellationToken = default)
-        {
-            Settings =
-                settings;
-
-            return Task.CompletedTask;
-        }
     }
 
     [Fact]
@@ -452,5 +340,136 @@ public sealed class PipeRequestHandlerTests
         Assert.Equal(
             expected,
             restored);
+    }
+
+    private static PipeRequestHandler CreateHandler()
+    {
+        return new PipeRequestHandler(
+            new FakeSnapshotService(
+                CreateEmptySnapshot()),
+            new FakeDecisionService(),
+            new FakeRuleManagementService(),
+            new FakeAlgorithmGuardSettingsCoordinator(),
+            new FakeTransferGuardSettingsCoordinator());
+    }
+
+    private static SecuritySnapshot CreateEmptySnapshot()
+    {
+        return new SecuritySnapshot(
+            [],
+            [],
+            [],
+            0,
+            DateTimeOffset.UtcNow);
+    }
+
+    private sealed class FakeSnapshotService
+        : ISecuritySnapshotService
+    {
+        private readonly SecuritySnapshot _snapshot;
+
+        public FakeSnapshotService(
+            SecuritySnapshot snapshot)
+        {
+            _snapshot =
+                snapshot;
+        }
+
+        public Task<SecuritySnapshot> GetAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(
+                _snapshot);
+        }
+    }
+
+    private sealed class FakeDecisionService
+        : ISecurityDecisionService
+    {
+        public SecurityDecision? Decision { get; private set; }
+
+        public Task ApplyAsync(
+            SecurityDecision decision,
+            CancellationToken cancellationToken = default)
+        {
+            Decision =
+                decision;
+
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeRuleManagementService
+        : IRuleManagementService
+    {
+        public IReadOnlyList<SecurityRule> Rules { get; set; } =
+            [];
+
+        public Guid? DeletedRuleId { get; private set; }
+
+        public Task<IReadOnlyList<SecurityRule>> GetAllAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(
+                Rules);
+        }
+
+        public Task DeleteAsync(
+            Guid ruleId,
+            CancellationToken cancellationToken = default)
+        {
+            DeletedRuleId =
+                ruleId;
+
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeAlgorithmGuardSettingsCoordinator
+        : SecurityGuard.AlgorithmGuard.Contracts.IAlgorithmGuardSettingsCoordinator
+    {
+        public SecurityGuard.AlgorithmGuard.Models.AlgorithmGuardSettings Settings { get; set; } =
+            SecurityGuard.AlgorithmGuard.Models.AlgorithmGuardSettings.Default;
+
+        public Task<SecurityGuard.AlgorithmGuard.Models.AlgorithmGuardSettings> GetAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(
+                Settings);
+        }
+
+        public Task UpdateAsync(
+            SecurityGuard.AlgorithmGuard.Models.AlgorithmGuardSettings settings,
+            CancellationToken cancellationToken = default)
+        {
+            Settings =
+                settings;
+
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeTransferGuardSettingsCoordinator
+        : ITransferGuardSettingsCoordinator
+    {
+        public TransferGuardSettings Settings { get; set; } =
+            TransferGuardSettings.Default;
+
+        public Task<TransferGuardSettings> GetAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(
+                Settings);
+        }
+
+        public Task UpdateAsync(
+            TransferGuardSettings settings,
+            CancellationToken cancellationToken = default)
+        {
+            Settings =
+                settings;
+
+            return Task.CompletedTask;
+        }
     }
 }

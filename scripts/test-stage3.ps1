@@ -3,10 +3,10 @@ $ErrorActionPreference = "Stop"
 Write-Host "SecurityGuard Stage 3"
 
 Write-Host "Restore"
-dotnet restore SecurityGuard.sln
+dotnet restore SecurityGuard.slnx
 
 Write-Host "Build"
-dotnet build SecurityGuard.sln --no-restore
+dotnet build SecurityGuard.slnx --no-restore
 
 Write-Host "Core"
 dotnet test tests/SecurityGuard.Core.Tests --no-build

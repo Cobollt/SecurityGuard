@@ -1,0 +1,16 @@
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Infrastructure/bin/Debug/net10.0/SecurityGuard.Infrastructure.deps.json
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Infrastructure/bin/Debug/net10.0/SecurityGuard.Infrastructure.dll
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Infrastructure/bin/Debug/net10.0/SecurityGuard.Infrastructure.pdb
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Infrastructure/bin/Debug/net10.0/SecurityGuard.Core.dll
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Infrastructure/bin/Debug/net10.0/SecurityGuard.Core.pdb
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Infrastructure/obj/Debug/net10.0/SecurityGuard.Infrastructure.csproj.AssemblyReference.cache
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Infrastructure/obj/Debug/net10.0/SecurityGuard.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Infrastructure/obj/Debug/net10.0/SecurityGuard.Infrastructure.AssemblyInfoInputs.cache
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Infrastructure/obj/Debug/net10.0/SecurityGuard.Infrastructure.AssemblyInfo.cs
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Infrastructure/obj/Debug/net10.0/SecurityGuard.Infrastructure.csproj.CoreCompileInputs.cache
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Infrastructure/obj/Debug/net10.0/SecurityGuard.Infrastructure.sourcelink.json
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Infrastructure/obj/Debug/net10.0/Security.284E9762.Up2Date
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Infrastructure/obj/Debug/net10.0/SecurityGuard.Infrastructure.dll
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Infrastructure/obj/Debug/net10.0/refint/SecurityGuard.Infrastructure.dll
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Infrastructure/obj/Debug/net10.0/SecurityGuard.Infrastructure.pdb
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Infrastructure/obj/Debug/net10.0/ref/SecurityGuard.Infrastructure.dll

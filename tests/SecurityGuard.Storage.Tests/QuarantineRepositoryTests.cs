@@ -1,188 +1,137 @@
-using SecurityGuard.Core.Contracts;
-using SecurityGuard.Core.Ipc;
 using SecurityGuard.Core.Models;
-using SecurityGuard.Service.Ipc;
+using SecurityGuard.Storage.Repositories;
 
-namespace SecurityGuard.Service.Tests;
+namespace SecurityGuard.Storage.Tests;
 
-public sealed class PipeRequestHandlerTests
+public sealed class QuarantineRepositoryTests
 {
     [Fact]
-    public async Task Ping_returns_pong()
+    public async Task Record_can_be_added_and_loaded()
     {
-        var handler =
-            CreateHandler();
+        await using var database =
+            await TestDatabase.CreateAsync();
 
-        var request =
-            PipeRequest.Create(
-                PipeMessageType.Ping);
+        var repository =
+            new SqliteQuarantineRepository(
+                database.ConnectionFactory);
 
-        var response =
-            await handler.HandleAsync(
-                request);
+        var record =
+            CreateRecord();
 
-        Assert.True(
-            response.Success);
+        await repository.AddAsync(
+            record);
 
-        Assert.Equal(
-            "PONG",
-            response.Payload);
-
-        Assert.Equal(
-            request.Id,
-            response.RequestId);
-    }
-
-    [Fact]
-    public async Task Snapshot_is_serialized()
-    {
-        var snapshot =
-            new SecuritySnapshot(
-                [],
-                [],
-                [],
-                3,
-                DateTimeOffset.UtcNow);
-
-        var handler =
-            new PipeRequestHandler(
-                new FakeSnapshotService(snapshot),
-                new FakeDecisionService());
-
-        var request =
-            PipeRequest.Create(
-                PipeMessageType.GetSnapshot);
-
-        var response =
-            await handler.HandleAsync(
-                request);
-
-        Assert.True(
-            response.Success);
+        var loaded =
+            await repository.GetByIdAsync(
+                record.Id);
 
         Assert.NotNull(
-            response.Payload);
-
-        var restored =
-            PipeJsonSerializer.Deserialize<SecuritySnapshot>(
-                response.Payload);
+            loaded);
 
         Assert.Equal(
-            3,
-            restored.QuarantineCount);
+            record,
+            loaded);
     }
 
     [Fact]
-    public async Task Decision_is_forwarded()
+    public async Task Get_all_returns_saved_records()
     {
-        var decisionService =
-            new FakeDecisionService();
+        await using var database =
+            await TestDatabase.CreateAsync();
 
-        var handler =
-            new PipeRequestHandler(
-                new FakeSnapshotService(
-                    CreateEmptySnapshot()),
-                decisionService);
+        var repository =
+            new SqliteQuarantineRepository(
+                database.ConnectionFactory);
 
-        var decision =
-            new SecurityDecision(
-                Guid.NewGuid(),
-                SecurityGuard.Core.Enums.SecurityAction.AllowOnce,
-                false,
-                DateTimeOffset.UtcNow);
+        var first =
+            CreateRecord();
 
-        var request =
-            PipeRequest.Create(
-                PipeMessageType.SubmitDecision,
-                PipeJsonSerializer.Serialize(
-                    decision));
+        var second =
+            CreateRecord();
 
-        var response =
-            await handler.HandleAsync(
-                request);
+        await repository.AddAsync(
+            first);
 
-        Assert.True(
-            response.Success);
+        await repository.AddAsync(
+            second);
 
-        Assert.NotNull(
-            decisionService.Decision);
+        var records =
+            await repository.GetAllAsync();
 
-        Assert.Equal(
-            decision.RequestId,
-            decisionService.Decision.RequestId);
+        Assert.Contains(
+            records,
+            record => record.Id == first.Id);
+
+        Assert.Contains(
+            records,
+            record => record.Id == second.Id);
     }
 
     [Fact]
-    public async Task Missing_decision_payload_is_rejected()
+    public async Task Count_returns_number_of_records()
     {
-        var handler =
-            CreateHandler();
+        await using var database =
+            await TestDatabase.CreateAsync();
 
-        var request =
-            PipeRequest.Create(
-                PipeMessageType.SubmitDecision);
+        var repository =
+            new SqliteQuarantineRepository(
+                database.ConnectionFactory);
 
-        var response =
-            await handler.HandleAsync(
-                request);
+        await repository.AddAsync(
+            CreateRecord());
 
-        Assert.False(
-            response.Success);
+        await repository.AddAsync(
+            CreateRecord());
+
+        var count =
+            await repository.CountAsync();
 
         Assert.Equal(
-            "Decision payload is required.",
-            response.Error);
+            2,
+            count);
     }
 
-    private static PipeRequestHandler CreateHandler()
+    [Fact]
+    public async Task Delete_removes_record()
     {
-        return new PipeRequestHandler(
-            new FakeSnapshotService(
-                CreateEmptySnapshot()),
-            new FakeDecisionService());
+        await using var database =
+            await TestDatabase.CreateAsync();
+
+        var repository =
+            new SqliteQuarantineRepository(
+                database.ConnectionFactory);
+
+        var record =
+            CreateRecord();
+
+        await repository.AddAsync(
+            record);
+
+        await repository.DeleteAsync(
+            record.Id);
+
+        var loaded =
+            await repository.GetByIdAsync(
+                record.Id);
+
+        Assert.Null(
+            loaded);
     }
 
-    private static SecuritySnapshot CreateEmptySnapshot()
+    private static QuarantineRecord CreateRecord()
     {
-        return new SecuritySnapshot(
-            [],
-            [],
-            [],
-            0,
+        var id =
+            Guid.NewGuid();
+
+        return new QuarantineRecord(
+            id,
+            $"/tmp/source-{id:N}.bin",
+            $"/tmp/quarantine/{id:N}.bin",
+            $"source-{id:N}.bin",
+            id.ToString("N").ToUpperInvariant(),
+            128,
+            "Test",
+            "Test quarantine",
             DateTimeOffset.UtcNow);
-    }
-
-    private sealed class FakeSnapshotService
-        : ISecuritySnapshotService
-    {
-        private readonly SecuritySnapshot _snapshot;
-
-        public FakeSnapshotService(
-            SecuritySnapshot snapshot)
-        {
-            _snapshot = snapshot;
-        }
-
-        public Task<SecuritySnapshot> GetAsync(
-            CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(
-                _snapshot);
-        }
-    }
-
-    private sealed class FakeDecisionService
-        : ISecurityDecisionService
-    {
-        public SecurityDecision? Decision { get; private set; }
-
-        public Task ApplyAsync(
-            SecurityDecision decision,
-            CancellationToken cancellationToken = default)
-        {
-            Decision = decision;
-
-            return Task.CompletedTask;
-        }
     }
 }

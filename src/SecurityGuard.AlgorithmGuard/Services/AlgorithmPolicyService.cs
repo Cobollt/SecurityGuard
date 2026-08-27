@@ -108,8 +108,8 @@ public sealed class AlgorithmPolicyService
             SecuritySeverity.Info,
             "Algorithm allowed once",
             BuildDetails(attempt),
+            action: SecurityAction.AllowOnce,
             correlationId: attempt.CorrelationId,
-            SecurityAction.AllowOnce,
             cancellationToken: cancellationToken);
     }
 

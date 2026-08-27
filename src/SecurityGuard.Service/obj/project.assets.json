@@ -210,25 +210,6 @@
           }
         }
       },
-      "System.IO.Pipes.AccessControl/5.0.0": {
-        "type": "package",
-        "compile": {
-          "ref/net5.0/_._": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net5.0/_._": {
-            "related": ".xml"
-          }
-        },
-        "runtimeTargets": {
-          "runtimes/win/lib/net5.0/_._": {
-            "assetType": "runtime",
-            "rid": "win"
-          }
-        }
-      },
       "System.Management/10.0.11": {
         "type": "package",
         "dependencies": {
@@ -507,41 +488,6 @@
         "useSharedDesignerContext.txt"
       ]
     },
-    "System.IO.Pipes.AccessControl/5.0.0": {
-      "sha512": "P0FIsXSFNL1AXlHO9zpJ9atRUzVyoPZCkcbkYGZfXXMx9xlGA2H3HOGBwIhpKhB+h0eL3hry/z0UcfJZ+yb2kQ==",
-      "type": "package",
-      "path": "system.io.pipes.accesscontrol/5.0.0",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "Icon.png",
-        "LICENSE.TXT",
-        "THIRD-PARTY-NOTICES.TXT",
-        "lib/net46/System.IO.Pipes.AccessControl.dll",
-        "lib/net461/System.IO.Pipes.AccessControl.dll",
-        "lib/net5.0/System.IO.Pipes.AccessControl.dll",
-        "lib/net5.0/System.IO.Pipes.AccessControl.xml",
-        "lib/netstandard1.3/System.IO.Pipes.AccessControl.dll",
-        "lib/netstandard2.0/System.IO.Pipes.AccessControl.dll",
-        "ref/net46/System.IO.Pipes.AccessControl.dll",
-        "ref/net461/System.IO.Pipes.AccessControl.dll",
-        "ref/net461/System.IO.Pipes.AccessControl.xml",
-        "ref/net5.0/System.IO.Pipes.AccessControl.dll",
-        "ref/net5.0/System.IO.Pipes.AccessControl.xml",
-        "ref/netstandard1.3/System.IO.Pipes.AccessControl.dll",
-        "ref/netstandard2.0/System.IO.Pipes.AccessControl.dll",
-        "ref/netstandard2.0/System.IO.Pipes.AccessControl.xml",
-        "runtimes/win/lib/net46/System.IO.Pipes.AccessControl.dll",
-        "runtimes/win/lib/net461/System.IO.Pipes.AccessControl.dll",
-        "runtimes/win/lib/net5.0/System.IO.Pipes.AccessControl.dll",
-        "runtimes/win/lib/net5.0/System.IO.Pipes.AccessControl.xml",
-        "runtimes/win/lib/netcoreapp2.1/System.IO.Pipes.AccessControl.dll",
-        "system.io.pipes.accesscontrol.5.0.0.nupkg.sha512",
-        "system.io.pipes.accesscontrol.nuspec",
-        "useSharedDesignerContext.txt",
-        "version.txt"
-      ]
-    },
     "System.Management/10.0.11": {
       "sha512": "xyNn8KGbWI88LoUwg3rB8qcpFFST6dr8Ro/qS8GBu2GOwR0v7J82kVFHTiiPtvEKS79VbMTxs/sIKQ+Cq1Zs1g==",
       "type": "package",
@@ -606,8 +552,7 @@
       "SecurityGuard.Core >= 1.0.0",
       "SecurityGuard.Infrastructure >= 1.0.0",
       "SecurityGuard.Storage >= 1.0.0",
-      "SecurityGuard.TransferGuard >= 1.0.0",
-      "System.IO.Pipes.AccessControl >= 5.0.0"
+      "SecurityGuard.TransferGuard >= 1.0.0"
     ]
   },
   "packageFolders": {
@@ -671,12 +616,6 @@
       "net10.0": {
         "framework": "net10.0",
         "targetAlias": "net10.0",
-        "dependencies": {
-          "System.IO.Pipes.AccessControl": {
-            "target": "Package",
-            "version": "[5.0.0, )"
-          }
-        },
         "imports": [
           "net461",
           "net462",
@@ -976,16 +915,5 @@
         }
       }
     }
-  },
-  "logs": [
-    {
-      "code": "NU1510",
-      "level": "Error",
-      "message": "Warning As Error: PackageReference System.IO.Pipes.AccessControl will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary.",
-      "libraryId": "System.IO.Pipes.AccessControl",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    }
-  ]
+  }
 }

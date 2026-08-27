@@ -34,7 +34,8 @@ public sealed class RuleRepositoryTests
         var rules =
             await repository.GetEnabledAsync();
 
-        var stored = Assert.Single(rules);
+        var stored =
+            Assert.Single(rules);
 
         Assert.Equal(
             rule.Id,
@@ -81,73 +82,115 @@ public sealed class RuleRepositoryTests
     }
 
     [Fact]
-        public async Task Rule_can_be_loaded_by_id()
-        {
-            var ruleId = Guid.NewGuid();
+    public async Task Rule_can_be_loaded_by_id()
+    {
+        await using var database =
+            await TestDatabase.CreateAsync();
 
-            var rule = new SecurityRule(
+        var repository =
+            new SqliteRuleRepository(
+                database.ConnectionFactory);
+
+        var ruleId =
+            Guid.NewGuid();
+
+        var rule =
+            new SecurityRule(
                 ruleId,
                 "Test rule",
                 SecurityModuleKind.AlgorithmGuard,
                 RuleDecision.Block,
-                RuleScope.File,
+                RuleScope.FilePath,
                 "test.ps1",
                 true,
                 100,
                 DateTimeOffset.UtcNow,
                 null);
 
-            await _repository.UpsertAsync(rule);
+        await repository.UpsertAsync(rule);
 
-            var loaded = await _repository.GetByIdAsync(ruleId);
+        var loaded =
+            await repository.GetByIdAsync(
+                ruleId);
 
-            Assert.NotNull(loaded);
-            Assert.Equal(ruleId, loaded.Id);
-            Assert.Equal(RuleDecision.Block, loaded.Decision);
-        }
+        Assert.NotNull(loaded);
 
-        [Fact]
-        public async Task Get_all_returns_disabled_rules_too()
-        {
-            var enabledRule = new SecurityRule(
+        Assert.Equal(
+            ruleId,
+            loaded.Id);
+
+        Assert.Equal(
+            RuleDecision.Block,
+            loaded.Decision);
+
+        Assert.Equal(
+            RuleScope.FilePath,
+            loaded.Scope);
+
+        Assert.Equal(
+            "test.ps1",
+            loaded.Value);
+    }
+
+    [Fact]
+    public async Task Get_all_returns_disabled_rules_too()
+    {
+        await using var database =
+            await TestDatabase.CreateAsync();
+
+        var repository =
+            new SqliteRuleRepository(
+                database.ConnectionFactory);
+
+        var enabledRule =
+            new SecurityRule(
                 Guid.NewGuid(),
                 "Enabled rule",
                 SecurityModuleKind.AlgorithmGuard,
                 RuleDecision.Block,
-                RuleScope.File,
+                RuleScope.FilePath,
                 "enabled.ps1",
                 true,
                 100,
                 DateTimeOffset.UtcNow,
                 null);
 
-            var disabledRule = new SecurityRule(
+        var disabledRule =
+            new SecurityRule(
                 Guid.NewGuid(),
                 "Disabled rule",
                 SecurityModuleKind.AlgorithmGuard,
                 RuleDecision.Block,
-                RuleScope.File,
+                RuleScope.FilePath,
                 "disabled.ps1",
                 false,
                 100,
                 DateTimeOffset.UtcNow,
                 null);
 
-            await _repository.UpsertAsync(enabledRule);
-            await _repository.UpsertAsync(disabledRule);
+        await repository.UpsertAsync(
+            enabledRule);
 
-            var rules = await _repository.GetAllAsync();
+        await repository.UpsertAsync(
+            disabledRule);
 
-            Assert.Contains(
-                rules,
-                rule => rule.Id == enabledRule.Id);
+        var rules =
+            await repository.GetAllAsync();
 
-            Assert.Contains(
-                rules,
-                rule => rule.Id == disabledRule.Id);
-        }
+        Assert.Contains(
+            rules,
+            rule =>
+                rule.Id ==
+                enabledRule.Id);
 
-        [Fact]
+        Assert.Contains(
+            rules,
+            rule =>
+                rule.Id ==
+                disabledRule.Id);
+    }
+
+    [Fact]
     public async Task Compound_rule_is_saved_and_loaded()
     {
         await using var database =

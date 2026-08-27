@@ -1,0 +1,6 @@
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.AlgorithmGuard/obj/Debug/net10.0/SecurityGuard.AlgorithmGuard.csproj.AssemblyReference.cache
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.AlgorithmGuard/obj/Debug/net10.0/SecurityGuard.AlgorithmGuard.GeneratedMSBuildEditorConfig.editorconfig
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.AlgorithmGuard/obj/Debug/net10.0/SecurityGuard.AlgorithmGuard.AssemblyInfoInputs.cache
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.AlgorithmGuard/obj/Debug/net10.0/SecurityGuard.AlgorithmGuard.AssemblyInfo.cs
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.AlgorithmGuard/obj/Debug/net10.0/SecurityGuard.AlgorithmGuard.csproj.CoreCompileInputs.cache
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.AlgorithmGuard/obj/Debug/net10.0/SecurityGuard.AlgorithmGuard.sourcelink.json
