@@ -19,6 +19,8 @@ public sealed class TransferGuardHostedService
     private readonly TransferGuardOptions _options;
     private readonly IModuleRegistry _moduleRegistry;
     private readonly IAuditService _auditService;
+    private readonly ITransferTemporaryEnforcementService _temporaryEnforcementService;
+    private readonly TransferGuardRuntimeState _runtimeState;
 
     private readonly SemaphoreSlim _gate =
         new(1, 1);
@@ -29,11 +31,8 @@ public sealed class TransferGuardHostedService
     private CancellationToken _hostStoppingToken =
         CancellationToken.None;
 
-    private TransferGuardSettings _currentSettings =
-        TransferGuardSettings.Default;
-
     public TransferGuardSettings CurrentSettings =>
-        _currentSettings;
+        _runtimeState.CurrentSettings;
 
     public TransferGuardHostedService(
         ITransferGuardMonitor monitor,
@@ -42,7 +41,9 @@ public sealed class TransferGuardHostedService
         ITransferGuardSettingsService settingsService,
         TransferGuardOptions options,
         IModuleRegistry moduleRegistry,
-        IAuditService auditService)
+        IAuditService auditService,
+        ITransferTemporaryEnforcementService temporaryEnforcementService,
+        TransferGuardRuntimeState runtimeState)
     {
         _monitor =
             monitor;
@@ -64,6 +65,12 @@ public sealed class TransferGuardHostedService
 
         _auditService =
             auditService;
+
+        _temporaryEnforcementService =
+            temporaryEnforcementService;
+
+        _runtimeState =
+            runtimeState;
     }
 
     protected override async Task ExecuteAsync(
@@ -151,12 +158,15 @@ public sealed class TransferGuardHostedService
         ArgumentNullException.ThrowIfNull(
             settings);
 
+        _runtimeState.Update(
+            settings);
+
         await _gate.WaitAsync(
             cancellationToken);
 
         try
         {
-            _currentSettings =
+            _runtimeState.CurrentSettings.FailurePolicy =
                 settings;
 
             if (!settings.Enabled)
@@ -204,6 +214,10 @@ public sealed class TransferGuardHostedService
 
                 return;
             }
+
+            await _temporaryEnforcementService.CleanupExpiredAsync(
+                DateTimeOffset.UtcNow,
+                cancellationToken);
 
             var synchronization =
                 await _synchronizer.SynchronizeAsync(
@@ -294,7 +308,7 @@ public sealed class TransferGuardHostedService
                 cancellationToken:
                     cancellationToken);
 
-            if (_currentSettings.FailurePolicy ==
+            if (_runtimeState.CurrentSettings.FailurePolicy ==
                 TransferEnforcementFailurePolicy.FailOpen)
             {
                 StartMonitor();
@@ -357,8 +371,25 @@ public sealed class TransferGuardHostedService
     {
         try
         {
-            await _synchronizer.DisableManagedRulesAsync(
-                cancellationToken);
+            var permanentRemoved =
+                await _synchronizer.DisableManagedRulesAsync(
+                    cancellationToken);
+
+            var temporaryRemoved =
+                await _temporaryEnforcementService.RemoveAllAsync(
+                    cancellationToken);
+
+            if (temporaryRemoved > 0)
+            {
+                await _auditService.WriteAsync(
+                    SecurityModuleKind.TransferGuard,
+                    SecurityEventType.System,
+                    SecuritySeverity.Info,
+                    "Temporary TransferGuard enforcement removed",
+                    $"{reason}; temporary rules removed: {temporaryRemoved}; persistent rules removed: {permanentRemoved}",
+                    cancellationToken:
+                        cancellationToken);
+            }
         }
         catch (Exception exception)
         {

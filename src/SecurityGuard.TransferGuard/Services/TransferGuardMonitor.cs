@@ -1,3 +1,4 @@
+using System.Runtime.ExceptionServices;
 using SecurityGuard.Core.Contracts;
 using SecurityGuard.Core.Enums;
 using SecurityGuard.TransferGuard.Contracts;
@@ -45,53 +46,120 @@ public sealed class TransferGuardMonitor
     public async Task RunAsync(
         CancellationToken cancellationToken = default)
     {
+        using var linkedCancellation =
+            CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken);
+
+        var connectionTask =
+            TrackConnectionsAsync(
+                linkedCancellation.Token);
+
         var kernelTask =
             TrackKernelTelemetryAsync(
-                cancellationToken);
+                linkedCancellation.Token);
+
+        var completed =
+            await Task.WhenAny(
+                connectionTask,
+                kernelTask);
+
+        if (cancellationToken.IsCancellationRequested)
+        {
+            await linkedCancellation.CancelAsync();
+
+            await IgnoreCancellationAsync(
+                connectionTask);
+
+            await IgnoreCancellationAsync(
+                kernelTask);
+
+            return;
+        }
+
+        Exception? failure =
+            null;
 
         try
         {
-            await foreach (
-                var connection in
-                _eventSource.WatchAsync(
-                    cancellationToken))
-            {
-                try
-                {
-                    var observation =
-                        await _observationService.EnrichAsync(
-                            connection,
-                            cancellationToken);
-
-                    await _correlationService.HandleConnectionAsync(
-                        observation,
-                        cancellationToken);
-
-                    await _policyService.HandleAsync(
-                        observation,
-                        cancellationToken);
-                }
-                catch (OperationCanceledException)
-                    when (cancellationToken.IsCancellationRequested)
-                {
-                    break;
-                }
-                catch (Exception exception)
-                {
-                    await WriteWarningAsync(
-                        "TransferGuard connection processing failed",
-                        exception.Message);
-                }
-            }
+            await completed;
         }
-        finally
+        catch (Exception exception)
+        {
+            failure =
+                exception;
+        }
+
+        await linkedCancellation.CancelAsync();
+
+        var other =
+            ReferenceEquals(
+                completed,
+                connectionTask)
+                ? kernelTask
+                : connectionTask;
+
+        try
+        {
+            await other;
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception exception)
+        {
+            failure ??=
+                exception;
+        }
+
+        if (failure is not null)
+        {
+            ExceptionDispatchInfo
+                .Capture(
+                    failure)
+                .Throw();
+        }
+
+        throw new InvalidOperationException(
+            "TransferGuard monitoring source stopped unexpectedly.");
+    }
+
+    private async Task TrackConnectionsAsync(
+        CancellationToken cancellationToken)
+    {
+        await foreach (
+            var connection in
+            _eventSource.WatchAsync(
+                cancellationToken))
         {
             try
             {
-                await kernelTask;
+                var observation =
+                    await _observationService.EnrichAsync(
+                        connection,
+                        cancellationToken);
+
+                await _correlationService.HandleConnectionAsync(
+                    observation,
+                    cancellationToken);
+
+                await _policyService.HandleAsync(
+                    observation,
+                    cancellationToken);
             }
             catch (OperationCanceledException)
+                when (cancellationToken.IsCancellationRequested)
             {
+                return;
+            }
+            catch (TransferFileEnforcementException)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                await WriteWarningAsync(
+                    "TransferGuard connection processing failed",
+                    exception.Message);
             }
         }
     }
@@ -99,12 +167,12 @@ public sealed class TransferGuardMonitor
     private async Task TrackKernelTelemetryAsync(
         CancellationToken cancellationToken)
     {
-        try
+        await foreach (
+            var activity in
+            _kernelTelemetrySource.WatchAsync(
+                cancellationToken))
         {
-            await foreach (
-                var activity in
-                _kernelTelemetrySource.WatchAsync(
-                    cancellationToken))
+            try
             {
                 switch (activity)
                 {
@@ -123,16 +191,21 @@ public sealed class TransferGuardMonitor
                         break;
                 }
             }
-        }
-        catch (OperationCanceledException)
-            when (cancellationToken.IsCancellationRequested)
-        {
-        }
-        catch (Exception exception)
-        {
-            await WriteWarningAsync(
-                "TransferGuard kernel telemetry unavailable",
-                exception.Message);
+            catch (OperationCanceledException)
+                when (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+            catch (TransferFileEnforcementException)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                await WriteWarningAsync(
+                    "TransferGuard kernel activity processing failed",
+                    exception.Message);
+            }
         }
     }
 
@@ -148,5 +221,17 @@ public sealed class TransferGuardMonitor
             details,
             cancellationToken:
                 CancellationToken.None);
+    }
+
+    private static async Task IgnoreCancellationAsync(
+        Task task)
+    {
+        try
+        {
+            await task;
+        }
+        catch (OperationCanceledException)
+        {
+        }
     }
 }

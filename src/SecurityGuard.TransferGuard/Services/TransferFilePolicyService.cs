@@ -14,6 +14,7 @@ public sealed class TransferFilePolicyService
     private readonly IDecisionRequestRepository _decisionRepository;
     private readonly IAuditService _auditService;
     private readonly TransferGuardOptions _options;
+    private readonly ITransferFileEnforcementCoordinator _enforcementCoordinator;
 
     public TransferFilePolicyService(
         TransferFileRuleContextFactory contextFactory,
@@ -77,7 +78,7 @@ public sealed class TransferFilePolicyService
             cancellationToken);
     }
 
-    private Task HandleMatchAsync(
+    private async Task HandleMatchAsync(
         FileTransferCandidate candidate,
         RuleEvaluationResult result,
         CancellationToken cancellationToken)
@@ -86,7 +87,18 @@ public sealed class TransferFilePolicyService
             result.Decision ==
             RuleDecision.Block;
 
-        return _auditService.WriteAsync(
+        TransferFileEnforcementResult? enforcement =
+            null;
+
+        if (blocked)
+        {
+            enforcement =
+                await _enforcementCoordinator.ApplyCandidateBlockAsync(
+                    candidate,
+                    cancellationToken);
+        }
+
+        await _auditService.WriteAsync(
             SecurityModuleKind.TransferGuard,
             SecurityEventType.FileTransfer,
             blocked
@@ -97,9 +109,9 @@ public sealed class TransferFilePolicyService
                 : "File transfer candidate matched allow policy",
             BuildDetails(
                 candidate,
-                blocked
-                    ? "Block policy matched. File-aware network enforcement is not applied at stage 3.8."
-                    : "Allow policy matched."),
+                BuildPolicyResult(
+                    blocked,
+                    enforcement)),
             blocked
                 ? SecurityAction.Block
                 : SecurityAction.Allow,
@@ -201,5 +213,65 @@ public sealed class TransferFilePolicyService
                 $"Remote: {candidate.Connection.RemoteAddress}:{candidate.Connection.RemotePort}",
                 $"Protocol: {candidate.Connection.Protocol}"
             });
+    }
+
+    public TransferFilePolicyService(
+        TransferFileRuleContextFactory contextFactory,
+        IRuleEngine ruleEngine,
+        IDecisionRequestRepository decisionRepository,
+        IAuditService auditService,
+        ITransferFileEnforcementCoordinator enforcementCoordinator,
+        TransferGuardOptions options)
+    {
+        _contextFactory =
+            contextFactory;
+
+        _ruleEngine =
+            ruleEngine;
+
+        _decisionRepository =
+            decisionRepository;
+
+        _auditService =
+            auditService;
+
+        _enforcementCoordinator =
+            enforcementCoordinator;
+
+        _options =
+            options;
+    }
+
+    private static string BuildPolicyResult(
+        bool blocked,
+        TransferFileEnforcementResult? enforcement)
+    {
+        if (!blocked)
+        {
+            return "Allow policy matched.";
+        }
+
+        if (enforcement is null)
+        {
+            return "Block policy matched.";
+        }
+
+        if (enforcement.Applied)
+        {
+            return
+                $"Temporary Firewall enforcement active until " +
+                $"{enforcement.ExpiresAtUtc:O}.";
+        }
+
+        if (enforcement.Skipped)
+        {
+            return
+                $"Block policy matched. Temporary enforcement skipped: " +
+                enforcement.Message;
+        }
+
+        return
+            $"Block policy matched. Temporary enforcement failed: " +
+            enforcement.Message;
     }
 }

@@ -62,6 +62,23 @@ public static class ServiceRegistration
 
         services.AddSingleton<PipeAuthorizationService>();
 
+        services.AddSingleton<
+            TransferGuardRuntimeState>();
+
+        services.AddSingleton<
+            ITransferGuardRuntimeState>(
+                provider =>
+                    provider.GetRequiredService<
+                        TransferGuardRuntimeState>());
+
+        services.AddSingleton<
+            ITransferTemporaryEnforcementService,
+            WindowsFirewallTemporaryEnforcementService>();
+
+        services.AddSingleton<
+            ITransferFileEnforcementCoordinator,
+            TransferFileEnforcementCoordinator>();
+
         services.AddSingleton(
             new AlgorithmGuardOptions());
 
@@ -246,6 +263,8 @@ public static class ServiceRegistration
         services.AddHostedService<SecurityGuardPipeServer>();
         services.AddHostedService<SecurityGuardStartupService>();
         services.AddHostedService<SecurityGuardWorker>();
+
+        services.AddHostedService<TransferTemporaryEnforcementMaintenanceHostedService>();
 
         services.AddSingleton<AlgorithmGuardHostedService>();
 

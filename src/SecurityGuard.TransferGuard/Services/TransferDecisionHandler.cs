@@ -12,12 +12,14 @@ public sealed class TransferDecisionHandler
     private readonly ITransferEnforcementService _enforcementService;
     private readonly TransferEnforcementRuleFactory _enforcementRuleFactory;
     private readonly ITransferGuardRuntimeController _runtimeController;
+    private readonly ITransferFileEnforcementCoordinator _fileEnforcementCoordinator;
 
     public TransferDecisionHandler(
         IRuleRepository ruleRepository,
         ITransferEnforcementService enforcementService,
         TransferEnforcementRuleFactory enforcementRuleFactory,
-        ITransferGuardRuntimeController runtimeController)
+        ITransferGuardRuntimeController runtimeController,
+        ITransferFileEnforcementCoordinator fileEnforcementCoordinator)
     {
         _ruleRepository =
             ruleRepository;
@@ -30,6 +32,9 @@ public sealed class TransferDecisionHandler
 
         _runtimeController =
             runtimeController;
+
+        _fileEnforcementCoordinator =
+            fileEnforcementCoordinator;
     }
 
     public SecurityModuleKind Module =>
@@ -61,6 +66,25 @@ public sealed class TransferDecisionHandler
                 BuildFileRule(
                     request,
                     ruleDecision);
+
+            if (ruleDecision ==
+                RuleDecision.Block)
+            {
+                try
+                {
+                    await _fileEnforcementCoordinator.ApplyDecisionBlockAsync(
+                        request,
+                        cancellationToken);
+                }
+                catch (TransferFileEnforcementException exception)
+                {
+                    await _runtimeController.ReportEnforcementFailureAsync(
+                        exception.Message,
+                        cancellationToken);
+
+                    throw;
+                }
+            }
 
             await _ruleRepository.UpsertAsync(
                 fileRule,

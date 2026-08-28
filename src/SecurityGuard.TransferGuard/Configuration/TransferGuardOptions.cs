@@ -37,4 +37,10 @@ public sealed class TransferGuardOptions
 
     public TimeSpan CandidateDeduplicationLifetime { get; init; } =
         TimeSpan.FromSeconds(30);
+
+    public TimeSpan FileBlockEnforcementLifetime { get; init; } =
+        TimeSpan.FromMinutes(2);
+
+    public TimeSpan TemporaryEnforcementCleanupInterval { get; init; } =
+        TimeSpan.FromSeconds(15);
 }

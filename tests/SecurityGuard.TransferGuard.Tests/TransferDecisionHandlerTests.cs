@@ -35,7 +35,8 @@ public sealed class TransferDecisionHandlerTests
                 enforcement,
                 new TransferEnforcementRuleFactory(
                     new FakePathNormalizer()),
-                runtime);
+                runtime,
+                new FakeFileEnforcementCoordinator());
 
         var request =
             CreateRequest();
@@ -85,7 +86,8 @@ public sealed class TransferDecisionHandlerTests
                 enforcement,
                 new TransferEnforcementRuleFactory(
                     new FakePathNormalizer()),
-                runtime);
+                runtime,
+                new FakeFileEnforcementCoordinator());
 
         var request =
             CreateRequest();
@@ -290,6 +292,9 @@ public sealed class TransferDecisionHandlerTests
                         TransferGuardMode.Enforce,
                         TransferEnforcementFailurePolicy.FailClosed)
             };
+        
+        var fileEnforcement =
+            new FakeFileEnforcementCoordinator();
 
         var handler =
             new TransferDecisionHandler(
@@ -297,7 +302,8 @@ public sealed class TransferDecisionHandlerTests
                 enforcement,
                 new TransferEnforcementRuleFactory(
                     new FakePathNormalizer()),
-                runtime);
+                runtime,
+                new FakeFileEnforcementCoordinator());
 
         var request =
             new SecurityDecisionRequest(
@@ -380,5 +386,45 @@ public sealed class TransferDecisionHandlerTests
                     RuleScope.ProcessPath &&
                 condition.Value ==
                     @"C:\Apps\client.exe");
+    }
+
+    private sealed class FakeFileEnforcementCoordinator
+        : ITransferFileEnforcementCoordinator
+    {
+        public bool CandidateCalled { get; private set; }
+
+        public bool DecisionCalled { get; private set; }
+
+        public Task<TransferFileEnforcementResult> ApplyCandidateBlockAsync(
+            FileTransferCandidate candidate,
+            CancellationToken cancellationToken = default)
+        {
+            CandidateCalled =
+                true;
+
+            return Task.FromResult(
+                new TransferFileEnforcementResult(
+                    true,
+                    false,
+                    "Applied",
+                    DateTimeOffset.UtcNow +
+                    TimeSpan.FromMinutes(2)));
+        }
+
+        public Task<TransferFileEnforcementResult> ApplyDecisionBlockAsync(
+            SecurityDecisionRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            DecisionCalled =
+                true;
+
+            return Task.FromResult(
+                new TransferFileEnforcementResult(
+                    true,
+                    false,
+                    "Applied",
+                    DateTimeOffset.UtcNow +
+                    TimeSpan.FromMinutes(2)));
+        }
     }
 }
