@@ -290,6 +290,10 @@ public sealed class TransferCorrelationService
              send.LastSendAtUtc)
             .Duration();
 
+        var classification =
+            file.Classification ??
+            TransferFileClassification.Default;
+
         var candidate =
             new FileTransferCandidate(
                 Guid.NewGuid(),
@@ -303,6 +307,7 @@ public sealed class TransferCorrelationService
                 difference,
                 assessment.VolumeSimilarity,
                 assessment.Confidence,
+                classification,
                 connection);
 
         await _auditService.WriteAsync(
@@ -419,6 +424,9 @@ public sealed class TransferCorrelationService
                 $"Process: {candidate.Connection.Process?.ProcessName ?? "Unknown"}",
                 $"Executable: {candidate.Connection.Process?.ExecutablePath ?? "Unknown"}",
                 $"File: {candidate.FilePath}",
+                $"File category: {candidate.Classification.Category}",
+                $"File priority: {candidate.Classification.Priority}",
+                $"Classification: {candidate.Classification.Reason}",
                 $"SHA256: {candidate.Sha256 ?? "Not calculated"}",
                 $"File size: {candidate.FileSize?.ToString() ?? "Unknown"}",
                 $"Observed read bytes: {candidate.ObservedReadBytes}",

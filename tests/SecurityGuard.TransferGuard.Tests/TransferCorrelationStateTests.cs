@@ -3,6 +3,7 @@ using SecurityGuard.TransferGuard.Configuration;
 using SecurityGuard.TransferGuard.Enums;
 using SecurityGuard.TransferGuard.Models;
 using SecurityGuard.TransferGuard.Services;
+using SecurityGuard.TransferGuard.Enums;
 
 namespace SecurityGuard.TransferGuard.Tests;
 
@@ -289,5 +290,83 @@ public sealed class TransferCorrelationStateTests
         Assert.Equal(
             2,
             sends.Count);
+    }
+
+    [Fact]
+    public void Ignored_file_is_not_tracked()
+    {
+        var now =
+            DateTimeOffset.UtcNow;
+
+        var state =
+            new TransferCorrelationState(
+                new TransferGuardOptions());
+
+        state.RecordFileRead(
+            new FileReadActivity(
+                100,
+                @"C:\Windows\System32\kernel32.dll",
+                4096,
+                now,
+                new TransferFileClassification(
+                    TransferFileCategory.System,
+                    TransferFilePriority.Ignore,
+                    "System")));
+
+        var files =
+            state.GetRecentFiles(
+                100,
+                now);
+
+        Assert.Empty(
+            files);
+    }
+
+    [Fact]
+    public void High_priority_file_is_returned_before_low_priority_file()
+    {
+        var now =
+            DateTimeOffset.UtcNow;
+
+        var state =
+            new TransferCorrelationState(
+                new TransferGuardOptions());
+
+        state.RecordFileRead(
+            new FileReadActivity(
+                100,
+                @"C:\Temp\application.log",
+                1024 * 1024,
+                now +
+                TimeSpan.FromSeconds(1),
+                new TransferFileClassification(
+                    TransferFileCategory.Log,
+                    TransferFilePriority.Low,
+                    "Log")));
+
+        state.RecordFileRead(
+            new FileReadActivity(
+                100,
+                @"C:\Users\Ivan\Documents\report.pdf",
+                4096,
+                now,
+                new TransferFileClassification(
+                    TransferFileCategory.Document,
+                    TransferFilePriority.High,
+                    "Document")));
+
+        var files =
+            state.GetRecentFiles(
+                100,
+                now +
+                TimeSpan.FromSeconds(2));
+
+        Assert.Equal(
+            2,
+            files.Count);
+
+        Assert.Equal(
+            @"C:\Users\Ivan\Documents\report.pdf",
+            files[0].FilePath);
     }
 }

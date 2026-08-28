@@ -75,6 +75,10 @@ public static class ServiceRegistration
         services.AddSingleton<DirectoryBootstrapper>();
 
         services.AddSingleton<
+            ITransferFileClassifier,
+            TransferFileClassifier>();
+
+        services.AddSingleton<
             ITransferKernelTelemetrySource,
             EtwTransferKernelTelemetrySource>();
 

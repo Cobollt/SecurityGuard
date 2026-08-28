@@ -7,6 +7,7 @@ using SecurityGuard.TransferGuard.Configuration;
 using SecurityGuard.TransferGuard.Contracts;
 using SecurityGuard.TransferGuard.Enums;
 using SecurityGuard.TransferGuard.Models;
+using SecurityGuard.TransferGuard.Enums;
 
 namespace SecurityGuard.TransferGuard.Monitoring;
 
@@ -18,13 +19,18 @@ public sealed class EtwTransferKernelTelemetrySource
 
     private readonly ITransferPathNormalizer _pathNormalizer;
     private readonly TransferGuardOptions _options;
+    private readonly ITransferFileClassifier _fileClassifier;
 
     public EtwTransferKernelTelemetrySource(
         ITransferPathNormalizer pathNormalizer,
+        ITransferFileClassifier fileClassifier,
         TransferGuardOptions options)
     {
         _pathNormalizer =
             pathNormalizer;
+
+        _fileClassifier =
+            fileClassifier;
 
         _options =
             options;
@@ -63,7 +69,7 @@ public sealed class EtwTransferKernelTelemetrySource
         session.StopOnDispose =
             true;
 
-        session.Source.Kernel.FileIORead +=
+        session.Source.Kernel.FileIoRead +=
             data =>
             {
                 if (!ShouldObserveProcess(
@@ -87,6 +93,26 @@ public sealed class EtwTransferKernelTelemetrySource
                     return;
                 }
 
+                TransferFileClassification classification;
+
+                try
+                {
+                    classification =
+                        _fileClassifier.Classify(
+                            path);
+                }
+                catch
+                {
+                    classification =
+                        TransferFileClassification.Default;
+                }
+
+                if (classification.Priority ==
+                    TransferFilePriority.Ignore)
+                {
+                    return;
+                }
+
                 channel.Writer.TryWrite(
                     new FileReadKernelActivity(
                         new FileReadActivity(
@@ -94,7 +120,8 @@ public sealed class EtwTransferKernelTelemetrySource
                             path,
                             data.IoSize,
                             ToUtc(
-                                data.TimeStamp))));
+                                data.TimeStamp),
+                            classification)));
             };
 
         session.Source.Kernel.TcpIpSend +=

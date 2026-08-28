@@ -18,7 +18,11 @@ public sealed class TransferCorrelationConfidenceCalculatorTests
                 @"C:\Temp\report.bin",
                 10L * 1024L * 1024L,
                 now,
-                now);
+                now,
+                new TransferFileClassification(
+                    TransferFileCategory.Document,
+                    TransferFilePriority.High,
+                    "Test document"));
 
         var send =
             new RecentNetworkSend(
@@ -128,5 +132,49 @@ public sealed class TransferCorrelationConfidenceCalculatorTests
 
         Assert.Empty(
             sends);
+    }
+
+    [Fact]
+    public void Low_priority_file_is_capped_below_high_confidence()
+    {
+        var now =
+            DateTimeOffset.UtcNow;
+
+        var file =
+            new RecentFileRead(
+                100,
+                @"C:\Temp\application.log",
+                10L * 1024L * 1024L,
+                now,
+                now,
+                new TransferFileClassification(
+                    TransferFileCategory.Log,
+                    TransferFilePriority.Low,
+                    "Log"));
+
+        var send =
+            new RecentNetworkSend(
+                100,
+                TransferProtocol.Tcp,
+                NetworkAddressFamily.IPv4,
+                "192.168.1.10",
+                51000,
+                "1.1.1.1",
+                443,
+                10L * 1024L * 1024L,
+                now,
+                now +
+                TimeSpan.FromMilliseconds(100));
+
+        var result =
+            new TransferCorrelationConfidenceCalculator()
+                .Calculate(
+                    file,
+                    send,
+                    10L * 1024L * 1024L);
+
+        Assert.NotEqual(
+            TransferCorrelationConfidence.High,
+            result.Confidence);
     }
 }

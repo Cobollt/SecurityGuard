@@ -100,18 +100,44 @@ public sealed class TransferCorrelationConfidenceCalculator
             }
         }
 
+        var filePriority =
+            file.Classification?.Priority ??
+            TransferFilePriority.Low;
+
+        score +=
+            filePriority switch
+            {
+                TransferFilePriority.High =>
+                    2,
+
+                TransferFilePriority.Medium =>
+                    1,
+
+                _ =>
+                    0
+            };
+
         var confidence =
             score switch
             {
-                >= 8 =>
+                >= 9 =>
                     TransferCorrelationConfidence.High,
 
-                >= 5 =>
+                >= 6 =>
                     TransferCorrelationConfidence.Medium,
 
                 _ =>
                     TransferCorrelationConfidence.Low
             };
+
+        if (filePriority ==
+                TransferFilePriority.Low &&
+            confidence ==
+                TransferCorrelationConfidence.High)
+        {
+            confidence =
+                TransferCorrelationConfidence.Medium;
+        }
 
         return new TransferCorrelationAssessment(
             confidence,

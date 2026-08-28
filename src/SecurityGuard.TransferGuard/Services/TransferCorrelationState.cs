@@ -33,6 +33,11 @@ public sealed class TransferCorrelationState
         {
             return;
         }
+        if (activity.Classification?.Priority ==
+            TransferFilePriority.Ignore)
+        {
+            return;
+        }
 
         var state =
             GetState(
@@ -56,7 +61,12 @@ public sealed class TransferCorrelationState
                             activity.BytesRead,
 
                         LastReadAtUtc =
-                            activity.ReadAtUtc
+                            activity.ReadAtUtc,
+
+                        Classification =
+                            ChooseClassification(
+                                existing.Classification,
+                                activity.Classification)
                     };
             }
             else
@@ -67,7 +77,8 @@ public sealed class TransferCorrelationState
                         activity.FilePath,
                         activity.BytesRead,
                         activity.ReadAtUtc,
-                        activity.ReadAtUtc);
+                        activity.ReadAtUtc,
+                        activity.Classification);
             }
 
             TrimFiles(
@@ -199,6 +210,10 @@ public sealed class TransferCorrelationState
                             item.LastReadAtUtc,
                             referenceTime))
                 .OrderByDescending(
+                    item =>
+                        GetPriority(
+                            item))
+                .ThenByDescending(
                     item =>
                         item.LastReadAtUtc)
                 .ThenByDescending(
@@ -354,6 +369,10 @@ public sealed class TransferCorrelationState
             state.Files.Values
                 .OrderBy(
                     item =>
+                        GetPriority(
+                            item))
+                .ThenBy(
+                    item =>
                         item.LastReadAtUtc)
                 .Take(
                     overflow)
@@ -442,4 +461,32 @@ public sealed class TransferCorrelationState
         int LocalPort,
         string RemoteAddress,
         int RemotePort);
+
+    private static TransferFileClassification? ChooseClassification(
+        TransferFileClassification? first,
+        TransferFileClassification? second)
+    {
+        if (first is null)
+        {
+            return second;
+        }
+
+        if (second is null)
+        {
+            return first;
+        }
+
+        return second.Priority >
+            first.Priority
+            ? second
+            : first;
+    }
+
+        private static int GetPriority(
+        RecentFileRead file)
+    {
+        return (int)(
+            file.Classification?.Priority ??
+            TransferFilePriority.Low);
+    }
 }

@@ -5,4 +5,5 @@ public sealed record RecentFileRead(
     string FilePath,
     long ObservedReadBytes,
     DateTimeOffset FirstReadAtUtc,
-    DateTimeOffset LastReadAtUtc);
+    DateTimeOffset LastReadAtUtc,
+    TransferFileClassification? Classification = null);

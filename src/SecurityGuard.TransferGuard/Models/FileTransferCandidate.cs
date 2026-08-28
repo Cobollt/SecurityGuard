@@ -14,4 +14,5 @@ public sealed record FileTransferCandidate(
     TimeSpan TimeDifference,
     double VolumeSimilarity,
     TransferCorrelationConfidence Confidence,
+    TransferFileClassification Classification,
     NetworkConnectionObservation Connection);
