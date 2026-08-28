@@ -20,4 +20,6 @@ public sealed record RuleMatchContext(
     string? RootProcess = null,
     string? RootProcessPath = null,
     string? ExecutionChain = null,
-    string? ProcessPath = null);
+    string? ProcessPath = null,
+    string? FileCategory = null,
+    string? TransferActivityKind = null);

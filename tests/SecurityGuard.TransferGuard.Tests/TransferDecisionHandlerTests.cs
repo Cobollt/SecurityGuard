@@ -271,4 +271,114 @@ public sealed class TransferDecisionHandlerTests
             return Task.CompletedTask;
         }
     }
+
+    [Fact]
+    public async Task File_transfer_block_creates_file_rule_without_firewall()
+    {
+        var repository =
+            new FakeRuleRepository();
+
+        var enforcement =
+            new FakeEnforcementService();
+
+        var runtime =
+            new FakeRuntimeController
+            {
+                CurrentSettings =
+                    new TransferGuardSettings(
+                        true,
+                        TransferGuardMode.Enforce,
+                        TransferEnforcementFailurePolicy.FailClosed)
+            };
+
+        var handler =
+            new TransferDecisionHandler(
+                repository,
+                enforcement,
+                new TransferEnforcementRuleFactory(
+                    new FakePathNormalizer()),
+                runtime);
+
+        var request =
+            new SecurityDecisionRequest(
+                Guid.NewGuid(),
+                SecurityModuleKind.TransferGuard,
+                SecurityEventType.FileTransfer,
+                "Possible file transfer",
+                "report.pdf → 1.1.1.1:443",
+                @"C:\Users\Ivan\Documents\report.pdf",
+                "client.exe",
+                [
+                    SecurityAction.Allow,
+                    SecurityAction.Block
+                ],
+                DateTimeOffset.UtcNow,
+                new RuleMatchContext(
+                    FileHash:
+                        "ABC123",
+                    FilePath:
+                        @"C:\Users\Ivan\Documents\report.pdf",
+                    FileName:
+                        "report.pdf",
+                    FileExtension:
+                        ".pdf",
+                    FileCategory:
+                        "Document",
+                    Process:
+                        "client.exe",
+                    ProcessPath:
+                        @"C:\Apps\client.exe",
+                    RemoteAddress:
+                        "1.1.1.1",
+                    RemotePort:
+                        443,
+                    Protocol:
+                        "Tcp",
+                    TransferActivityKind:
+                        "FileTransfer"),
+                "FILEXFER:TEST");
+
+        await handler.HandleAsync(
+            request,
+            new SecurityDecision(
+                request.Id,
+                SecurityAction.Block,
+                true,
+                DateTimeOffset.UtcNow));
+
+        Assert.False(
+            enforcement.WasCalled);
+
+        var rule =
+            Assert.Single(
+                repository.Rules);
+
+        Assert.Equal(
+            RuleDecision.Block,
+            rule.Decision);
+
+        Assert.Equal(
+            RuleScope.FileHash,
+            rule.Scope);
+
+        Assert.Equal(
+            "ABC123",
+            rule.Value);
+
+        Assert.Contains(
+            rule.Conditions!,
+            condition =>
+                condition.Scope ==
+                    RuleScope.TransferActivityKind &&
+                condition.Value ==
+                    "FileTransfer");
+
+        Assert.Contains(
+            rule.Conditions!,
+            condition =>
+                condition.Scope ==
+                    RuleScope.ProcessPath &&
+                condition.Value ==
+                    @"C:\Apps\client.exe");
+    }
 }

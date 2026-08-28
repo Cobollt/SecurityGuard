@@ -54,8 +54,116 @@ public sealed class TransferDecisionHandler
                         $"Unsupported TransferGuard action: {decision.Action}")
             };
 
+        if (request.EventType ==
+            SecurityEventType.FileTransfer)
+        {
+            var fileRule =
+                BuildFileRule(
+                    request,
+                    ruleDecision);
+
+            await _ruleRepository.UpsertAsync(
+                fileRule,
+                cancellationToken);
+
+            return;
+        }
+
+        if (request.EventType !=
+            SecurityEventType.NetworkConnection)
+        {
+            throw new InvalidOperationException(
+                $"Unsupported TransferGuard event type: {request.EventType}");
+        }
+
+        await HandleNetworkDecisionAsync(
+            request,
+            ruleDecision,
+            cancellationToken);
+    }
+
+    private static SecurityRule BuildNetworkRule(
+        SecurityDecisionRequest request,
+        RuleDecision decision)
+    {
+        var context =
+            request.RuleContext ??
+            throw new InvalidOperationException(
+                "TransferGuard rule context is missing.");
+
+        if (string.IsNullOrWhiteSpace(
+                context.ProcessPath))
+        {
+            throw new InvalidOperationException(
+                "TransferGuard requires ProcessPath for persistent network rules.");
+        }
+
+        var conditions =
+            new List<SecurityRuleCondition>();
+
+        AddCondition(
+            conditions,
+            RuleScope.TransferActivityKind,
+            Enums.TransferActivityKind
+                .NetworkConnection
+                .ToString());
+
+        AddCondition(
+            conditions,
+            RuleScope.RemoteAddress,
+            context.RemoteAddress);
+
+        AddCondition(
+            conditions,
+            RuleScope.RemotePort,
+            context.RemotePort?.ToString());
+
+        AddCondition(
+            conditions,
+            RuleScope.Protocol,
+            context.Protocol);
+
+        return new SecurityRule(
+            Guid.NewGuid(),
+            $"{decision}: {request.ProcessName ?? "network connection"}",
+            SecurityModuleKind.TransferGuard,
+            decision,
+            RuleScope.ProcessPath,
+            context.ProcessPath,
+            true,
+            decision ==
+            RuleDecision.Block
+                ? 200
+                : 100,
+            DateTimeOffset.UtcNow,
+            null,
+            conditions);
+    }
+
+    private static void AddCondition(
+        ICollection<SecurityRuleCondition> conditions,
+        RuleScope scope,
+        string? value)
+    {
+        if (string.IsNullOrWhiteSpace(
+                value))
+        {
+            return;
+        }
+
+        conditions.Add(
+            new SecurityRuleCondition(
+                scope,
+                value));
+    }
+
+    private async Task HandleNetworkDecisionAsync(
+        SecurityDecisionRequest request,
+        RuleDecision ruleDecision,
+        CancellationToken cancellationToken)
+    {
         var rule =
-            BuildRule(
+            BuildNetworkRule(
                 request,
                 ruleDecision);
 
@@ -148,24 +256,72 @@ public sealed class TransferDecisionHandler
             cancellationToken);
     }
 
-    private static SecurityRule BuildRule(
+    private static SecurityRule BuildFileRule(
         SecurityDecisionRequest request,
         RuleDecision decision)
     {
         var context =
             request.RuleContext ??
             throw new InvalidOperationException(
-                "TransferGuard rule context is missing.");
+                "TransferGuard file rule context is missing.");
 
-        if (string.IsNullOrWhiteSpace(
-                context.ProcessPath))
+        RuleScope primaryScope;
+        string primaryValue;
+
+        if (!string.IsNullOrWhiteSpace(
+                context.FileHash))
+        {
+            primaryScope =
+                RuleScope.FileHash;
+
+            primaryValue =
+                context.FileHash;
+        }
+        else if (!string.IsNullOrWhiteSpace(
+                    context.FilePath))
+        {
+            primaryScope =
+                RuleScope.FilePath;
+
+            primaryValue =
+                context.FilePath;
+        }
+        else
         {
             throw new InvalidOperationException(
-                "TransferGuard requires ProcessPath for persistent network rules.");
+                "FileHash and FilePath are missing.");
         }
 
         var conditions =
             new List<SecurityRuleCondition>();
+
+        AddCondition(
+            conditions,
+            RuleScope.TransferActivityKind,
+            Enums.TransferActivityKind
+                .FileTransfer
+                .ToString());
+
+        AddCondition(
+            conditions,
+            RuleScope.FileCategory,
+            context.FileCategory);
+
+        if (!string.IsNullOrWhiteSpace(
+                context.ProcessPath))
+        {
+            AddCondition(
+                conditions,
+                RuleScope.ProcessPath,
+                context.ProcessPath);
+        }
+        else
+        {
+            AddCondition(
+                conditions,
+                RuleScope.Process,
+                context.Process);
+        }
 
         AddCondition(
             conditions,
@@ -184,35 +340,35 @@ public sealed class TransferDecisionHandler
 
         return new SecurityRule(
             Guid.NewGuid(),
-            $"{decision}: {request.ProcessName ?? "network connection"}",
+            BuildFileRuleName(
+                request,
+                decision),
             SecurityModuleKind.TransferGuard,
             decision,
-            RuleScope.ProcessPath,
-            context.ProcessPath,
+            primaryScope,
+            primaryValue,
             true,
             decision ==
             RuleDecision.Block
-                ? 200
-                : 100,
+                ? 250
+                : 150,
             DateTimeOffset.UtcNow,
             null,
             conditions);
     }
 
-    private static void AddCondition(
-        ICollection<SecurityRuleCondition> conditions,
-        RuleScope scope,
-        string? value)
+    private static string BuildFileRuleName(
+        SecurityDecisionRequest request,
+        RuleDecision decision)
     {
-        if (string.IsNullOrWhiteSpace(
-                value))
-        {
-            return;
-        }
+        var fileName =
+            !string.IsNullOrWhiteSpace(
+                request.FilePath)
+                ? Path.GetFileName(
+                    request.FilePath)
+                : "file";
 
-        conditions.Add(
-            new SecurityRuleCondition(
-                scope,
-                value));
+        return
+            $"{decision} file transfer: {fileName}";
     }
 }

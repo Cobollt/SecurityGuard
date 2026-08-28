@@ -385,5 +385,237 @@ public async Task Compound_rule_matches_when_all_conditions_match()
     Assert.Equal(
         RuleDecision.Allow,
         result.Decision);
-}
+    }
+
+    [Fact]
+    public async Task Legacy_network_rule_does_not_match_file_transfer_context()
+    {
+        var rule =
+            new SecurityRule(
+                Guid.NewGuid(),
+                "Legacy network allow",
+                SecurityModuleKind.TransferGuard,
+                RuleDecision.Allow,
+                RuleScope.ProcessPath,
+                @"C:\Apps\client.exe",
+                true,
+                100,
+                DateTimeOffset.UtcNow,
+                null,
+                [
+                    new SecurityRuleCondition(
+                        RuleScope.RemoteAddress,
+                        "1.1.1.1"),
+
+                    new SecurityRuleCondition(
+                        RuleScope.RemotePort,
+                        "443"),
+
+                    new SecurityRuleCondition(
+                        RuleScope.Protocol,
+                        "Tcp")
+                ]);
+
+        var engine =
+            new RuleEngine(
+                new FakeRuleRepository(
+                    [rule]));
+
+        var result =
+            await engine.EvaluateAsync(
+                SecurityModuleKind.TransferGuard,
+                new RuleMatchContext(
+                    FileHash:
+                        "ABC",
+                    FilePath:
+                        @"C:\Users\Ivan\Documents\report.pdf",
+                    ProcessPath:
+                        @"C:\Apps\client.exe",
+                    RemoteAddress:
+                        "1.1.1.1",
+                    RemotePort:
+                        443,
+                    Protocol:
+                        "Tcp",
+                    TransferActivityKind:
+                        "FileTransfer"));
+
+        Assert.False(
+            result.Matched);
+    }
+
+    [Fact]
+    public async Task Legacy_network_rule_still_matches_network_context()
+    {
+        var rule =
+            new SecurityRule(
+                Guid.NewGuid(),
+                "Legacy network allow",
+                SecurityModuleKind.TransferGuard,
+                RuleDecision.Allow,
+                RuleScope.ProcessPath,
+                @"C:\Apps\client.exe",
+                true,
+                100,
+                DateTimeOffset.UtcNow,
+                null,
+                [
+                    new SecurityRuleCondition(
+                        RuleScope.RemoteAddress,
+                        "1.1.1.1")
+                ]);
+
+        var engine =
+            new RuleEngine(
+                new FakeRuleRepository(
+                    [rule]));
+
+        var result =
+            await engine.EvaluateAsync(
+                SecurityModuleKind.TransferGuard,
+                new RuleMatchContext(
+                    ProcessPath:
+                        @"C:\Apps\client.exe",
+                    RemoteAddress:
+                        "1.1.1.1",
+                    TransferActivityKind:
+                        "NetworkConnection"));
+
+        Assert.True(
+            result.Matched);
+    }
+
+    [Fact]
+    public async Task File_transfer_rule_does_not_match_network_connection()
+    {
+        var rule =
+            new SecurityRule(
+                Guid.NewGuid(),
+                "Block document",
+                SecurityModuleKind.TransferGuard,
+                RuleDecision.Block,
+                RuleScope.FileHash,
+                "ABC123",
+                true,
+                250,
+                DateTimeOffset.UtcNow,
+                null,
+                [
+                    new SecurityRuleCondition(
+                        RuleScope.ProcessPath,
+                        @"C:\Apps\client.exe"),
+
+                    new SecurityRuleCondition(
+                        RuleScope.RemoteAddress,
+                        "1.1.1.1")
+                ]);
+
+        var engine =
+            new RuleEngine(
+                new FakeRuleRepository(
+                    [rule]));
+
+        var result =
+            await engine.EvaluateAsync(
+                SecurityModuleKind.TransferGuard,
+                new RuleMatchContext(
+                    ProcessPath:
+                        @"C:\Apps\client.exe",
+                    RemoteAddress:
+                        "1.1.1.1",
+                    TransferActivityKind:
+                        "NetworkConnection"));
+
+        Assert.False(
+            result.Matched);
+    }
+
+    [Fact]
+    public async Task File_extension_rule_can_match_transfer()
+    {
+        var rule =
+            new SecurityRule(
+                Guid.NewGuid(),
+                "Block DOCX upload",
+                SecurityModuleKind.TransferGuard,
+                RuleDecision.Block,
+                RuleScope.FileExtension,
+                ".docx",
+                true,
+                250,
+                DateTimeOffset.UtcNow,
+                null,
+                [
+                    new SecurityRuleCondition(
+                        RuleScope.Process,
+                        "chrome.exe"),
+
+                    new SecurityRuleCondition(
+                        RuleScope.RemotePort,
+                        "443")
+                ]);
+
+        var engine =
+            new RuleEngine(
+                new FakeRuleRepository(
+                    [rule]));
+
+        var result =
+            await engine.EvaluateAsync(
+                SecurityModuleKind.TransferGuard,
+                new RuleMatchContext(
+                    FileExtension:
+                        ".docx",
+                    Process:
+                        "chrome.exe",
+                    RemotePort:
+                        443,
+                    TransferActivityKind:
+                        "FileTransfer"));
+
+        Assert.True(
+            result.Matched);
+
+        Assert.Equal(
+            RuleDecision.Block,
+            result.Decision);
+    }
+
+    [Fact]
+    public async Task File_category_rule_can_match_transfer()
+    {
+        var rule =
+            new SecurityRule(
+                Guid.NewGuid(),
+                "Block archives",
+                SecurityModuleKind.TransferGuard,
+                RuleDecision.Block,
+                RuleScope.FileCategory,
+                "Archive",
+                true,
+                250,
+                DateTimeOffset.UtcNow,
+                null);
+
+        var engine =
+            new RuleEngine(
+                new FakeRuleRepository(
+                    [rule]));
+
+        var result =
+            await engine.EvaluateAsync(
+                SecurityModuleKind.TransferGuard,
+                new RuleMatchContext(
+                    FileCategory:
+                        "Archive",
+                    TransferActivityKind:
+                        "FileTransfer"));
+
+        Assert.True(
+            result.Matched);
+
+        Assert.Equal(
+            RuleDecision.Block,
+            result.Decision);
+    }
 }

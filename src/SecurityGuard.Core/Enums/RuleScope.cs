@@ -21,5 +21,7 @@ public enum RuleScope
     RootProcess = 16,
     RootProcessPath = 17,
     ExecutionChain = 18,
-    ProcessPath = 19
+    ProcessPath = 19,
+    FileCategory = 20,
+    TransferActivityKind = 21
 }

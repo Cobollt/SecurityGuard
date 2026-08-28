@@ -43,6 +43,15 @@ public sealed class TransferEnforcementRuleFactory
             return false;
         }
 
+        if (IsFileTransferRule(
+                rule))
+        {
+            error =
+                "File-transfer rules cannot be projected directly to Windows Firewall.";
+
+            return false;
+        }
+
         var processPath =
             GetValue(
                 rule,
@@ -139,5 +148,42 @@ public sealed class TransferEnforcementRuleFactory
                     condition.Scope ==
                     scope)
             ?.Value;
+    }
+
+    private static bool IsFileTransferRule(
+        SecurityRule rule)
+    {
+        return HasScope(
+                rule,
+                RuleScope.FileHash) ||
+            HasScope(
+                rule,
+                RuleScope.FilePath) ||
+            HasScope(
+                rule,
+                RuleScope.FileName) ||
+            HasScope(
+                rule,
+                RuleScope.FileExtension) ||
+            HasScope(
+                rule,
+                RuleScope.FileCategory);
+    }
+
+    private static bool HasScope(
+        SecurityRule rule,
+        RuleScope scope)
+    {
+        if (rule.Scope ==
+            scope)
+        {
+            return true;
+        }
+
+        return rule.Conditions?.Any(
+                condition =>
+                    condition.Scope ==
+                    scope) ==
+            true;
     }
 }

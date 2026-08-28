@@ -15,6 +15,7 @@ public sealed class TransferCorrelationService
     private readonly IAuditService _auditService;
     private readonly TransferCorrelationConfidenceCalculator _confidenceCalculator;
     private readonly TransferGuardOptions _options;
+    private readonly TransferFilePolicyService _filePolicyService;
 
     private readonly ConcurrentDictionary<string, DateTimeOffset> _emitted =
         new(
@@ -25,6 +26,7 @@ public sealed class TransferCorrelationService
         IFileHashService hashService,
         IAuditService auditService,
         TransferCorrelationConfidenceCalculator confidenceCalculator,
+        TransferFilePolicyService filePolicyService,
         TransferGuardOptions options)
     {
         _state =
@@ -38,6 +40,9 @@ public sealed class TransferCorrelationService
 
         _confidenceCalculator =
             confidenceCalculator;
+
+        _filePolicyService =
+            filePolicyService;
 
         _options =
             options;
@@ -321,6 +326,10 @@ public sealed class TransferCorrelationService
             SecurityAction.None,
             cancellationToken:
                 cancellationToken);
+        
+        await _filePolicyService.HandleAsync(
+            candidate,
+            cancellationToken);
     }
 
     private static bool Matches(

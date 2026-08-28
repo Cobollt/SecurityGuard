@@ -230,6 +230,12 @@ public static class ServiceRegistration
         services.AddSingleton<TransferPolicyService>();
 
         services.AddSingleton<
+            TransferFileRuleContextFactory>();
+
+        services.AddSingleton<
+            TransferFilePolicyService>();
+
+        services.AddSingleton<
             ISecurityDecisionHandler,
             TransferDecisionHandler>();
 

@@ -84,4 +84,57 @@ public sealed class TransferEnforcementRuleFactoryTests
             return path;
         }
     }
+
+    [Fact]
+    public void File_transfer_rule_is_not_projected_to_firewall()
+    {
+        var rule =
+            new SecurityRule(
+                Guid.NewGuid(),
+                "Block report",
+                SecurityModuleKind.TransferGuard,
+                RuleDecision.Block,
+                RuleScope.FileHash,
+                "ABC123",
+                true,
+                250,
+                DateTimeOffset.UtcNow,
+                null,
+                [
+                    new SecurityRuleCondition(
+                        RuleScope.ProcessPath,
+                        @"C:\Apps\client.exe"),
+
+                    new SecurityRuleCondition(
+                        RuleScope.RemoteAddress,
+                        "1.1.1.1"),
+
+                    new SecurityRuleCondition(
+                        RuleScope.RemotePort,
+                        "443"),
+
+                    new SecurityRuleCondition(
+                        RuleScope.Protocol,
+                        "Tcp")
+                ]);
+
+        var factory =
+            new TransferEnforcementRuleFactory(
+                new FakePathNormalizer());
+
+        var created =
+            factory.TryCreate(
+                rule,
+                out var result,
+                out var error);
+
+        Assert.False(
+            created);
+
+        Assert.Null(
+            result);
+
+        Assert.NotNull(
+            error);
+    }
 }

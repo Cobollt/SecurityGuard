@@ -1,4 +1,5 @@
 using SecurityGuard.Core.Models;
+using SecurityGuard.TransferGuard.Enums;
 using SecurityGuard.TransferGuard.Models;
 
 namespace SecurityGuard.TransferGuard.Services;
@@ -14,8 +15,8 @@ public sealed class TransferRuleContextFactory
         var processPath =
             !string.IsNullOrWhiteSpace(
                 observation.Process?.ExecutablePath)
-                    ? observation.Process.ExecutablePath
-                    : observation.ApplicationPath;
+                ? observation.Process.ExecutablePath
+                : observation.ApplicationPath;
 
         return new RuleMatchContext(
             Process:
@@ -31,6 +32,11 @@ public sealed class TransferRuleContextFactory
                 observation.RemotePort,
 
             Protocol:
-                observation.Protocol.ToString());
+                observation.Protocol.ToString(),
+
+            TransferActivityKind:
+                Enums.TransferActivityKind
+                    .NetworkConnection
+                    .ToString());
     }
 }

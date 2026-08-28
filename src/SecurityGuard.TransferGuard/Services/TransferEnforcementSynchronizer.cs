@@ -85,6 +85,10 @@ public sealed class TransferEnforcementSynchronizer
                     rule =>
                         rule.ExpiresAtUtc is null ||
                         rule.ExpiresAtUtc > now)
+                .Where(
+                    rule =>
+                        !IsFileTransferRule(
+                            rule))
                 .ToArray();
 
         var enforceable =
@@ -291,5 +295,42 @@ public sealed class TransferEnforcementSynchronizer
         }
 
         return removed;
+    }
+
+    private static bool IsFileTransferRule(
+        SecurityRule rule)
+    {
+        return HasScope(
+                rule,
+                RuleScope.FileHash) ||
+            HasScope(
+                rule,
+                RuleScope.FilePath) ||
+            HasScope(
+                rule,
+                RuleScope.FileName) ||
+            HasScope(
+                rule,
+                RuleScope.FileExtension) ||
+            HasScope(
+                rule,
+                RuleScope.FileCategory);
+    }
+
+    private static bool HasScope(
+        SecurityRule rule,
+        RuleScope scope)
+    {
+        if (rule.Scope ==
+            scope)
+        {
+            return true;
+        }
+
+        return rule.Conditions?.Any(
+                condition =>
+                    condition.Scope ==
+                    scope) ==
+            true;
     }
 }

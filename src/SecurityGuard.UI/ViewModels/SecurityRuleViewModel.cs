@@ -197,6 +197,12 @@ public sealed class SecurityRuleViewModel
             RuleScope.ProcessPath =>
                 "Путь процесса",
 
+            RuleScope.FileCategory =>
+                "Категория файла",
+
+            RuleScope.TransferActivityKind =>
+                "Тип активности",
+
             _ =>
                 scope.ToString()
         };

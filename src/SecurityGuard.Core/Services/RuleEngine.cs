@@ -40,6 +40,11 @@ public sealed class RuleEngine
                         rule.ExpiresAtUtc > now)
                 .Where(
                     rule =>
+                        IsActivityCompatible(
+                            rule,
+                            context))
+                .Where(
+                    rule =>
                         IsMatch(
                             rule,
                             context))
@@ -158,6 +163,12 @@ public sealed class RuleEngine
                 
                 RuleScope.ProcessPath =>
                     context.ProcessPath,
+
+                RuleScope.FileCategory =>
+                    context.FileCategory,
+
+                RuleScope.TransferActivityKind =>
+                    context.TransferActivityKind,
                 _ =>
                     null
             };
@@ -167,5 +178,88 @@ public sealed class RuleEngine
                    candidate,
                    value,
                    StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsActivityCompatible(
+        SecurityRule rule,
+        RuleMatchContext context)
+    {
+        if (rule.Module !=
+            SecurityModuleKind.TransferGuard)
+        {
+            return true;
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                context.TransferActivityKind))
+        {
+            return true;
+        }
+
+        if (HasScope(
+                rule,
+                RuleScope.TransferActivityKind))
+        {
+            return true;
+        }
+
+        var fileRule =
+            IsFileTransferRule(
+                rule);
+
+        if (string.Equals(
+                context.TransferActivityKind,
+                "FileTransfer",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return fileRule;
+        }
+
+        if (string.Equals(
+                context.TransferActivityKind,
+                "NetworkConnection",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return !fileRule;
+        }
+
+        return true;
+    }
+
+    private static bool IsFileTransferRule(
+        SecurityRule rule)
+    {
+        return HasScope(
+                rule,
+                RuleScope.FileHash) ||
+            HasScope(
+                rule,
+                RuleScope.FilePath) ||
+            HasScope(
+                rule,
+                RuleScope.FileName) ||
+            HasScope(
+                rule,
+                RuleScope.FileExtension) ||
+            HasScope(
+                rule,
+                RuleScope.FileCategory);
+    }
+
+    private static bool HasScope(
+        SecurityRule rule,
+        RuleScope scope)
+    {
+        if (rule.Scope ==
+            scope)
+        {
+            return true;
+        }
+
+        return rule.Conditions?.Any(
+                condition =>
+                    condition.Scope ==
+                    scope) ==
+            true;
     }
 }
