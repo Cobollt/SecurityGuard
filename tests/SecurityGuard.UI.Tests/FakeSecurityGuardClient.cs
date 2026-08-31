@@ -2,6 +2,7 @@ using SecurityGuard.Core.Models;
 using SecurityGuard.UI.Services;
 using SecurityGuard.AlgorithmGuard.Models;
 using SecurityGuard.TransferGuard.Models;
+using SecurityGuard.Core.Enums;
 
 namespace SecurityGuard.UI.Tests;
 
@@ -139,5 +140,45 @@ internal sealed class FakeSecurityGuardClient
         {
             throw ExceptionToThrow;
         }
+    }
+
+    public List<SecurityRule> CreatedTransferRules { get; } =
+        [];
+
+    public Task<SecurityRule> CreateTransferGuardRuleAsync(
+        TransferManualRuleRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfConfigured();
+
+        var primary =
+            request.Conditions.First();
+
+        var rule =
+            new SecurityRule(
+                Guid.NewGuid(),
+                request.Name,
+                SecurityModuleKind.TransferGuard,
+                request.Decision,
+                primary.Scope,
+                primary.Value,
+                true,
+                request.Priority,
+                DateTimeOffset.UtcNow,
+                request.ExpiresAtUtc,
+                request.Conditions
+                    .Skip(1)
+                    .Select(
+                        condition =>
+                            new SecurityRuleCondition(
+                                condition.Scope,
+                                condition.Value))
+                    .ToArray());
+
+        CreatedTransferRules.Add(
+            rule);
+
+        return Task.FromResult(
+            rule);
     }
 }

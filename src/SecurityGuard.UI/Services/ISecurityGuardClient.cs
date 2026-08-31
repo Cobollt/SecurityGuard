@@ -36,4 +36,8 @@ public interface ISecurityGuardClient
     Task UpdateAlgorithmGuardSettingsAsync(
         AlgorithmGuardSettings settings,
         CancellationToken cancellationToken = default);
+
+    Task<SecurityRule> CreateTransferGuardRuleAsync(
+        TransferManualRuleRequest request,
+        CancellationToken cancellationToken = default);
 }

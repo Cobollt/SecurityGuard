@@ -1,12 +1,12 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
-using SecurityGuard.Core.Enums;
-using SecurityGuard.Core.Models;
-using SecurityGuard.UI.Services;
 using SecurityGuard.AlgorithmGuard.Enums;
 using SecurityGuard.AlgorithmGuard.Models;
+using SecurityGuard.Core.Enums;
+using SecurityGuard.Core.Models;
 using SecurityGuard.TransferGuard.Enums;
 using SecurityGuard.TransferGuard.Models;
+using SecurityGuard.UI.Services;
 
 namespace SecurityGuard.UI.ViewModels;
 
@@ -21,6 +21,7 @@ public sealed class MainViewModel
     private string? _lastError;
     private int _quarantineCount;
     private DateTimeOffset? _lastRefreshUtc;
+
     private bool _algorithmGuardEnabled;
 
     private AlgorithmGuardMode _algorithmGuardMode =
@@ -37,60 +38,38 @@ public sealed class MainViewModel
     private TransferEnforcementFailurePolicy _transferGuardFailurePolicy =
         TransferEnforcementFailurePolicy.FailOpen;
 
-    public ObservableCollection<ModuleStatus> Modules { get; } = [];
+    public ObservableCollection<ModuleStatus> Modules { get; } =
+        [];
 
-    public ObservableCollection<SecurityEvent> RecentEvents { get; } = [];
+    public ObservableCollection<SecurityEvent> RecentEvents { get; } =
+        [];
 
-    public ObservableCollection<SecurityEvent> AlgorithmEvents { get; } = [];
+    public ObservableCollection<SecurityEvent> AlgorithmEvents { get; } =
+        [];
 
-    public ObservableCollection<SecurityEvent> TransferEvents { get; } = [];
+    public ObservableCollection<SecurityEvent> TransferEvents { get; } =
+        [];
 
-    public ObservableCollection<SecurityEvent> ArchiveEvents { get; } = [];
+    public ObservableCollection<SecurityEvent> ArchiveEvents { get; } =
+        [];
 
-    public ObservableCollection<DecisionRequestViewModel> PendingRequests { get; } = [];
+    public ObservableCollection<DecisionRequestViewModel> PendingRequests { get; } =
+        [];
 
-    public ObservableCollection<SecurityRuleViewModel> Rules { get; } = [];
+    public ObservableCollection<SecurityRuleViewModel> Rules { get; } =
+        [];
 
-    public ObservableCollection<SecurityRuleViewModel> AllowRules { get; } = [];
+    public ObservableCollection<SecurityRuleViewModel> AllowRules { get; } =
+        [];
 
-    public ObservableCollection<SecurityRuleViewModel> BlockRules { get; } = [];
+    public ObservableCollection<SecurityRuleViewModel> BlockRules { get; } =
+        [];
 
     public ICommand NavigateCommand { get; }
 
     public ICommand RefreshCommand { get; }
 
-    public IReadOnlyList<TransferGuardMode> TransferGuardModes { get; } =
-        Enum.GetValues<TransferGuardMode>();
-
-    public IReadOnlyList<TransferEnforcementFailurePolicy> TransferGuardFailurePolicies { get; } =
-        Enum.GetValues<TransferEnforcementFailurePolicy>();
-
-    public bool TransferGuardEnabled
-    {
-        get => _transferGuardEnabled;
-
-        set => SetProperty(
-            ref _transferGuardEnabled,
-            value);
-    }
-
-    public TransferGuardMode TransferGuardMode
-    {
-        get => _transferGuardMode;
-
-        set => SetProperty(
-            ref _transferGuardMode,
-            value);
-    }
-
-    public TransferEnforcementFailurePolicy TransferGuardFailurePolicy
-    {
-        get => _transferGuardFailurePolicy;
-
-        set => SetProperty(
-            ref _transferGuardFailurePolicy,
-            value);
-    }
+    public ICommand SaveAlgorithmGuardSettingsCommand { get; }
 
     public ICommand SaveTransferGuardSettingsCommand { get; }
 
@@ -100,56 +79,38 @@ public sealed class MainViewModel
     public IReadOnlyList<EnforcementFailurePolicy> AlgorithmGuardFailurePolicies { get; } =
         Enum.GetValues<EnforcementFailurePolicy>();
 
-    public bool AlgorithmGuardEnabled
-    {
-        get => _algorithmGuardEnabled;
+    public IReadOnlyList<TransferGuardMode> TransferGuardModes { get; } =
+        Enum.GetValues<TransferGuardMode>();
 
-        set => SetProperty(
-            ref _algorithmGuardEnabled,
-            value);
-    }
-
-    public AlgorithmGuardMode AlgorithmGuardMode
-    {
-        get => _algorithmGuardMode;
-
-        set => SetProperty(
-            ref _algorithmGuardMode,
-            value);
-    }
-
-    public EnforcementFailurePolicy AlgorithmGuardFailurePolicy
-    {
-        get => _algorithmGuardFailurePolicy;
-
-        set => SetProperty(
-            ref _algorithmGuardFailurePolicy,
-            value);
-    }
-
-    public ICommand SaveAlgorithmGuardSettingsCommand { get; }
+    public IReadOnlyList<TransferEnforcementFailurePolicy> TransferGuardFailurePolicies { get; } =
+        Enum.GetValues<TransferEnforcementFailurePolicy>();
 
     public int SelectedPageIndex
     {
-        get => _selectedPageIndex;
+        get =>
+            _selectedPageIndex;
 
-        set => SetProperty(
-            ref _selectedPageIndex,
-            value);
+        set =>
+            SetProperty(
+                ref _selectedPageIndex,
+                value);
     }
 
     public bool IsBusy
     {
-        get => _isBusy;
+        get =>
+            _isBusy;
 
-        private set => SetProperty(
-            ref _isBusy,
-            value);
+        private set =>
+            SetProperty(
+                ref _isBusy,
+                value);
     }
 
     public bool IsConnected
     {
-        get => _isConnected;
+        get =>
+            _isConnected;
 
         private set
         {
@@ -170,7 +131,8 @@ public sealed class MainViewModel
 
     public string? LastError
     {
-        get => _lastError;
+        get =>
+            _lastError;
 
         private set
         {
@@ -190,26 +152,97 @@ public sealed class MainViewModel
 
     public int QuarantineCount
     {
-        get => _quarantineCount;
+        get =>
+            _quarantineCount;
 
-        private set => SetProperty(
-            ref _quarantineCount,
-            value);
+        private set =>
+            SetProperty(
+                ref _quarantineCount,
+                value);
     }
 
     public DateTimeOffset? LastRefreshUtc
     {
-        get => _lastRefreshUtc;
+        get =>
+            _lastRefreshUtc;
 
-        private set => SetProperty(
-            ref _lastRefreshUtc,
-            value);
+        private set =>
+            SetProperty(
+                ref _lastRefreshUtc,
+                value);
+    }
+
+    public bool AlgorithmGuardEnabled
+    {
+        get =>
+            _algorithmGuardEnabled;
+
+        set =>
+            SetProperty(
+                ref _algorithmGuardEnabled,
+                value);
+    }
+
+    public AlgorithmGuardMode AlgorithmGuardMode
+    {
+        get =>
+            _algorithmGuardMode;
+
+        set =>
+            SetProperty(
+                ref _algorithmGuardMode,
+                value);
+    }
+
+    public EnforcementFailurePolicy AlgorithmGuardFailurePolicy
+    {
+        get =>
+            _algorithmGuardFailurePolicy;
+
+        set =>
+            SetProperty(
+                ref _algorithmGuardFailurePolicy,
+                value);
+    }
+
+    public bool TransferGuardEnabled
+    {
+        get =>
+            _transferGuardEnabled;
+
+        set =>
+            SetProperty(
+                ref _transferGuardEnabled,
+                value);
+    }
+
+    public TransferGuardMode TransferGuardMode
+    {
+        get =>
+            _transferGuardMode;
+
+        set =>
+            SetProperty(
+                ref _transferGuardMode,
+                value);
+    }
+
+    public TransferEnforcementFailurePolicy TransferGuardFailurePolicy
+    {
+        get =>
+            _transferGuardFailurePolicy;
+
+        set =>
+            SetProperty(
+                ref _transferGuardFailurePolicy,
+                value);
     }
 
     public MainViewModel(
         ISecurityGuardClient client)
     {
-        _client = client;
+        _client =
+            client;
 
         NavigateCommand =
             new RelayCommand(
@@ -219,7 +252,7 @@ public sealed class MainViewModel
             new AsyncRelayCommand(
                 RefreshAsync,
                 () => !IsBusy);
-        
+
         SaveAlgorithmGuardSettingsCommand =
             new AsyncRelayCommand(
                 SaveAlgorithmGuardSettingsAsync);
@@ -236,7 +269,8 @@ public sealed class MainViewModel
             return;
         }
 
-        IsBusy = true;
+        IsBusy =
+            true;
 
         try
         {
@@ -245,7 +279,8 @@ public sealed class MainViewModel
 
             if (!connected)
             {
-                IsConnected = false;
+                IsConnected =
+                    false;
 
                 LastError =
                     "SecurityGuard.Service не отвечает.";
@@ -283,8 +318,11 @@ public sealed class MainViewModel
             var transferSettings =
                 await transferSettingsTask;
 
-            IsConnected = true;
-            LastError = null;
+            IsConnected =
+                true;
+
+            LastError =
+                null;
 
             UpdateSnapshot(
                 snapshot);
@@ -303,14 +341,16 @@ public sealed class MainViewModel
         }
         catch (Exception exception)
         {
-            IsConnected = false;
+            IsConnected =
+                false;
 
             LastError =
                 exception.Message;
         }
         finally
         {
-            IsBusy = false;
+            IsBusy =
+                false;
 
             if (RefreshCommand is
                 AsyncRelayCommand command)
@@ -377,13 +417,15 @@ public sealed class MainViewModel
                 new SecurityDecision(
                     requestId,
                     action,
-                    action == SecurityAction.Allow,
+                    action ==
+                    SecurityAction.Allow,
                     DateTimeOffset.UtcNow);
 
             await _client.SubmitDecisionAsync(
                 decision);
 
-            LastError = null;
+            LastError =
+                null;
 
             await RefreshAsync();
         }
@@ -394,7 +436,8 @@ public sealed class MainViewModel
         }
     }
 
-    private void Navigate(object? parameter)
+    private void Navigate(
+        object? parameter)
     {
         if (parameter is null)
         {
@@ -405,19 +448,8 @@ public sealed class MainViewModel
                 parameter.ToString(),
                 out var index))
         {
-            SelectedPageIndex = index;
-        }
-    }
-
-    private static void Replace<T>(
-        ObservableCollection<T> collection,
-        IEnumerable<T> values)
-    {
-        collection.Clear();
-
-        foreach (var value in values)
-        {
-            collection.Add(value);
+            SelectedPageIndex =
+                index;
         }
     }
 
@@ -460,7 +492,8 @@ public sealed class MainViewModel
             await _client.DeleteRuleAsync(
                 ruleId);
 
-            LastError = null;
+            LastError =
+                null;
 
             await RefreshAsync();
         }
@@ -497,7 +530,8 @@ public sealed class MainViewModel
             await _client.UpdateAlgorithmGuardSettingsAsync(
                 settings);
 
-            LastError = null;
+            LastError =
+                null;
 
             await RefreshAsync();
         }
@@ -534,7 +568,8 @@ public sealed class MainViewModel
             await _client.UpdateTransferGuardSettingsAsync(
                 settings);
 
-            LastError = null;
+            LastError =
+                null;
 
             await RefreshAsync();
         }
@@ -542,6 +577,20 @@ public sealed class MainViewModel
         {
             LastError =
                 exception.Message;
+        }
+    }
+
+    private static void Replace<T>(
+        ObservableCollection<T> collection,
+        IEnumerable<T> values)
+    {
+        collection.Clear();
+
+        foreach (var value in
+                 values)
+        {
+            collection.Add(
+                value);
         }
     }
 }

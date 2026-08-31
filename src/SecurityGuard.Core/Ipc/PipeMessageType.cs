@@ -10,5 +10,6 @@ public enum PipeMessageType
     GetAlgorithmGuardSettings = 5,
     UpdateAlgorithmGuardSettings = 6,
     GetTransferGuardSettings = 7,
-    UpdateTransferGuardSettings = 8
+    UpdateTransferGuardSettings = 8,
+    CreateTransferGuardRule = 9
 }

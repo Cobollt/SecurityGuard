@@ -15,13 +15,15 @@ public sealed class PipeRequestHandler
     private readonly IRuleManagementService _ruleManagementService;
     private readonly IAlgorithmGuardSettingsCoordinator _algorithmGuardSettings;
     private readonly ITransferGuardSettingsCoordinator _transferGuardSettings;
+    private readonly ITransferManualRuleService _transferManualRuleService;
 
     public PipeRequestHandler(
         ISecuritySnapshotService snapshotService,
         ISecurityDecisionService decisionService,
         IRuleManagementService ruleManagementService,
         IAlgorithmGuardSettingsCoordinator algorithmGuardSettings,
-        ITransferGuardSettingsCoordinator transferGuardSettings)
+        ITransferGuardSettingsCoordinator transferGuardSettings,
+        ITransferManualRuleService transferManualRuleService)
     {
         _snapshotService =
             snapshotService;
@@ -37,7 +39,10 @@ public sealed class PipeRequestHandler
 
         _transferGuardSettings =
             transferGuardSettings;
-    }
+
+        _transferManualRuleService =
+            transferManualRuleService;
+    }   
 
     public async Task<PipeResponse> HandleAsync(
         PipeRequest request,
@@ -89,6 +94,11 @@ public sealed class PipeRequestHandler
 
                 PipeMessageType.UpdateTransferGuardSettings =>
                     await UpdateTransferGuardSettingsAsync(
+                        request,
+                        cancellationToken),
+                    
+                PipeMessageType.CreateTransferGuardRule =>
+                    await CreateTransferGuardRuleAsync(
                         request,
                         cancellationToken),
 
@@ -256,5 +266,32 @@ public sealed class PipeRequestHandler
 
         return PipeResponse.Ok(
             request.Id);
+    }
+
+    private async Task<PipeResponse> CreateTransferGuardRuleAsync(
+        PipeRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(
+                request.Payload))
+        {
+            return PipeResponse.Fail(
+                request.Id,
+                "TransferGuard rule payload is required.");
+        }
+
+        var model =
+            PipeJsonSerializer.Deserialize<TransferManualRuleRequest>(
+                request.Payload);
+
+        var rule =
+            await _transferManualRuleService.CreateAsync(
+                model,
+                cancellationToken);
+
+        return PipeResponse.Ok(
+            request.Id,
+            PipeJsonSerializer.Serialize(
+                rule));
     }
 }

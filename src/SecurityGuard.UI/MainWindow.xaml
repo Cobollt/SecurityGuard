@@ -11,6 +11,9 @@
 
     <Window.Resources>
 
+        <BooleanToVisibilityConverter
+            x:Key="BooleanToVisibilityConverter" />
+
         <converters:IndexToVisibilityConverter
             x:Key="IndexToVisibilityConverter" />
 
@@ -177,12 +180,15 @@
                             <ItemsControl ItemsSource="{Binding Modules}">
 
                                 <ItemsControl.ItemsPanel>
+
                                     <ItemsPanelTemplate>
                                         <WrapPanel />
                                     </ItemsPanelTemplate>
+
                                 </ItemsControl.ItemsPanel>
 
                                 <ItemsControl.ItemTemplate>
+
                                     <DataTemplate>
 
                                         <Border Style="{StaticResource Card}"
@@ -207,6 +213,7 @@
                                         </Border>
 
                                     </DataTemplate>
+
                                 </ItemsControl.ItemTemplate>
 
                             </ItemsControl>
@@ -248,9 +255,11 @@
                                                               Margin="0,8,0,0">
 
                                                     <ItemsControl.ItemsPanel>
+
                                                         <ItemsPanelTemplate>
                                                             <StackPanel Orientation="Horizontal" />
                                                         </ItemsPanelTemplate>
+
                                                     </ItemsControl.ItemsPanel>
 
                                                     <ItemsControl.ItemTemplate>
@@ -258,7 +267,9 @@
                                                         <DataTemplate>
 
                                                             <Button Content="{Binding DisplayName}"
-                                                                    Command="{Binding Command}" />
+                                                                    Command="{Binding Command}"
+                                                                    Margin="0,0,8,0"
+                                                                    Padding="10,5" />
 
                                                         </DataTemplate>
 
@@ -328,7 +339,8 @@
                                        FontSize="28"
                                        FontWeight="SemiBold" />
 
-                            <TextBlock Text="Контроль запуска несанкционированных скриптов и алгоритмов."
+                            <TextBlock Text="Контроль запуска несанкционированных скриптов, интерпретируемых команд и связанных процессов."
+                                       TextWrapping="Wrap"
                                        Margin="0,6,0,10" />
 
                         </StackPanel>
@@ -369,31 +381,104 @@
                     Converter={StaticResource IndexToVisibilityConverter},
                     ConverterParameter=2}">
 
-                    <DockPanel>
+                    <Grid>
 
-                        <StackPanel DockPanel.Dock="Top">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0">
 
                             <TextBlock Text="Передача файлов"
                                        FontSize="28"
                                        FontWeight="SemiBold" />
 
-                            <TextBlock Text="Контроль попыток передачи файлов с компьютера."
-                                       Margin="0,6,0,10" />
+                            <TextBlock Text="TransferGuard контролирует исходящие сетевые соединения и попытки передачи данных."
+                                       TextWrapping="Wrap"
+                                       Margin="0,6,0,4" />
+
+                            <TextBlock Text="Для каждого события отображаются процесс, удалённая точка, протокол и принятое действие."
+                                       TextWrapping="Wrap"
+                                       Margin="0,2,0,14" />
 
                         </StackPanel>
 
-                        <ListView ItemsSource="{Binding TransferEvents}">
+                        <StackPanel Grid.Row="1"
+                                    Orientation="Horizontal"
+                                    Margin="0,0,0,12">
+
+                            <Border Style="{StaticResource Card}"
+                                    Width="220">
+
+                                <StackPanel>
+
+                                    <TextBlock Text="TransferGuard"
+                                               FontWeight="SemiBold" />
+
+                                    <TextBlock Text="{Binding TransferGuardMode}"
+                                               FontSize="20"
+                                               FontWeight="Bold"
+                                               Margin="0,6,0,0" />
+
+                                </StackPanel>
+
+                            </Border>
+
+                            <Border Style="{StaticResource Card}"
+                                    Width="220">
+
+                                <StackPanel>
+
+                                    <TextBlock Text="Состояние"
+                                               FontWeight="SemiBold" />
+
+                                    <TextBlock Text="{Binding TransferGuardEnabled}"
+                                               FontSize="20"
+                                               FontWeight="Bold"
+                                               Margin="0,6,0,0" />
+
+                                </StackPanel>
+
+                            </Border>
+
+                            <Border Style="{StaticResource Card}"
+                                    Width="220">
+
+                                <StackPanel>
+
+                                    <TextBlock Text="Событий"
+                                               FontWeight="SemiBold" />
+
+                                    <TextBlock Text="{Binding TransferEvents.Count}"
+                                               FontSize="20"
+                                               FontWeight="Bold"
+                                               Margin="0,6,0,0" />
+
+                                </StackPanel>
+
+                            </Border>
+
+                        </StackPanel>
+
+                        <ListView Grid.Row="2"
+                                  ItemsSource="{Binding TransferEvents}">
 
                             <ListView.View>
 
                                 <GridView>
 
                                     <GridViewColumn Header="Время"
-                                                    Width="170"
+                                                    Width="165"
                                                     DisplayMemberBinding="{Binding CreatedAtUtc}" />
 
+                                    <GridViewColumn Header="Тип"
+                                                    Width="150"
+                                                    DisplayMemberBinding="{Binding Type}" />
+
                                     <GridViewColumn Header="Событие"
-                                                    Width="240"
+                                                    Width="220"
                                                     DisplayMemberBinding="{Binding Title}" />
 
                                     <GridViewColumn Header="Подробности"
@@ -410,7 +495,7 @@
 
                         </ListView>
 
-                    </DockPanel>
+                    </Grid>
 
                 </Grid>
 
@@ -481,7 +566,7 @@
                                    FontSize="42"
                                    FontWeight="Bold" />
 
-                        <TextBlock Text="Просмотр, восстановление и окончательное удаление объектов будет подключено к общей службе на следующем этапе интерфейса."
+                        <TextBlock Text="Просмотр, восстановление и окончательное удаление объектов выполняются через общую службу SecurityGuard."
                                    TextWrapping="Wrap"
                                    Margin="0,20,0,0" />
 
@@ -504,11 +589,11 @@
                         <StackPanel Grid.Row="0">
 
                             <TextBlock Text="Правила и исключения"
-                                    FontSize="28"
-                                    FontWeight="SemiBold" />
+                                       FontSize="28"
+                                       FontWeight="SemiBold" />
 
                             <TextBlock Text="Общие правила безопасности SecurityGuard"
-                                    Margin="0,6,0,14" />
+                                       Margin="0,6,0,14" />
 
                         </StackPanel>
 
@@ -522,12 +607,12 @@
                                 <StackPanel>
 
                                     <TextBlock Text="Всего правил"
-                                            FontWeight="SemiBold" />
+                                               FontWeight="SemiBold" />
 
                                     <TextBlock Text="{Binding Rules.Count}"
-                                            FontSize="28"
-                                            FontWeight="Bold"
-                                            Margin="0,6,0,0" />
+                                               FontSize="28"
+                                               FontWeight="Bold"
+                                               Margin="0,6,0,0" />
 
                                 </StackPanel>
 
@@ -539,12 +624,12 @@
                                 <StackPanel>
 
                                     <TextBlock Text="Разрешающих"
-                                            FontWeight="SemiBold" />
+                                               FontWeight="SemiBold" />
 
                                     <TextBlock Text="{Binding AllowRules.Count}"
-                                            FontSize="28"
-                                            FontWeight="Bold"
-                                            Margin="0,6,0,0" />
+                                               FontSize="28"
+                                               FontWeight="Bold"
+                                               Margin="0,6,0,0" />
 
                                 </StackPanel>
 
@@ -556,12 +641,12 @@
                                 <StackPanel>
 
                                     <TextBlock Text="Блокирующих"
-                                            FontWeight="SemiBold" />
+                                               FontWeight="SemiBold" />
 
                                     <TextBlock Text="{Binding BlockRules.Count}"
-                                            FontSize="28"
-                                            FontWeight="Bold"
-                                            Margin="0,6,0,0" />
+                                               FontSize="28"
+                                               FontWeight="Bold"
+                                               Margin="0,6,0,0" />
 
                                 </StackPanel>
 
@@ -584,23 +669,23 @@
                                                             DisplayMemberBinding="{Binding Name}" />
 
                                             <GridViewColumn Header="Модуль"
-                                                            Width="160"
+                                                            Width="150"
                                                             DisplayMemberBinding="{Binding ModuleDisplayName}" />
 
                                             <GridViewColumn Header="Решение"
-                                                            Width="120"
+                                                            Width="110"
                                                             DisplayMemberBinding="{Binding DecisionDisplayName}" />
 
                                             <GridViewColumn Header="Тип"
-                                                            Width="150"
+                                                            Width="170"
                                                             DisplayMemberBinding="{Binding ScopeDisplayName}" />
 
                                             <GridViewColumn Header="Значение"
-                                                            Width="360"
+                                                            Width="300"
                                                             DisplayMemberBinding="{Binding Value}" />
 
                                             <GridViewColumn Header="Дополнительные условия"
-                                                            Width="430"
+                                                            Width="360"
                                                             DisplayMemberBinding="{Binding ConditionsDisplayName}" />
 
                                             <GridViewColumn Header="Приоритет"
@@ -611,7 +696,8 @@
                                                             Width="100"
                                                             DisplayMemberBinding="{Binding EnabledDisplayName}" />
 
-                                            <GridViewColumn Header="">
+                                            <GridViewColumn Header=""
+                                                            Width="90">
 
                                                 <GridViewColumn.CellTemplate>
 
@@ -653,14 +739,15 @@
                                                             DisplayMemberBinding="{Binding ModuleDisplayName}" />
 
                                             <GridViewColumn Header="Тип"
-                                                            Width="160"
+                                                            Width="180"
                                                             DisplayMemberBinding="{Binding ScopeDisplayName}" />
 
                                             <GridViewColumn Header="Значение"
                                                             Width="420"
                                                             DisplayMemberBinding="{Binding Value}" />
 
-                                            <GridViewColumn Header="">
+                                            <GridViewColumn Header=""
+                                                            Width="90">
 
                                                 <GridViewColumn.CellTemplate>
 
@@ -702,14 +789,15 @@
                                                             DisplayMemberBinding="{Binding ModuleDisplayName}" />
 
                                             <GridViewColumn Header="Тип"
-                                                            Width="160"
+                                                            Width="180"
                                                             DisplayMemberBinding="{Binding ScopeDisplayName}" />
 
                                             <GridViewColumn Header="Значение"
                                                             Width="420"
                                                             DisplayMemberBinding="{Binding Value}" />
 
-                                            <GridViewColumn Header="">
+                                            <GridViewColumn Header=""
+                                                            Width="90">
 
                                                 <GridViewColumn.CellTemplate>
 
@@ -737,33 +825,6 @@
                         </TabControl>
 
                     </Grid>
-
-                </Grid>
-                    Converter={StaticResource IndexToVisibilityConverter},
-                    ConverterParameter=5}">
-
-                    <StackPanel>
-
-                        <TextBlock Text="Правила и исключения"
-                                   FontSize="28"
-                                   FontWeight="SemiBold" />
-
-                        <TextBlock Text="Здесь будут находиться общие правила для всех трёх модулей."
-                                   Margin="0,10,0,0" />
-
-                        <TextBlock Text="Контроль алгоритмов: SHA-256, путь, издатель, интерпретатор и родительский процесс."
-                                   Margin="0,18,0,0"
-                                   TextWrapping="Wrap" />
-
-                        <TextBlock Text="Передача файлов: файл, приложение, назначение, порт и протокол."
-                                   Margin="0,8,0,0"
-                                   TextWrapping="Wrap" />
-
-                        <TextBlock Text="Проверка архивов: доверенные файлы, хэши, пути и исключения сканирования."
-                                   Margin="0,8,0,0"
-                                   TextWrapping="Wrap" />
-
-                    </StackPanel>
 
                 </Grid>
 
@@ -823,142 +884,152 @@
                     Converter={StaticResource IndexToVisibilityConverter},
                     ConverterParameter=7}">
 
-                    <StackPanel>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
 
-                        <TextBlock Text="Настройки"
-                                FontSize="28"
-                                FontWeight="SemiBold" />
+                        <StackPanel>
 
-                        <TextBlock Text="AlgorithmGuard"
-                                FontSize="20"
-                                FontWeight="SemiBold"
-                                Margin="0,24,0,12" />
+                            <TextBlock Text="Настройки"
+                                       FontSize="28"
+                                       FontWeight="SemiBold" />
 
-                        <CheckBox Content="Включить контроль алгоритмов"
-                                IsChecked="{Binding AlgorithmGuardEnabled}"
-                                FontSize="15"
-                                Margin="0,4,0,12" />
+                            <TextBlock Text="AlgorithmGuard"
+                                       FontSize="20"
+                                       FontWeight="SemiBold"
+                                       Margin="0,24,0,12" />
 
-                        <TextBlock Text="Режим"
-                                FontWeight="SemiBold"
-                                Margin="0,8,0,4" />
+                            <CheckBox Content="Включить контроль алгоритмов"
+                                      IsChecked="{Binding AlgorithmGuardEnabled}"
+                                      FontSize="15"
+                                      Margin="0,4,0,12" />
 
-                        <ComboBox ItemsSource="{Binding AlgorithmGuardModes}"
-                                SelectedItem="{Binding AlgorithmGuardMode}"
-                                Width="220"
-                                HorizontalAlignment="Left" />
+                            <TextBlock Text="Режим"
+                                       FontWeight="SemiBold"
+                                       Margin="0,8,0,4" />
 
-                        <TextBlock Text="Поведение при ошибке системной блокировки"
-                                FontWeight="SemiBold"
-                                Margin="0,18,0,4" />
+                            <ComboBox ItemsSource="{Binding AlgorithmGuardModes}"
+                                      SelectedItem="{Binding AlgorithmGuardMode}"
+                                      Width="220"
+                                      HorizontalAlignment="Left" />
 
-                        <ComboBox ItemsSource="{Binding AlgorithmGuardFailurePolicies}"
-                                SelectedItem="{Binding AlgorithmGuardFailurePolicy}"
-                                Width="220"
-                                HorizontalAlignment="Left" />
+                            <TextBlock Text="Поведение при ошибке системной блокировки"
+                                       FontWeight="SemiBold"
+                                       Margin="0,18,0,4" />
 
-                        <TextBlock Text="Monitor — только наблюдение и внутренние правила. Enforce — применение поддерживаемых Block-правил через Windows."
-                                TextWrapping="Wrap"
-                                MaxWidth="650"
-                                HorizontalAlignment="Left"
-                                Margin="0,14,0,0" />
+                            <ComboBox ItemsSource="{Binding AlgorithmGuardFailurePolicies}"
+                                      SelectedItem="{Binding AlgorithmGuardFailurePolicy}"
+                                      Width="220"
+                                      HorizontalAlignment="Left" />
 
-                        <TextBlock Text="FailOpen — при ошибке enforcement мониторинг продолжается. FailClosed — AlgorithmGuard переходит в Faulted."
-                                TextWrapping="Wrap"
-                                MaxWidth="650"
-                                HorizontalAlignment="Left"
-                                Margin="0,8,0,0" />
+                            <TextBlock Text="Monitor — наблюдение и внутренние правила без системной блокировки."
+                                       TextWrapping="Wrap"
+                                       MaxWidth="700"
+                                       HorizontalAlignment="Left"
+                                       Margin="0,14,0,0" />
 
-                        <Button Content="Сохранить настройки"
-                                Width="200"
-                                HorizontalAlignment="Left"
-                                Margin="0,20,0,0"
-                                Command="{Binding SaveAlgorithmGuardSettingsCommand}" />
+                            <TextBlock Text="Enforce — применение поддерживаемых Block-правил через механизмы Windows."
+                                       TextWrapping="Wrap"
+                                       MaxWidth="700"
+                                       HorizontalAlignment="Left"
+                                       Margin="0,6,0,0" />
 
-                        <Separator Margin="0,30,0,24" />
+                            <TextBlock Text="FailOpen — при ошибке enforcement мониторинг продолжается. FailClosed — AlgorithmGuard переходит в Faulted."
+                                       TextWrapping="Wrap"
+                                       MaxWidth="700"
+                                       HorizontalAlignment="Left"
+                                       Margin="0,6,0,0" />
 
-                        <TextBlock Text="TransferGuard"
-                                FontSize="20"
-                                FontWeight="SemiBold"
-                                Margin="0,0,0,12" />
+                            <Button Content="Сохранить настройки AlgorithmGuard"
+                                    Width="270"
+                                    HorizontalAlignment="Left"
+                                    Margin="0,20,0,0"
+                                    Command="{Binding SaveAlgorithmGuardSettingsCommand}" />
 
-                        <CheckBox Content="Включить контроль исходящих соединений"
-                                IsChecked="{Binding TransferGuardEnabled}"
-                                FontSize="15"
-                                Margin="0,4,0,12" />
+                            <Separator Margin="0,30,0,24" />
 
-                        <TextBlock Text="Режим"
-                                FontWeight="SemiBold"
-                                Margin="0,8,0,4" />
+                            <TextBlock Text="TransferGuard"
+                                       FontSize="20"
+                                       FontWeight="SemiBold"
+                                       Margin="0,0,0,12" />
 
-                        <ComboBox ItemsSource="{Binding TransferGuardModes}"
-                                SelectedItem="{Binding TransferGuardMode}"
-                                Width="220"
-                                HorizontalAlignment="Left" />
+                            <CheckBox Content="Включить контроль исходящих соединений"
+                                      IsChecked="{Binding TransferGuardEnabled}"
+                                      FontSize="15"
+                                      Margin="0,4,0,12" />
 
-                        <TextBlock Text="Поведение при ошибке сетевой блокировки"
-                                FontWeight="SemiBold"
-                                Margin="0,18,0,4" />
+                            <TextBlock Text="Режим"
+                                       FontWeight="SemiBold"
+                                       Margin="0,8,0,4" />
 
-                        <ComboBox ItemsSource="{Binding TransferGuardFailurePolicies}"
-                                SelectedItem="{Binding TransferGuardFailurePolicy}"
-                                Width="220"
-                                HorizontalAlignment="Left" />
+                            <ComboBox ItemsSource="{Binding TransferGuardModes}"
+                                      SelectedItem="{Binding TransferGuardMode}"
+                                      Width="220"
+                                      HorizontalAlignment="Left" />
 
-                        <TextBlock Text="Monitor — обнаружение соединений и внутренние правила без блокировки Windows Firewall."
-                                TextWrapping="Wrap"
-                                MaxWidth="650"
-                                HorizontalAlignment="Left"
-                                Margin="0,14,0,0" />
+                            <TextBlock Text="Поведение при ошибке сетевой блокировки"
+                                       FontWeight="SemiBold"
+                                       Margin="0,18,0,4" />
 
-                        <TextBlock Text="Enforce — поддерживаемые Block-правила применяются через Windows Firewall."
-                                TextWrapping="Wrap"
-                                MaxWidth="650"
-                                HorizontalAlignment="Left"
-                                Margin="0,6,0,0" />
+                            <ComboBox ItemsSource="{Binding TransferGuardFailurePolicies}"
+                                      SelectedItem="{Binding TransferGuardFailurePolicy}"
+                                      Width="220"
+                                      HorizontalAlignment="Left" />
 
-                        <TextBlock Text="FailOpen — при ошибке Firewall мониторинг продолжается. FailClosed — TransferGuard переходит в Faulted и прекращает мониторинг."
-                                TextWrapping="Wrap"
-                                MaxWidth="650"
-                                HorizontalAlignment="Left"
-                                Margin="0,6,0,0" />
+                            <TextBlock Text="Monitor — обнаружение исходящих соединений и применение внутренних правил без блокировки Windows Firewall."
+                                       TextWrapping="Wrap"
+                                       MaxWidth="700"
+                                       HorizontalAlignment="Left"
+                                       Margin="0,14,0,0" />
 
-                        <Button Content="Сохранить настройки TransferGuard"
-                                Width="260"
-                                HorizontalAlignment="Left"
-                                Margin="0,20,0,0"
-                                Command="{Binding SaveTransferGuardSettingsCommand}" />
+                            <TextBlock Text="Enforce — поддерживаемые Block-правила применяются через Windows Firewall."
+                                       TextWrapping="Wrap"
+                                       MaxWidth="700"
+                                       HorizontalAlignment="Left"
+                                       Margin="0,6,0,0" />
 
-                        <Separator Margin="0,28,0,20" />
+                            <TextBlock Text="FailOpen — при ошибке Firewall мониторинг продолжается. FailClosed — TransferGuard переходит в Faulted."
+                                       TextWrapping="Wrap"
+                                       MaxWidth="700"
+                                       HorizontalAlignment="Left"
+                                       Margin="0,6,0,0" />
 
-                        <TextBlock Text="Состояние службы"
-                                FontSize="16"
-                                FontWeight="SemiBold"
-                                Margin="0,4,0,4" />
+                            <Button Content="Сохранить настройки TransferGuard"
+                                    Width="270"
+                                    HorizontalAlignment="Left"
+                                    Margin="0,20,0,0"
+                                    Command="{Binding SaveTransferGuardSettingsCommand}" />
 
-                        <TextBlock Text="{Binding ServiceStatus}" />
+                            <Separator Margin="0,30,0,24" />
 
-                        <TextBlock Text="Объекты карантина"
-                                FontSize="16"
-                                FontWeight="SemiBold"
-                                Margin="0,20,0,4" />
+                            <TextBlock Text="Состояние службы"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Margin="0,4,0,4" />
 
-                        <TextBlock Text="{Binding QuarantineCount}" />
+                            <TextBlock Text="{Binding ServiceStatus}" />
 
-                        <TextBlock Text="Последнее обновление"
-                                FontSize="16"
-                                FontWeight="SemiBold"
-                                Margin="0,20,0,4" />
+                            <TextBlock Text="Объекты карантина"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Margin="0,20,0,4" />
 
-                        <TextBlock Text="{Binding LastRefreshUtc}" />
+                            <TextBlock Text="{Binding QuarantineCount}" />
 
-                        <Button Content="Обновить состояние"
-                                Width="180"
-                                HorizontalAlignment="Left"
-                                Margin="0,24,0,0"
-                                Command="{Binding RefreshCommand}" />
+                            <TextBlock Text="Последнее обновление"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Margin="0,20,0,4" />
 
-                    </StackPanel>
+                            <TextBlock Text="{Binding LastRefreshUtc}" />
+
+                            <Button Content="Обновить состояние"
+                                    Width="180"
+                                    HorizontalAlignment="Left"
+                                    Margin="0,24,0,20"
+                                    Command="{Binding RefreshCommand}" />
+
+                        </StackPanel>
+
+                    </ScrollViewer>
 
                 </Grid>
 

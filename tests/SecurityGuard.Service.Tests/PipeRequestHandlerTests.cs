@@ -54,7 +54,8 @@ public sealed class PipeRequestHandlerTests
                 new FakeDecisionService(),
                 new FakeRuleManagementService(),
                 new FakeAlgorithmGuardSettingsCoordinator(),
-                new FakeTransferGuardSettingsCoordinator());
+                new FakeTransferGuardSettingsCoordinator(),
+                new FakeTransferManualRuleService());
 
         var request =
             PipeRequest.Create(
@@ -92,7 +93,8 @@ public sealed class PipeRequestHandlerTests
                 decisionService,
                 new FakeRuleManagementService(),
                 new FakeAlgorithmGuardSettingsCoordinator(),
-                new FakeTransferGuardSettingsCoordinator());
+                new FakeTransferGuardSettingsCoordinator(),
+                new FakeTransferManualRuleService());
 
         var decision =
             new SecurityDecision(
@@ -176,7 +178,8 @@ public sealed class PipeRequestHandlerTests
                 new FakeDecisionService(),
                 ruleService,
                 new FakeAlgorithmGuardSettingsCoordinator(),
-                new FakeTransferGuardSettingsCoordinator());
+                new FakeTransferGuardSettingsCoordinator(),
+                new FakeTransferManualRuleService());
 
         var request =
             PipeRequest.Create(
@@ -221,7 +224,8 @@ public sealed class PipeRequestHandlerTests
                 new FakeDecisionService(),
                 ruleService,
                 new FakeAlgorithmGuardSettingsCoordinator(),
-                new FakeTransferGuardSettingsCoordinator());
+                new FakeTransferGuardSettingsCoordinator(),
+                new FakeTransferManualRuleService());
 
         var payload =
             new DeleteSecurityRuleRequest(
@@ -268,7 +272,8 @@ public sealed class PipeRequestHandlerTests
                 new FakeDecisionService(),
                 new FakeRuleManagementService(),
                 coordinator,
-                new FakeTransferGuardSettingsCoordinator());
+                new FakeTransferGuardSettingsCoordinator(),
+                new FakeTransferManualRuleService());
 
         var request =
             PipeRequest.Create(
@@ -317,7 +322,8 @@ public sealed class PipeRequestHandlerTests
                 new FakeDecisionService(),
                 new FakeRuleManagementService(),
                 new FakeAlgorithmGuardSettingsCoordinator(),
-                transferSettings);
+                transferSettings,
+                new FakeTransferManualRuleService());
 
         var request =
             PipeRequest.Create(
@@ -350,7 +356,8 @@ public sealed class PipeRequestHandlerTests
             new FakeDecisionService(),
             new FakeRuleManagementService(),
             new FakeAlgorithmGuardSettingsCoordinator(),
-            new FakeTransferGuardSettingsCoordinator());
+            new FakeTransferGuardSettingsCoordinator(),
+            new FakeTransferManualRuleService());
     }
 
     private static SecuritySnapshot CreateEmptySnapshot()
@@ -471,5 +478,85 @@ public sealed class PipeRequestHandlerTests
 
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class FakeTransferManualRuleService
+        : ITransferManualRuleService
+    {
+        public TransferManualRuleRequest? LastRequest { get; private set; }
+
+        public Task<SecurityRule> CreateAsync(
+            TransferManualRuleRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            LastRequest =
+                request;
+
+            var primary =
+                request.Conditions[0];
+
+            return Task.FromResult(
+                new SecurityRule(
+                    Guid.NewGuid(),
+                    request.Name,
+                    SecurityModuleKind.TransferGuard,
+                    request.Decision,
+                    primary.Scope,
+                    primary.Value,
+                    true,
+                    request.Priority,
+                    DateTimeOffset.UtcNow,
+                    request.ExpiresAtUtc));
+        }
+    }
+
+    [Fact]
+    public async Task Transfer_rule_can_be_created()
+    {
+        var service =
+            new FakeTransferManualRuleService();
+
+        var handler =
+            new PipeRequestHandler(
+                new FakeSnapshotService(
+                    CreateEmptySnapshot()),
+                new FakeDecisionService(),
+                new FakeRuleManagementService(),
+                new FakeAlgorithmGuardSettingsCoordinator(),
+                new FakeTransferGuardSettingsCoordinator(),
+                service);
+
+        var model =
+            new TransferManualRuleRequest(
+                "Block DOCX",
+                TransferActivityKind.FileTransfer,
+                RuleDecision.Block,
+                [
+                    new TransferManualRuleCondition(
+                        RuleScope.FileExtension,
+                        ".docx")
+                ],
+                300,
+                null);
+
+        var request =
+            PipeRequest.Create(
+                PipeMessageType.CreateTransferGuardRule,
+                PipeJsonSerializer.Serialize(
+                    model));
+
+        var response =
+            await handler.HandleAsync(
+                request);
+
+        Assert.True(
+            response.Success);
+
+        Assert.NotNull(
+            service.LastRequest);
+
+        Assert.Equal(
+            "Block DOCX",
+            service.LastRequest.Name);
     }
 }

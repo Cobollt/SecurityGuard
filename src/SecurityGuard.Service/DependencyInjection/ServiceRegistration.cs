@@ -72,6 +72,21 @@ public static class ServiceRegistration
                         TransferGuardRuntimeState>());
 
         services.AddSingleton<
+            IAlgorithmGuardRuntimeController>(
+                provider =>
+                    provider.GetRequiredService<
+                        AlgorithmGuardHostedService>());
+
+        services.AddSingleton<
+            TransferGuardHostedService>();
+
+        services.AddSingleton<
+            ITransferGuardRuntimeController>(
+                provider =>
+                    provider.GetRequiredService<
+                        TransferGuardHostedService>());
+
+        services.AddSingleton<
             ITransferTemporaryEnforcementService,
             WindowsFirewallTemporaryEnforcementService>();
 
@@ -101,6 +116,8 @@ public static class ServiceRegistration
 
         services.AddSingleton<
             TransferCorrelationConfidenceCalculator>();
+
+        services.AddSingleton<AlgorithmGuardHostedService>();
 
         services.AddSingleton<
             ITransferCorrelationState,
@@ -201,6 +218,10 @@ public static class ServiceRegistration
             ITransferGuardSettingsCoordinator,
             TransferGuardSettingsCoordinator>();
 
+        services.AddSingleton<
+            ITransferManualRuleService,
+            TransferManualRuleService>();
+
         services.AddSingleton(
             new TransferGuardOptions());
 
@@ -266,28 +287,11 @@ public static class ServiceRegistration
 
         services.AddHostedService<TransferTemporaryEnforcementMaintenanceHostedService>();
 
-        services.AddSingleton<AlgorithmGuardHostedService>();
-
-        services.AddSingleton<
-            TransferGuardHostedService>();
-
-        services.AddSingleton<
-            ITransferGuardRuntimeController>(
-                provider =>
-                    provider.GetRequiredService<
-                        TransferGuardHostedService>());
-
         services.AddHostedService(
             provider =>
             
                 provider.GetRequiredService<
                     TransferGuardHostedService>());
-
-        services.AddSingleton<
-            IAlgorithmGuardRuntimeController>(
-                provider =>
-                    provider.GetRequiredService<
-                        AlgorithmGuardHostedService>());
 
         services.AddHostedService(
             provider =>

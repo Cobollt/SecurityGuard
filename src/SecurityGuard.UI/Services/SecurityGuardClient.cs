@@ -260,4 +260,36 @@ public sealed class SecurityGuardClient
         EnsureSuccess(
             response);
     }
+
+    public async Task<SecurityRule> CreateTransferGuardRuleAsync(
+        TransferManualRuleRequest model,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(
+            model);
+
+        var request =
+            PipeRequest.Create(
+                PipeMessageType.CreateTransferGuardRule,
+                PipeJsonSerializer.Serialize(
+                    model));
+
+        var response =
+            await SendAsync(
+                request,
+                cancellationToken);
+
+        EnsureSuccess(
+            response);
+
+        if (string.IsNullOrWhiteSpace(
+                response.Payload))
+        {
+            throw new InvalidDataException(
+                "Created TransferGuard rule response is empty.");
+        }
+
+        return PipeJsonSerializer.Deserialize<SecurityRule>(
+            response.Payload);
+    }
 }
