@@ -9,14 +9,19 @@ public sealed class ArchiveFileMetadataService
     : IArchiveFileMetadataService
 {
     private readonly IFileHashService _fileHashService;
+    private readonly IFileTypeDetector _fileTypeDetector;
     private readonly ArchiveGuardOptions _options;
 
     public ArchiveFileMetadataService(
         IFileHashService fileHashService,
+        IFileTypeDetector fileTypeDetector,
         ArchiveGuardOptions options)
     {
         _fileHashService =
             fileHashService;
+
+        _fileTypeDetector =
+            fileTypeDetector;
 
         _options =
             options;
@@ -50,6 +55,10 @@ public sealed class ArchiveFileMetadataService
                 fullPath,
                 cancellationToken);
 
+        var fileType =
+            _fileTypeDetector.Detect(
+                header);
+
         var sha256 =
             await _fileHashService.ComputeSha256Async(
                 fullPath,
@@ -66,7 +75,8 @@ public sealed class ArchiveFileMetadataService
                 info.LastWriteTimeUtc,
                 TimeSpan.Zero),
             sha256.ToUpperInvariant(),
-            header);
+            header,
+            fileType);
     }
 
     private async Task<byte[]> ReadHeaderAsync(
@@ -84,21 +94,39 @@ public sealed class ArchiveFileMetadataService
                 FileAccess.Read,
                 FileShare.Read,
                 bufferSize:
-                    4096,
+                    8192,
                 FileOptions.Asynchronous |
                 FileOptions.SequentialScan);
 
-        var read =
-            await stream.ReadAsync(
-                buffer,
-                cancellationToken);
+        var totalRead =
+            0;
 
-        if (read ==
+        while (totalRead <
+               buffer.Length)
+        {
+            var read =
+                await stream.ReadAsync(
+                    buffer.AsMemory(
+                        totalRead,
+                        buffer.Length -
+                        totalRead),
+                    cancellationToken);
+
+            if (read == 0)
+            {
+                break;
+            }
+
+            totalRead +=
+                read;
+        }
+
+        if (totalRead ==
             buffer.Length)
         {
             return buffer;
         }
 
-        return buffer[..read];
+        return buffer[..totalRead];
     }
 }

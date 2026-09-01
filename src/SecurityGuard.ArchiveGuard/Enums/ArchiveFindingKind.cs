@@ -6,5 +6,6 @@ public enum ArchiveFindingKind
     DoubleExtension = 1,
     ExecutableContentMismatch = 2,
     AnalyzerFailure = 3,
-    FileAccessFailure = 4
+    FileAccessFailure = 4,
+    FileReadFailure = 5
 }

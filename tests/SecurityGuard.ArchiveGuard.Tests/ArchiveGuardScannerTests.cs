@@ -63,6 +63,7 @@ public sealed class ArchiveGuardScannerTests
         var metadata =
             new ArchiveFileMetadataService(
                 new TestFileHashService(),
+                new FileTypeDetector(),
                 options);
 
         return new ArchiveGuardScanner(
@@ -74,7 +75,8 @@ public sealed class ArchiveGuardScannerTests
 
                 new DoubleExtensionAnalyzer(),
 
-                new ExecutableContentMismatchAnalyzer()
+                new FileTypeMismatchAnalyzer(
+                    new FileTypeCompatibilityService())
             ]);
     }
 
@@ -368,6 +370,280 @@ public sealed class ArchiveGuardScannerTests
                 finding =>
                     finding.Kind ==
                     ArchiveFindingKind.AnalyzerFailure);
+        }
+        finally
+        {
+            Directory.Delete(
+                root,
+                true);
+        }
+    }
+
+    private static byte[] CreatePeFile()
+    {
+        var data =
+            new byte[512];
+
+        data[0] =
+            0x4D;
+
+        data[1] =
+            0x5A;
+
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(
+            data.AsSpan(
+                0x3C,
+                4),
+            0x80);
+
+        data[0x80] =
+            0x50;
+
+        data[0x81] =
+            0x45;
+
+        data[0x82] =
+            0x00;
+
+        data[0x83] =
+            0x00;
+
+        return data;
+    }
+
+    [Fact]
+    public async Task Pe_content_with_pdf_extension_is_suspicious()
+    {
+        var root =
+            CreateTemporaryDirectory();
+
+        try
+        {
+            var file =
+                Path.Combine(
+                    root,
+                    "document.pdf");
+
+            await File.WriteAllBytesAsync(
+                file,
+                CreatePeFile());
+
+            var scanner =
+                CreateScanner();
+
+            var result =
+                await scanner.ScanAsync(
+                    new ArchiveScanRequest(
+                        file));
+
+            Assert.Equal(
+                DetectedFileType.Pe,
+                result.FileType);
+
+            Assert.Equal(
+                ScanVerdict.Suspicious,
+                result.Verdict);
+
+            Assert.Contains(
+                result.Findings,
+                finding =>
+                    finding.Kind ==
+                    ArchiveFindingKind.ExecutableContentMismatch);
+        }
+        finally
+        {
+            Directory.Delete(
+                root,
+                true);
+        }
+    }
+
+    [Fact]
+    public async Task Zip_content_with_pdf_extension_is_suspicious()
+    {
+        var root =
+            CreateTemporaryDirectory();
+
+        try
+        {
+            var file =
+                Path.Combine(
+                    root,
+                    "document.pdf");
+
+            await File.WriteAllBytesAsync(
+                file,
+                [
+                    0x50,
+                    0x4B,
+                    0x03,
+                    0x04,
+                    0x14,
+                    0x00,
+                    0x00,
+                    0x00
+                ]);
+
+            var scanner =
+                CreateScanner();
+
+            var result =
+                await scanner.ScanAsync(
+                    new ArchiveScanRequest(
+                        file));
+
+            Assert.Equal(
+                DetectedFileType.Zip,
+                result.FileType);
+
+            Assert.Equal(
+                ScanVerdict.Suspicious,
+                result.Verdict);
+
+            Assert.Contains(
+                result.Findings,
+                finding =>
+                    finding.Kind ==
+                    ArchiveFindingKind.FileTypeMismatch);
+        }
+        finally
+        {
+            Directory.Delete(
+                root,
+                true);
+        }
+    }
+
+    [Fact]
+    public async Task Zip_container_with_docx_extension_is_not_mismatch()
+    {
+        var root =
+            CreateTemporaryDirectory();
+
+        try
+        {
+            var file =
+                Path.Combine(
+                    root,
+                    "document.docx");
+
+            await File.WriteAllBytesAsync(
+                file,
+                [
+                    0x50,
+                    0x4B,
+                    0x03,
+                    0x04,
+                    0x14,
+                    0x00,
+                    0x00,
+                    0x00
+                ]);
+
+            var scanner =
+                CreateScanner();
+
+            var result =
+                await scanner.ScanAsync(
+                    new ArchiveScanRequest(
+                        file));
+
+            Assert.Equal(
+                DetectedFileType.Zip,
+                result.FileType);
+
+            Assert.DoesNotContain(
+                result.Findings,
+                finding =>
+                    finding.Kind ==
+                    ArchiveFindingKind.FileTypeMismatch);
+        }
+        finally
+        {
+            Directory.Delete(
+                root,
+                true);
+        }
+    }
+
+    [Fact]
+    public async Task Real_pdf_is_detected()
+    {
+        var root =
+            CreateTemporaryDirectory();
+
+        try
+        {
+            var file =
+                Path.Combine(
+                    root,
+                    "document.pdf");
+
+            await File.WriteAllTextAsync(
+                file,
+                "%PDF-1.7\n%%EOF");
+
+            var scanner =
+                CreateScanner();
+
+            var result =
+                await scanner.ScanAsync(
+                    new ArchiveScanRequest(
+                        file));
+
+            Assert.Equal(
+                DetectedFileType.Pdf,
+                result.FileType);
+
+            Assert.Equal(
+                ScanVerdict.Clean,
+                result.Verdict);
+        }
+        finally
+        {
+            Directory.Delete(
+                root,
+                true);
+        }
+    }
+
+    [Fact]
+    public async Task Unknown_binary_file_is_not_automatically_suspicious()
+    {
+        var root =
+            CreateTemporaryDirectory();
+
+        try
+        {
+            var file =
+                Path.Combine(
+                    root,
+                    "data.bin");
+
+            await File.WriteAllBytesAsync(
+                file,
+                [
+                    0x10,
+                    0x20,
+                    0x30,
+                    0x40
+                ]);
+
+            var scanner =
+                CreateScanner();
+
+            var result =
+                await scanner.ScanAsync(
+                    new ArchiveScanRequest(
+                        file));
+
+            Assert.Equal(
+                DetectedFileType.Unknown,
+                result.FileType);
+
+            Assert.Equal(
+                ScanVerdict.Clean,
+                result.Verdict);
         }
         finally
         {

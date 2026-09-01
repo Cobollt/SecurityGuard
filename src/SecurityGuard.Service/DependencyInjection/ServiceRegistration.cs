@@ -153,6 +153,14 @@ public static class ServiceRegistration
             ISecurityDecisionService,
             SecurityDecisionService>();
 
+        services.AddSingleton<
+            IFileTypeDetector,
+            FileTypeDetector>();
+
+        services.AddSingleton<
+            IFileTypeCompatibilityService,
+            FileTypeCompatibilityService>();
+
         services.AddSingleton<PipeRequestHandler>();
 
         services.AddSingleton<InterpreterCatalog>();
@@ -316,12 +324,12 @@ public static class ServiceRegistration
             DoubleExtensionAnalyzer>();
 
         services.AddSingleton<
-            IArchiveFileAnalyzer,
-            ExecutableContentMismatchAnalyzer>();
-
-        services.AddSingleton<
             IArchiveGuardScanner,
             ArchiveGuardScanner>();
+
+        services.AddSingleton<
+            IArchiveFileAnalyzer,
+            FileTypeMismatchAnalyzer>();
                 
         services.AddHostedService<
             SecurityRuleExpirationHostedService>();

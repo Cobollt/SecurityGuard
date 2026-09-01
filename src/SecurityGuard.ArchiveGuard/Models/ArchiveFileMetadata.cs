@@ -1,3 +1,5 @@
+using SecurityGuard.ArchiveGuard.Enums;
+
 namespace SecurityGuard.ArchiveGuard.Models;
 
 public sealed record ArchiveFileMetadata(
@@ -7,4 +9,5 @@ public sealed record ArchiveFileMetadata(
     long Length,
     DateTimeOffset LastWriteAtUtc,
     string Sha256,
-    byte[] Header);
+    byte[] Header,
+    DetectedFileType FileType);

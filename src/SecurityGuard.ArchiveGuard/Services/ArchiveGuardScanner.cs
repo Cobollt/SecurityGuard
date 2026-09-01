@@ -113,7 +113,8 @@ public sealed class ArchiveGuardScanner
             verdict,
             findings,
             startedAt,
-            DateTimeOffset.UtcNow);
+            DateTimeOffset.UtcNow,
+            metadata.FileType);
     }
 
     private static ScanVerdict CalculateVerdict(
