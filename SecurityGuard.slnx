@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/SecurityGuard.AlgorithmGuard/SecurityGuard.AlgorithmGuard.csproj" />
+    <Project Path="src/SecurityGuard.ArchiveGuard/SecurityGuard.ArchiveGuard.csproj" />
     <Project Path="src/SecurityGuard.Core/SecurityGuard.Core.csproj" />
     <Project Path="src/SecurityGuard.Infrastructure/SecurityGuard.Infrastructure.csproj" />
     <Project Path="src/SecurityGuard.Service/SecurityGuard.Service.csproj" />
@@ -10,6 +11,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/SecurityGuard.AlgorithmGuard.Tests/SecurityGuard.AlgorithmGuard.Tests.csproj" />
+    <Project Path="tests/SecurityGuard.ArchiveGuard.Tests/SecurityGuard.ArchiveGuard.Tests.csproj" />
     <Project Path="tests/SecurityGuard.Core.Tests/SecurityGuard.Core.Tests.csproj" />
     <Project Path="tests/SecurityGuard.Infrastructure.Tests/SecurityGuard.Infrastructure.Tests.csproj" />
     <Project Path="tests/SecurityGuard.Service.Tests/SecurityGuard.Service.Tests.csproj" />

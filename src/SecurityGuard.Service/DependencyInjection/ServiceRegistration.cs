@@ -21,6 +21,10 @@ using SecurityGuard.TransferGuard.Configuration;
 using SecurityGuard.TransferGuard.Contracts;
 using SecurityGuard.TransferGuard.Monitoring;
 using SecurityGuard.TransferGuard.Services;
+using SecurityGuard.ArchiveGuard.Analyzers;
+using SecurityGuard.ArchiveGuard.Configuration;
+using SecurityGuard.ArchiveGuard.Contracts;
+using SecurityGuard.ArchiveGuard.Services;
 
 namespace SecurityGuard.Service.DependencyInjection;
 
@@ -291,7 +295,34 @@ public static class ServiceRegistration
         services.AddSingleton<
             ITransferGuardMonitor,
             TransferGuardMonitor>();
-        
+
+        services.AddSingleton(
+            new ArchiveGuardOptions());
+
+        services.AddSingleton<
+            IKnownThreatHashStore,
+            EmptyKnownThreatHashStore>();
+
+        services.AddSingleton<
+            IArchiveFileMetadataService,
+            ArchiveFileMetadataService>();
+
+        services.AddSingleton<
+            IArchiveFileAnalyzer,
+            KnownThreatHashAnalyzer>();
+
+        services.AddSingleton<
+            IArchiveFileAnalyzer,
+            DoubleExtensionAnalyzer>();
+
+        services.AddSingleton<
+            IArchiveFileAnalyzer,
+            ExecutableContentMismatchAnalyzer>();
+
+        services.AddSingleton<
+            IArchiveGuardScanner,
+            ArchiveGuardScanner>();
+                
         services.AddHostedService<
             SecurityRuleExpirationHostedService>();
 

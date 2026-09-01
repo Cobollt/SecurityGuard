@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "eur8cOoNy/U=",
+  "success": true,
+  "projectFilePath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.ArchiveGuard/SecurityGuard.ArchiveGuard.csproj",
+  "expectedPackageFiles": [
+    "/Users/designyousupova/.nuget/packages/microsoft.windowsdesktop.app.ref/10.0.10/microsoft.windowsdesktop.app.ref.10.0.10.nupkg.sha512"
+  ],
+  "logs": []
+}
