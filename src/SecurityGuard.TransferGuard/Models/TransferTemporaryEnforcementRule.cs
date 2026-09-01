@@ -4,6 +4,7 @@ namespace SecurityGuard.TransferGuard.Models;
 
 public sealed record TransferTemporaryEnforcementRule(
     Guid Id,
+    Guid SourceSecurityRuleId,
     string ProgramPath,
     string RemoteAddress,
     int RemotePort,

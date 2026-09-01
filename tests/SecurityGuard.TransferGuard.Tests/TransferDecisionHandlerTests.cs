@@ -396,6 +396,8 @@ public sealed class TransferDecisionHandlerTests
         public bool DecisionCalled { get; private set; }
 
         public Task<TransferFileEnforcementResult> ApplyCandidateBlockAsync(
+            Guid sourceSecurityRuleId,
+            SecurityDecisionRequest request,
             FileTransferCandidate candidate,
             CancellationToken cancellationToken = default)
         {

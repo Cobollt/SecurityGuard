@@ -618,4 +618,42 @@ public async Task Compound_rule_matches_when_all_conditions_match()
             RuleDecision.Block,
             result.Decision);
     }
+
+    [Fact]
+    public async Task Matched_rule_id_is_returned()
+    {
+        var rule =
+            new SecurityRule(
+                Guid.NewGuid(),
+                "Block archive",
+                SecurityModuleKind.TransferGuard,
+                RuleDecision.Block,
+                RuleScope.FileCategory,
+                "Archive",
+                true,
+                250,
+                DateTimeOffset.UtcNow,
+                null);
+
+        var engine =
+            new RuleEngine(
+                new FakeRuleRepository(
+                    [rule]));
+
+        var result =
+            await engine.EvaluateAsync(
+                SecurityModuleKind.TransferGuard,
+                new RuleMatchContext(
+                    FileCategory:
+                        "Archive",
+                    TransferActivityKind:
+                        "FileTransfer"));
+
+        Assert.True(
+            result.Matched);
+
+        Assert.Equal(
+            rule.Id,
+            result.MatchedRuleId);
+    }
 }

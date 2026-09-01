@@ -12,6 +12,10 @@ public interface ITransferTemporaryEnforcementService
         Guid ruleId,
         CancellationToken cancellationToken = default);
 
+    Task<int> RemoveBySourceRuleIdAsync(
+        Guid sourceSecurityRuleId,
+        CancellationToken cancellationToken = default);
+
     Task<int> CleanupExpiredAsync(
         DateTimeOffset nowUtc,
         CancellationToken cancellationToken = default);

@@ -73,4 +73,97 @@ public sealed class TransferRuleLifecycleHandlerTests
                     new HashSet<Guid>()));
         }
     }
+
+    private sealed class RecordingTemporaryEnforcementService
+        : ITransferTemporaryEnforcementService
+    {
+        public Guid? RemovedSourceRuleId { get; private set; }
+
+        public Task<TransferTemporaryEnforcementResult> AddOrRefreshAsync(
+            TransferTemporaryEnforcementRule rule,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(
+                new TransferTemporaryEnforcementResult(
+                    true,
+                    "Applied",
+                    rule.ExpiresAtUtc));
+        }
+
+        public Task RemoveAsync(
+            Guid ruleId,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task<int> RemoveBySourceRuleIdAsync(
+            Guid sourceSecurityRuleId,
+            CancellationToken cancellationToken = default)
+        {
+            RemovedSourceRuleId =
+                sourceSecurityRuleId;
+
+            return Task.FromResult(
+                1);
+        }
+
+        public Task<int> CleanupExpiredAsync(
+            DateTimeOffset nowUtc,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(
+                0);
+        }
+
+        public Task<int> RemoveAllAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(
+                0);
+        }
+    }
+
+    [Fact]
+    public async Task File_block_removes_linked_temporary_enforcement()
+    {
+        var permanent =
+            new RecordingEnforcementService();
+
+        var temporary =
+            new RecordingTemporaryEnforcementService();
+
+        var handler =
+            new TransferRuleLifecycleHandler(
+                enforcement,
+                temporary);
+
+        var rule =
+            new SecurityRule(
+                Guid.NewGuid(),
+                "Block document",
+                SecurityModuleKind.TransferGuard,
+                RuleDecision.Block,
+                RuleScope.FileExtension,
+                ".docx",
+                true,
+                250,
+                DateTimeOffset.UtcNow,
+                null,
+                [
+                    new SecurityRuleCondition(
+                        RuleScope.TransferActivityKind,
+                        "FileTransfer")
+                ]);
+
+        await handler.BeforeDeleteAsync(
+            rule);
+
+        Assert.Equal(
+            rule.Id,
+            enforcement.RemovedRuleId);
+
+        Assert.Null(
+            temporary.RemovedSourceRuleId);
+    }
 }

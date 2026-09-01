@@ -43,7 +43,7 @@ public sealed class TransferEnforcementRuleFactory
             return false;
         }
 
-        if (IsFileTransferRule(
+        if (IsFileTransferRule.IsFileTransferRule(
                 rule))
         {
             error =

@@ -87,7 +87,7 @@ public sealed class TransferEnforcementSynchronizer
                         rule.ExpiresAtUtc > now)
                 .Where(
                     rule =>
-                        !IsFileTransferRule(
+                        !TransferRuleClassifier.IsFileTransferRule(
                             rule))
                 .ToArray();
 

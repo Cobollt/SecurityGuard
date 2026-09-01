@@ -7,11 +7,21 @@ namespace SecurityGuard.TransferGuard.Services;
 public static class TransferTemporaryBlockIdentity
 {
     public static Guid Create(
+        Guid sourceSecurityRuleId,
         string processPath,
         string remoteAddress,
         int remotePort,
         TransferProtocol protocol)
     {
+        if (sourceSecurityRuleId ==
+            Guid.Empty)
+        {
+            throw new ArgumentException(
+                "Source security rule ID is required.",
+                nameof(
+                    sourceSecurityRuleId));
+        }
+
         ArgumentException.ThrowIfNullOrWhiteSpace(
             processPath);
 
@@ -21,6 +31,7 @@ public static class TransferTemporaryBlockIdentity
         var source =
             string.Join(
                 "\n",
+                sourceSecurityRuleId.ToString("D"),
                 Normalize(
                     processPath),
                 Normalize(

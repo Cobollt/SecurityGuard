@@ -36,6 +36,9 @@ public sealed class WindowsFirewallTemporaryEnforcementService
                 ["SG_TEMP_RULE_ID"] =
                     rule.Id.ToString("D"),
 
+                ["SG_TEMP_SOURCE_RULE_ID"] =
+                    rule.SourceSecurityRuleId.ToString("D"),
+
                 ["SG_TEMP_PROGRAM"] =
                     rule.ProgramPath,
 
@@ -142,6 +145,76 @@ public sealed class WindowsFirewallTemporaryEnforcementService
                 : 0;
     }
 
+    public async Task<int> RemoveBySourceRuleIdAsync(
+        Guid sourceSecurityRuleId,
+        CancellationToken cancellationToken = default)
+    {
+        if (sourceSecurityRuleId ==
+            Guid.Empty)
+        {
+            return 0;
+        }
+
+        var output =
+            await _runner.RunEncodedAsync(
+                BuildRemoveBySourceScript(),
+                new Dictionary<string, string>
+                {
+                    ["SG_TEMP_SOURCE_RULE_ID"] =
+                        sourceSecurityRuleId.ToString("D")
+                },
+                cancellationToken);
+
+        return int.TryParse(
+            output,
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture,
+            out var removed)
+                ? removed
+                : 0;
+    }
+
+    private static string BuildRemoveBySourceScript()
+    {
+        return
+            """
+            $ErrorActionPreference = 'Stop'
+
+            Import-Module NetSecurity -ErrorAction Stop
+
+            $sourceRuleId =
+                $env:SG_TEMP_SOURCE_RULE_ID
+
+            $group =
+                'SecurityGuard.TransferGuard.Temporary'
+
+            $rules =
+                @(
+                    Get-NetFirewallRule `
+                        -PolicyStore PersistentStore `
+                        -ErrorAction Stop |
+                    Where-Object {
+                        $_.Group -eq $group -and
+                        $_.Name.StartsWith(
+                            'SecurityGuard.TransferGuard.Temp.',
+                            [StringComparison]::OrdinalIgnoreCase
+                        ) -and
+                        ([string]$_.Description) -match
+                            "SourceRuleId=$([Regex]::Escape($sourceRuleId))(;|$)"
+                    }
+                )
+
+            foreach ($rule in $rules) {
+                $rule |
+                    Remove-NetFirewallRule `
+                        -PolicyStore PersistentStore `
+                        -ErrorAction Stop
+            }
+
+            Write-Output $rules.Count
+            """;
+    }
+
     private static string BuildApplyScript()
     {
         return
@@ -171,6 +244,9 @@ public sealed class WindowsFirewallTemporaryEnforcementService
             $expires =
                 $env:SG_TEMP_EXPIRES
 
+            $sourceRuleId =
+                $env:SG_TEMP_SOURCE_RULE_ID
+
             Get-NetFirewallRule `
                 -PolicyStore PersistentStore `
                 -Name $name `
@@ -184,7 +260,7 @@ public sealed class WindowsFirewallTemporaryEnforcementService
                 -Name $name `
                 -DisplayName $name `
                 -Group "SecurityGuard.TransferGuard.Temporary" `
-                -Description "SecurityGuardTemporary;ExpiresAtUtc=$expires" `
+                -Description "SecurityGuardTemporary;SourceRuleId=$sourceRuleId;ExpiresAtUtc=$expires"
                 -Direction Outbound `
                 -Action Block `
                 -Enabled True `

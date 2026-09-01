@@ -42,7 +42,8 @@ public sealed class TransferFileEnforcementCoordinator
     }
 
     public Task<TransferFileEnforcementResult> ApplyCandidateBlockAsync(
-        FileTransferCandidate candidate,
+        Guid sourceSecurityRuleId,
+        SecurityDecisionRequest request,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(
@@ -64,10 +65,11 @@ public sealed class TransferFileEnforcementCoordinator
             candidate.Connection.ApplicationPath;
 
         return ApplyAsync(
-            processPath,
-            candidate.Connection.RemoteAddress,
-            candidate.Connection.RemotePort,
-            candidate.Connection.Protocol,
+            sourceSecurityRuleId,
+            context.ProcessPath,
+            context.RemoteAddress,
+            context.RemotePort,
+            protocol,
             cancellationToken);
     }
 
@@ -101,6 +103,7 @@ public sealed class TransferFileEnforcementCoordinator
     }
 
     private async Task<TransferFileEnforcementResult> ApplyAsync(
+        Guid sourceSecurityRuleId,
         string? processPath,
         string? remoteAddress,
         int? remotePort,
@@ -117,6 +120,13 @@ public sealed class TransferFileEnforcementCoordinator
                 true,
                 "TransferGuard is disabled.",
                 null);
+        }
+
+        if (sourceSecurityRuleId ==
+            Guid.Empty)
+        {
+            throw new TransferFileEnforcementException(
+                "Source FileTransfer rule ID is missing.");
         }
 
         if (settings.Mode ==
@@ -164,6 +174,7 @@ public sealed class TransferFileEnforcementCoordinator
 
         var id =
             TransferTemporaryBlockIdentity.Create(
+                sourceSecurityRuleId,
                 processPath,
                 remoteAddress,
                 remotePort.Value,
@@ -181,6 +192,7 @@ public sealed class TransferFileEnforcementCoordinator
                 await _temporaryEnforcement.AddOrRefreshAsync(
                     new TransferTemporaryEnforcementRule(
                         id,
+                        sourceSecurityRuleId,
                         processPath,
                         remoteAddress,
                         remotePort.Value,

@@ -107,6 +107,9 @@ public static class ServiceRegistration
         services.AddSingleton<DirectoryBootstrapper>();
 
         services.AddSingleton<
+            SecurityRuleExpirationService>();
+
+        services.AddSingleton<
             ITransferFileClassifier,
             TransferFileClassifier>();
 
@@ -280,6 +283,9 @@ public static class ServiceRegistration
         services.AddSingleton<
             ITransferGuardMonitor,
             TransferGuardMonitor>();
+        
+        services.AddHostedService<
+            SecurityRuleExpirationHostedService>();
 
         services.AddHostedService<SecurityGuardPipeServer>();
         services.AddHostedService<SecurityGuardStartupService>();

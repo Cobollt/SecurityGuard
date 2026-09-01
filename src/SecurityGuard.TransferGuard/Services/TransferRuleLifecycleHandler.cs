@@ -9,12 +9,17 @@ public sealed class TransferRuleLifecycleHandler
     : ISecurityRuleLifecycleHandler
 {
     private readonly ITransferEnforcementService _enforcementService;
+    private readonly ITransferTemporaryEnforcementService _temporaryEnforcementService;
 
     public TransferRuleLifecycleHandler(
-        ITransferEnforcementService enforcementService)
+        ITransferEnforcementService enforcementService,
+        ITransferTemporaryEnforcementService temporaryEnforcementService)
     {
         _enforcementService =
             enforcementService;
+
+        _temporaryEnforcementService =
+            temporaryEnforcementService;
     }
 
     public SecurityModuleKind Module =>
@@ -25,58 +30,29 @@ public sealed class TransferRuleLifecycleHandler
         CancellationToken cancellationToken = default)
     {
         if (rule.Module !=
-                SecurityModuleKind.TransferGuard ||
-            rule.Decision !=
-                RuleDecision.Block)
+            SecurityModuleKind.TransferGuard)
         {
             return;
         }
 
-        if (IsFileTransferRule(
+        if (rule.Decision !=
+            RuleDecision.Block)
+        {
+            return;
+        }
+
+        if (TransferRuleClassifier.IsFileTransferRule(
                 rule))
         {
+            await _temporaryEnforcementService.RemoveBySourceRuleIdAsync(
+                rule.Id,
+                cancellationToken);
+
             return;
         }
 
         await _enforcementService.RemoveBlockAsync(
             rule.Id,
             cancellationToken);
-    }
-
-    private static bool IsFileTransferRule(
-        SecurityRule rule)
-    {
-        return HasScope(
-                rule,
-                RuleScope.FileHash) ||
-            HasScope(
-                rule,
-                RuleScope.FilePath) ||
-            HasScope(
-                rule,
-                RuleScope.FileName) ||
-            HasScope(
-                rule,
-                RuleScope.FileExtension) ||
-            HasScope(
-                rule,
-                RuleScope.FileCategory);
-    }
-
-    private static bool HasScope(
-        SecurityRule rule,
-        RuleScope scope)
-    {
-        if (rule.Scope ==
-            scope)
-        {
-            return true;
-        }
-
-        return rule.Conditions?.Any(
-                condition =>
-                    condition.Scope ==
-                    scope) ==
-            true;
     }
 }

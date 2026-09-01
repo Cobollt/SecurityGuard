@@ -92,8 +92,15 @@ public sealed class TransferFilePolicyService
 
         if (blocked)
         {
+            if (result.MatchedRuleId is null)
+            {
+                throw new TransferFileEnforcementException(
+                    "RuleEngine returned a matched FileTransfer block without a rule ID.");
+            }
+
             enforcement =
                 await _enforcementCoordinator.ApplyCandidateBlockAsync(
+                    result.MatchedRuleId.Value,
                     candidate,
                     cancellationToken);
         }

@@ -13,13 +13,15 @@ public sealed class TransferDecisionHandler
     private readonly TransferEnforcementRuleFactory _enforcementRuleFactory;
     private readonly ITransferGuardRuntimeController _runtimeController;
     private readonly ITransferFileEnforcementCoordinator _fileEnforcementCoordinator;
+    private readonly ITransferTemporaryEnforcementService _temporaryEnforcementService;
 
     public TransferDecisionHandler(
         IRuleRepository ruleRepository,
         ITransferEnforcementService enforcementService,
         TransferEnforcementRuleFactory enforcementRuleFactory,
         ITransferGuardRuntimeController runtimeController,
-        ITransferFileEnforcementCoordinator fileEnforcementCoordinator)
+        ITransferFileEnforcementCoordinator fileEnforcementCoordinator,
+        ITransferTemporaryEnforcementService temporaryEnforcementService)
     {
         _ruleRepository =
             ruleRepository;
@@ -35,6 +37,9 @@ public sealed class TransferDecisionHandler
 
         _fileEnforcementCoordinator =
             fileEnforcementCoordinator;
+
+        _temporaryEnforcementService =
+            temporaryEnforcementService;
     }
 
     public SecurityModuleKind Module =>
@@ -73,6 +78,7 @@ public sealed class TransferDecisionHandler
                 try
                 {
                     await _fileEnforcementCoordinator.ApplyDecisionBlockAsync(
+                        fileRule.Id,
                         request,
                         cancellationToken);
                 }
@@ -86,9 +92,30 @@ public sealed class TransferDecisionHandler
                 }
             }
 
-            await _ruleRepository.UpsertAsync(
-                fileRule,
-                cancellationToken);
+            try
+            {
+                await _ruleRepository.UpsertAsync(
+                    fileRule,
+                    cancellationToken);
+            }
+            catch
+            {
+                if (ruleDecision ==
+                    RuleDecision.Block)
+                {
+                    try
+                    {
+                        await _temporaryEnforcementService.RemoveBySourceRuleIdAsync(
+                            fileRule.Id,
+                            cancellationToken);
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                throw;
+            }
 
             return;
         }

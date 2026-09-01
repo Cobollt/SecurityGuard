@@ -4,15 +4,15 @@ namespace SecurityGuard.Core.Models;
 
 public sealed record RuleEvaluationResult(
     bool Matched,
-    RuleDecision? Decision,
-    Guid? RuleId,
+    RuleDecision Decision,
+    Guid? MatchedRuleId = null,
     string Reason)
 {
     public static RuleEvaluationResult NoMatch()
     {
         return new RuleEvaluationResult(
             false,
-            null,
+            RuleDecision.Unknown,
             null,
             "No matching rule");
     }
