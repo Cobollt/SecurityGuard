@@ -11,4 +11,5 @@ public sealed record NetworkSendActivity(
     string RemoteAddress,
     int RemotePort,
     long BytesSent,
-    DateTimeOffset SentAtUtc);
+    DateTimeOffset SentAtUtc,
+    TransferProcessInstanceId? ProcessInstance = null);

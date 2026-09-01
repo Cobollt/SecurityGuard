@@ -43,4 +43,13 @@ public sealed class TransferGuardOptions
 
     public TimeSpan TemporaryEnforcementCleanupInterval { get; init; } =
         TimeSpan.FromSeconds(15);
+
+    public int OutboundEventChannelCapacity { get; init; } =
+        8192;
+
+    public TimeSpan TelemetryHealthInterval { get; init; } =
+        TimeSpan.FromSeconds(30);
+
+    public TimeSpan CorrelationMaintenanceInterval { get; init; } =
+        TimeSpan.FromSeconds(30);
 }

@@ -5,4 +5,5 @@ public sealed record FileReadActivity(
     string FilePath,
     long BytesRead,
     DateTimeOffset ReadAtUtc,
-    TransferFileClassification? Classification = null);
+    TransferFileClassification? Classification = null,
+    TransferProcessInstanceId? ProcessInstance = null);

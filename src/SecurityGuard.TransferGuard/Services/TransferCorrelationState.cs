@@ -41,7 +41,8 @@ public sealed class TransferCorrelationState
 
         var state =
             GetState(
-                activity.ProcessId);
+                activity.ProcessId,
+                activity.ProcessInstance);
 
         lock (state.Gate)
         {
@@ -103,7 +104,8 @@ public sealed class TransferCorrelationState
 
         var state =
             GetState(
-                processId.Value);
+                processId.Value,
+                observation.ProcessInstance);
 
         lock (state.Gate)
         {
@@ -133,7 +135,8 @@ public sealed class TransferCorrelationState
 
         var state =
             GetState(
-                activity.ProcessId);
+                activity.ProcessId,
+                activity.ProcessInstance);
 
         lock (state.Gate)
         {
@@ -441,6 +444,8 @@ public sealed class TransferCorrelationState
         public object Gate { get; } =
             new();
 
+        public TransferProcessInstanceId? ProcessInstance { get; set; }
+
         public Dictionary<string, RecentFileRead> Files { get; } =
             new(
                 StringComparer.OrdinalIgnoreCase);
@@ -488,5 +493,113 @@ public sealed class TransferCorrelationState
         return (int)(
             file.Classification?.Priority ??
             TransferFilePriority.Low);
+    }
+
+    private ProcessState GetState(
+        int processId,
+        TransferProcessInstanceId? processInstance)
+    {
+        var state =
+            _states.GetOrAdd(
+                processId,
+                _ =>
+                    new ProcessState());
+
+        lock (state.Gate)
+        {
+            EnsureProcessInstance(
+                state,
+                processInstance);
+        }
+
+        return state;
+    }
+
+    private static void EnsureProcessInstance(
+        ProcessState state,
+        TransferProcessInstanceId? processInstance)
+    {
+        if (processInstance is null)
+        {
+            return;
+        }
+
+        if (state.ProcessInstance is null)
+        {
+            state.ProcessInstance =
+                processInstance;
+
+            return;
+        }
+
+        if (state.ProcessInstance ==
+            processInstance)
+        {
+            return;
+        }
+
+        ClearState(
+            state);
+
+        state.ProcessInstance =
+            processInstance;
+    }
+
+    private static void ClearState(
+        ProcessState state)
+    {
+        state.Files.Clear();
+        state.Connections.Clear();
+        state.NetworkSends.Clear();
+    }
+
+    public void ResetProcess(
+        TransferProcessInstanceId processInstance)
+    {
+        var state =
+            _states.GetOrAdd(
+                processInstance.ProcessId,
+                _ =>
+                    new ProcessState());
+
+        lock (state.Gate)
+        {
+            ClearState(
+                state);
+
+            state.ProcessInstance =
+                processInstance;
+        }
+    }
+
+    public void RemoveProcess(
+        TransferProcessInstanceId processInstance)
+    {
+        if (!_states.TryGetValue(
+                processInstance.ProcessId,
+                out var state))
+        {
+            return;
+        }
+
+        lock (state.Gate)
+        {
+            if (state.ProcessInstance is not null &&
+                state.ProcessInstance !=
+                processInstance)
+            {
+                return;
+            }
+        }
+
+        _states.TryRemove(
+            processInstance.ProcessId,
+            out _);
+    }
+
+    public IReadOnlyList<int> GetTrackedProcessIds()
+    {
+        return _states.Keys
+            .ToArray();
     }
 }

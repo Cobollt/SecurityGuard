@@ -13,4 +13,5 @@ public sealed record NetworkConnectionObservation(
     string RemoteAddress,
     int RemotePort,
     ProcessInfo? Process,
-    string? ApplicationPath);
+    string? ApplicationPath,
+    TransferProcessInstanceId? ProcessInstance = null);

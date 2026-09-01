@@ -369,4 +369,192 @@ public sealed class TransferCorrelationStateTests
             @"C:\Users\Ivan\Documents\report.pdf",
             files[0].FilePath);
     }
+
+    [Fact]
+    public void Reused_pid_does_not_receive_old_file_state()
+    {
+        var now =
+            DateTimeOffset.UtcNow;
+
+        var firstProcess =
+            new TransferProcessInstanceId(
+                100,
+                now -
+                TimeSpan.FromMinutes(10));
+
+        var secondProcess =
+            new TransferProcessInstanceId(
+                100,
+                now);
+
+        var state =
+            new TransferCorrelationState(
+                new TransferGuardOptions());
+
+        state.RecordFileRead(
+            new FileReadActivity(
+                100,
+                @"C:\Users\Ivan\Documents\secret.pdf",
+                1024 * 1024,
+                now -
+                TimeSpan.FromSeconds(1),
+                new TransferFileClassification(
+                    TransferFileCategory.Document,
+                    TransferFilePriority.High,
+                    "Document"),
+                firstProcess));
+
+        state.RecordNetworkSend(
+            new NetworkSendActivity(
+                100,
+                TransferProtocol.Tcp,
+                NetworkAddressFamily.IPv4,
+                "192.168.1.20",
+                52000,
+                "1.1.1.1",
+                443,
+                1024 * 1024,
+                now,
+                secondProcess));
+
+        var files =
+            state.GetRecentFiles(
+                100,
+                now);
+
+        Assert.Empty(
+            files);
+    }
+
+    [Fact]
+    public void Process_start_resets_existing_state()
+    {
+        var now =
+            DateTimeOffset.UtcNow;
+
+        var oldInstance =
+            new TransferProcessInstanceId(
+                100,
+                now -
+                TimeSpan.FromMinutes(5));
+
+        var newInstance =
+            new TransferProcessInstanceId(
+                100,
+                now);
+
+        var state =
+            new TransferCorrelationState(
+                new TransferGuardOptions());
+
+        state.RecordFileRead(
+            new FileReadActivity(
+                100,
+                @"C:\Users\Ivan\Documents\report.pdf",
+                4096,
+                now,
+                new TransferFileClassification(
+                    TransferFileCategory.Document,
+                    TransferFilePriority.High,
+                    "Document"),
+                oldInstance));
+
+        state.ResetProcess(
+            newInstance);
+
+        var files =
+            state.GetRecentFiles(
+                100,
+                now);
+
+        Assert.Empty(
+            files);
+    }
+
+    [Fact]
+    public void Process_stop_removes_state()
+    {
+        var now =
+            DateTimeOffset.UtcNow;
+
+        var instance =
+            new TransferProcessInstanceId(
+                100,
+                now);
+
+        var state =
+            new TransferCorrelationState(
+                new TransferGuardOptions());
+
+        state.RecordFileRead(
+            new FileReadActivity(
+                100,
+                @"C:\Users\Ivan\Documents\report.pdf",
+                4096,
+                now,
+                new TransferFileClassification(
+                    TransferFileCategory.Document,
+                    TransferFilePriority.High,
+                    "Document"),
+                instance));
+
+        state.RemoveProcess(
+            instance);
+
+        var files =
+            state.GetRecentFiles(
+                100,
+                now);
+
+        Assert.Empty(
+            files);
+    }
+
+    [Fact]
+    public void Old_process_stop_does_not_remove_reused_pid_state()
+    {
+        var now =
+            DateTimeOffset.UtcNow;
+
+        var oldInstance =
+            new TransferProcessInstanceId(
+                100,
+                now -
+                TimeSpan.FromMinutes(10));
+
+        var newInstance =
+            new TransferProcessInstanceId(
+                100,
+                now);
+
+        var state =
+            new TransferCorrelationState(
+                new TransferGuardOptions());
+
+        state.ResetProcess(
+            newInstance);
+
+        state.RecordFileRead(
+            new FileReadActivity(
+                100,
+                @"C:\Users\Ivan\Documents\new.pdf",
+                4096,
+                now,
+                new TransferFileClassification(
+                    TransferFileCategory.Document,
+                    TransferFilePriority.High,
+                    "Document"),
+                newInstance));
+
+        state.RemoveProcess(
+            oldInstance);
+
+        var files =
+            state.GetRecentFiles(
+                100,
+                now);
+
+        Assert.Single(
+            files);
+    }
 }

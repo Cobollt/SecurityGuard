@@ -8,16 +8,21 @@ public sealed class TransferObservationService
 {
     private readonly ITransferProcessResolver _processResolver;
     private readonly ITransferPathNormalizer _pathNormalizer;
+    private readonly ITransferProcessInstanceRegistry _processRegistry;
 
     public TransferObservationService(
         ITransferProcessResolver processResolver,
-        ITransferPathNormalizer pathNormalizer)
+        ITransferPathNormalizer pathNormalizer,
+        ITransferProcessInstanceRegistry processRegistry)
     {
         _processResolver =
             processResolver;
 
         _pathNormalizer =
             pathNormalizer;
+        
+        _processRegistry =
+            processRegistry;
     }
 
     public async Task<NetworkConnectionObservation> EnrichAsync(
@@ -79,14 +84,21 @@ public sealed class TransferObservationService
             return null;
         }
 
-        return new ProcessInfo(
-            connection.ProcessId,
-            null,
-            Path.GetFileName(
-                applicationPath),
+    var processInstance =
+        _processRegistry.Resolve(
+            connection.ProcessId);
+
+        return new NetworkConnectionObservation(
+            Guid.NewGuid(),
+            connection.DetectedAtUtc,
+            connection.Protocol,
+            connection.AddressFamily,
+            connection.LocalAddress,
+            connection.LocalPort,
+            connection.RemoteAddress,
+            connection.RemotePort,
+            process,
             applicationPath,
-            null,
-            null,
-            null);
+            processInstance);
     }
 }

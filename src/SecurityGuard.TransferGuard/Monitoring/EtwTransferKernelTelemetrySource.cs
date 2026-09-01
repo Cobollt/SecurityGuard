@@ -7,7 +7,6 @@ using SecurityGuard.TransferGuard.Configuration;
 using SecurityGuard.TransferGuard.Contracts;
 using SecurityGuard.TransferGuard.Enums;
 using SecurityGuard.TransferGuard.Models;
-using SecurityGuard.TransferGuard.Enums;
 
 namespace SecurityGuard.TransferGuard.Monitoring;
 
@@ -18,12 +17,16 @@ public sealed class EtwTransferKernelTelemetrySource
         "SecurityGuard.TransferGuard.Kernel";
 
     private readonly ITransferPathNormalizer _pathNormalizer;
-    private readonly TransferGuardOptions _options;
     private readonly ITransferFileClassifier _fileClassifier;
+    private readonly ITransferProcessInstanceRegistry _processRegistry;
+    private readonly ITransferTelemetryHealthTracker _healthTracker;
+    private readonly TransferGuardOptions _options;
 
     public EtwTransferKernelTelemetrySource(
         ITransferPathNormalizer pathNormalizer,
         ITransferFileClassifier fileClassifier,
+        ITransferProcessInstanceRegistry processRegistry,
+        ITransferTelemetryHealthTracker healthTracker,
         TransferGuardOptions options)
     {
         _pathNormalizer =
@@ -31,6 +34,12 @@ public sealed class EtwTransferKernelTelemetrySource
 
         _fileClassifier =
             fileClassifier;
+
+        _processRegistry =
+            processRegistry;
+
+        _healthTracker =
+            healthTracker;
 
         _options =
             options;
@@ -47,6 +56,8 @@ public sealed class EtwTransferKernelTelemetrySource
                 "TransferGuard kernel ETW monitoring requires elevated privileges.");
         }
 
+        _processRegistry.Prime();
+
         var channel =
             Channel.CreateBounded<TransferKernelActivity>(
                 new BoundedChannelOptions(
@@ -58,9 +69,14 @@ public sealed class EtwTransferKernelTelemetrySource
                     SingleWriter =
                         false,
 
+                    AllowSynchronousContinuations =
+                        false,
+
                     FullMode =
                         BoundedChannelFullMode.DropOldest
-                });
+                },
+                _ =>
+                    _healthTracker.RecordKernelDrop());
 
         using var session =
             new TraceEventSession(
@@ -68,6 +84,43 @@ public sealed class EtwTransferKernelTelemetrySource
 
         session.StopOnDispose =
             true;
+
+        session.Source.Kernel.ProcessStart +=
+            data =>
+            {
+                var detectedAt =
+                    ToUtc(
+                        data.TimeStamp);
+
+                var instance =
+                    _processRegistry.RegisterStart(
+                        data.ProcessID,
+                        detectedAt);
+
+                channel.Writer.TryWrite(
+                    new ProcessStartedKernelActivity(
+                        instance,
+                        detectedAt));
+            };
+
+        session.Source.Kernel.ProcessStop +=
+            data =>
+            {
+                var instance =
+                    _processRegistry.RegisterStop(
+                        data.ProcessID);
+
+                if (instance is null)
+                {
+                    return;
+                }
+
+                channel.Writer.TryWrite(
+                    new ProcessStoppedKernelActivity(
+                        instance.Value,
+                        ToUtc(
+                            data.TimeStamp)));
+            };
 
         session.Source.Kernel.FileIoRead +=
             data =>
@@ -79,6 +132,15 @@ public sealed class EtwTransferKernelTelemetrySource
                 }
 
                 if (data.IoSize <= 0)
+                {
+                    return;
+                }
+
+                var processInstance =
+                    _processRegistry.Resolve(
+                        data.ProcessID);
+
+                if (processInstance is null)
                 {
                     return;
                 }
@@ -121,12 +183,12 @@ public sealed class EtwTransferKernelTelemetrySource
                             data.IoSize,
                             ToUtc(
                                 data.TimeStamp),
-                            classification)));
+                            classification,
+                            processInstance)));
             };
 
         session.Source.Kernel.TcpIpSend +=
             data =>
-            {
                 WriteNetworkSend(
                     channel.Writer,
                     data.ProcessID,
@@ -138,11 +200,9 @@ public sealed class EtwTransferKernelTelemetrySource
                     data.dport,
                     data.size,
                     data.TimeStamp);
-            };
 
         session.Source.Kernel.TcpIpSendIPV6 +=
             data =>
-            {
                 WriteNetworkSend(
                     channel.Writer,
                     data.ProcessID,
@@ -154,11 +214,9 @@ public sealed class EtwTransferKernelTelemetrySource
                     data.dport,
                     data.size,
                     data.TimeStamp);
-            };
 
         session.Source.Kernel.UdpIpSend +=
             data =>
-            {
                 WriteNetworkSend(
                     channel.Writer,
                     data.ProcessID,
@@ -170,11 +228,9 @@ public sealed class EtwTransferKernelTelemetrySource
                     data.dport,
                     data.size,
                     data.TimeStamp);
-            };
 
         session.Source.Kernel.UdpIpSendIPV6 +=
             data =>
-            {
                 WriteNetworkSend(
                     channel.Writer,
                     data.ProcessID,
@@ -186,9 +242,9 @@ public sealed class EtwTransferKernelTelemetrySource
                     data.dport,
                     data.size,
                     data.TimeStamp);
-            };
 
         session.EnableKernelProvider(
+            KernelTraceEventParser.Keywords.Process |
             KernelTraceEventParser.Keywords.FileIOInit |
             KernelTraceEventParser.Keywords.NetworkTCPIP);
 
@@ -204,27 +260,18 @@ public sealed class EtwTransferKernelTelemetrySource
                     }
                     catch (Exception exception)
                     {
+                        _healthTracker.RecordKernelSourceFailure();
+
                         channel.Writer.TryComplete(
                             exception);
                     }
                 },
                 CancellationToken.None);
 
-        using var registration =
+        using var cancellationRegistration =
             cancellationToken.Register(
                 () =>
-                {
-                    try
-                    {
-                        session.Stop(
-                            true);
-                    }
-                    catch
-                    {
-                    }
-
-                    channel.Writer.TryComplete();
-                });
+                    channel.Writer.TryComplete());
 
         try
         {
@@ -243,7 +290,8 @@ public sealed class EtwTransferKernelTelemetrySource
                 session.Stop(
                     true);
             }
-            catch
+            catch when (
+                cancellationToken.IsCancellationRequested)
             {
             }
 
@@ -251,7 +299,8 @@ public sealed class EtwTransferKernelTelemetrySource
             {
                 await processingTask;
             }
-            catch
+            catch (OperationCanceledException)
+                when (cancellationToken.IsCancellationRequested)
             {
             }
         }
@@ -288,10 +337,11 @@ public sealed class EtwTransferKernelTelemetrySource
             return;
         }
 
-        if (remoteAddress.Equals(
-                IPAddress.Any) ||
-            remoteAddress.Equals(
-                IPAddress.IPv6Any))
+        var processInstance =
+            _processRegistry.Resolve(
+                processId);
+
+        if (processInstance is null)
         {
             return;
         }
@@ -308,7 +358,8 @@ public sealed class EtwTransferKernelTelemetrySource
                     remotePort,
                     size,
                     ToUtc(
-                        timestamp))));
+                        timestamp),
+                    processInstance)));
     }
 
     private static bool ShouldObserveProcess(

@@ -1,7 +1,5 @@
 using System.Diagnostics.Eventing.Reader;
-using System.Net;
 using System.Runtime.CompilerServices;
-using System.Runtime.Versioning;
 using System.Threading.Channels;
 using SecurityGuard.TransferGuard.Configuration;
 using SecurityGuard.TransferGuard.Contracts;
@@ -13,40 +11,47 @@ public sealed class WindowsOutboundConnectionEventSource
     : IOutboundConnectionEventSource
 {
     private readonly FilteringPlatformEventParser _parser;
+    private readonly ITransferTelemetryHealthTracker _healthTracker;
     private readonly TransferGuardOptions _options;
 
     public WindowsOutboundConnectionEventSource(
         FilteringPlatformEventParser parser,
+        ITransferTelemetryHealthTracker healthTracker,
         TransferGuardOptions options)
     {
         _parser =
             parser;
 
+        _healthTracker =
+            healthTracker;
+
         _options =
             options;
     }
 
-    public IAsyncEnumerable<FilteringPlatformConnectionEvent> WatchAsync(
-        CancellationToken cancellationToken = default)
-    {
-        if (!OperatingSystem.IsWindows())
-        {
-            throw new PlatformNotSupportedException(
-                "Windows Filtering Platform event monitoring is available only on Windows.");
-        }
-
-        return WatchWindowsAsync(
-            cancellationToken);
-    }
-
-    [SupportedOSPlatform("windows")]
-    private async IAsyncEnumerable<FilteringPlatformConnectionEvent> WatchWindowsAsync(
+    public async IAsyncEnumerable<FilteringPlatformConnectionEvent> WatchAsync(
         [EnumeratorCancellation]
         CancellationToken cancellationToken = default)
     {
         var channel =
-            Channel.CreateUnbounded<
-                FilteringPlatformConnectionEvent>();
+            Channel.CreateBounded<FilteringPlatformConnectionEvent>(
+                new BoundedChannelOptions(
+                    _options.OutboundEventChannelCapacity)
+                {
+                    SingleReader =
+                        true,
+
+                    SingleWriter =
+                        false,
+
+                    AllowSynchronousContinuations =
+                        false,
+
+                    FullMode =
+                        BoundedChannelFullMode.DropOldest
+                },
+                _ =>
+                    _healthTracker.RecordWfpDrop());
 
         var query =
             new EventLogQuery(
@@ -58,103 +63,89 @@ public sealed class WindowsOutboundConnectionEventSource
             new EventLogWatcher(
                 query);
 
-        watcher.EventRecordWritten +=
-            (_, eventArgs) =>
-            {
-                if (eventArgs.EventException is not null)
-                {
-                    channel.Writer.TryComplete(
-                        eventArgs.EventException);
-
-                    return;
-                }
-
-                if (eventArgs.EventRecord is null)
-                {
-                    return;
-                }
-
-                using var record =
-                    eventArgs.EventRecord;
-
-                try
-                {
-                    var detected =
-                        record.TimeCreated is null
-                            ? DateTimeOffset.UtcNow
-                            : new DateTimeOffset(
-                                record.TimeCreated.Value
-                                    .ToUniversalTime());
-
-                    var parsed =
-                        _parser.Parse(
-                            record.ToXml(),
-                            detected);
-
-                    if (parsed is null ||
-                        !ShouldObserve(
-                            parsed))
-                    {
-                        return;
-                    }
-
-                    channel.Writer.TryWrite(
-                        parsed);
-                }
-                catch
-                {
-                }
-            };
-
-        using var registration =
-            cancellationToken.Register(
-                () =>
-                {
-                    try
-                    {
-                        watcher.Enabled =
-                            false;
-                    }
-                    catch
-                    {
-                    }
-
-                    channel.Writer.TryComplete();
-                });
-
-        watcher.Enabled =
-            true;
-
-        await foreach (
-            var item in
-            channel.Reader.ReadAllAsync(
-                cancellationToken))
+        void HandleRecord(
+            object? sender,
+            EventRecordWrittenEventArgs args)
         {
-            yield return item;
+            if (args.EventException is not null)
+            {
+                _healthTracker.RecordWfpSubscriptionFailure();
+
+                channel.Writer.TryComplete(
+                    args.EventException);
+
+                return;
+            }
+
+            using var record =
+                args.EventRecord;
+
+            if (record is null)
+            {
+                return;
+            }
+
+            try
+            {
+                var connection =
+                    _parser.Parse(
+                        record.ToXml());
+
+                if (connection is null)
+                {
+                    return;
+                }
+
+                if (_options.IgnoreLoopback &&
+                    IsLoopback(
+                        connection))
+                {
+                    return;
+                }
+
+                channel.Writer.TryWrite(
+                    connection);
+            }
+            catch
+            {
+                _healthTracker.RecordWfpParseFailure();
+            }
+        }
+
+        watcher.EventRecordWritten +=
+            HandleRecord;
+
+        try
+        {
+            watcher.Enabled =
+                true;
+
+            await foreach (
+                var connection in
+                channel.Reader.ReadAllAsync(
+                    cancellationToken))
+            {
+                yield return connection;
+            }
+        }
+        finally
+        {
+            watcher.EventRecordWritten -=
+                HandleRecord;
+
+            watcher.Enabled =
+                false;
+
+            channel.Writer.TryComplete();
         }
     }
 
-    private bool ShouldObserve(
+    private static bool IsLoopback(
         FilteringPlatformConnectionEvent connection)
     {
-        if (connection.ProcessId <= 0)
-        {
-            return false;
-        }
-
-        if (!_options.IgnoreLoopback)
-        {
-            return true;
-        }
-
-        if (!IPAddress.TryParse(
-                connection.RemoteAddress,
-                out var remoteAddress))
-        {
-            return true;
-        }
-
-        return !IPAddress.IsLoopback(
-            remoteAddress);
+        return connection.RemoteAddress ==
+                   "127.0.0.1" ||
+               connection.RemoteAddress ==
+                   "::1";
     }
 }

@@ -13,6 +13,14 @@ public interface ITransferCorrelationState
     void RecordNetworkSend(
         NetworkSendActivity activity);
 
+    void ResetProcess(
+        TransferProcessInstanceId processInstance);
+
+    void RemoveProcess(
+        TransferProcessInstanceId processInstance);
+
+    IReadOnlyList<int> GetTrackedProcessIds();
+
     IReadOnlyList<RecentFileRead> GetRecentFiles(
         int processId,
         DateTimeOffset referenceTime);

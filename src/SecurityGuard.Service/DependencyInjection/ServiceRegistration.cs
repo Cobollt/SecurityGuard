@@ -63,6 +63,14 @@ public static class ServiceRegistration
         services.AddSingleton<PipeAuthorizationService>();
 
         services.AddSingleton<
+            ITransferProcessInstanceRegistry,
+            WindowsTransferProcessInstanceRegistry>();
+
+        services.AddSingleton<
+            ITransferTelemetryHealthTracker,
+            TransferTelemetryHealthTracker>();
+
+        services.AddSingleton<
             TransferGuardRuntimeState>();
 
         services.AddSingleton<
@@ -286,6 +294,12 @@ public static class ServiceRegistration
         
         services.AddHostedService<
             SecurityRuleExpirationHostedService>();
+
+        services.AddHostedService<
+            TransferCorrelationMaintenanceHostedService>();
+
+        services.AddHostedService<
+            TransferTelemetryHealthHostedService>();
 
         services.AddHostedService<SecurityGuardPipeServer>();
         services.AddHostedService<SecurityGuardStartupService>();

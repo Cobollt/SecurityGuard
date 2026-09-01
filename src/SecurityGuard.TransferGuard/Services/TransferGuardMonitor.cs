@@ -15,6 +15,8 @@ public sealed class TransferGuardMonitor
     private readonly TransferCorrelationService _correlationService;
     private readonly TransferPolicyService _policyService;
     private readonly IAuditService _auditService;
+    private readonly ITransferCorrelationState _correlationState;
+    private readonly ITransferTelemetryHealthTracker _healthTracker;
 
     public TransferGuardMonitor(
         IOutboundConnectionEventSource eventSource,
@@ -22,6 +24,8 @@ public sealed class TransferGuardMonitor
         TransferObservationService observationService,
         TransferCorrelationService correlationService,
         TransferPolicyService policyService,
+        ITransferCorrelationState correlationState,
+        ITransferTelemetryHealthTracker healthTracker,
         IAuditService auditService)
     {
         _eventSource =
@@ -38,6 +42,12 @@ public sealed class TransferGuardMonitor
 
         _policyService =
             policyService;
+        
+        _correlationState =
+            correlationState;
+        
+        _healthTracker =
+            healthTracker;
 
         _auditService =
             auditService;
@@ -157,8 +167,10 @@ public sealed class TransferGuardMonitor
             }
             catch (Exception exception)
             {
+                _healthTracker.RecordCorrelationFailure();
+
                 await WriteWarningAsync(
-                    "TransferGuard connection processing failed",
+                    "TransferGuard kernel activity processing failed",
                     exception.Message);
             }
         }
@@ -189,6 +201,18 @@ public sealed class TransferGuardMonitor
                             cancellationToken);
 
                         break;
+
+                    case ProcessStartedKernelActivity processStarted:
+                        _correlationState.ResetProcess(
+                            processStarted.ProcessInstance);
+
+                        break;
+
+                    case ProcessStoppedKernelActivity processStopped:
+                        _correlationState.RemoveProcess(
+                            processStopped.ProcessInstance);
+
+                        break;
                 }
             }
             catch (OperationCanceledException)
@@ -202,6 +226,8 @@ public sealed class TransferGuardMonitor
             }
             catch (Exception exception)
             {
+                _healthTracker.RecordCorrelationFailure();
+
                 await WriteWarningAsync(
                     "TransferGuard kernel activity processing failed",
                     exception.Message);
