@@ -17,5 +17,11 @@ public enum ArchiveFindingKind
     ZipDuplicatePath = 12,
     ZipEncryptedEntry = 13,
     ZipInvalidStructure = 14,
-    ZipAlternateDataStreamPath = 15
+    ZipAlternateDataStreamPath = 15,
+    ArchiveDepthExceeded = 16,
+    ArchiveReadBudgetExceeded = 17,
+    ArchiveEntryReadFailure = 18,
+    ArchiveEntryActualSizeExceeded = 19,
+    NestedArchiveSizeExceeded = 20,
+    RecursiveEntryCountExceeded = 21
 }

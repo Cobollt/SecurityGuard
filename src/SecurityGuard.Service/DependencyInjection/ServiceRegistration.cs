@@ -311,12 +311,16 @@ public static class ServiceRegistration
             IZipSafetyAnalyzer,
             ZipSafetyAnalyzer>();
 
-        services.AddSingleton<
-            IArchiveFileAnalyzer,
-            ZipStructureAnalyzer>();
-
         services.AddSingleton(
             new ArchiveGuardOptions());
+
+        services.AddSingleton<
+            IArchiveTemporarySpoolService,
+            ArchiveTemporarySpoolService>();
+
+        services.AddSingleton<
+            IArchiveRecursiveScanner,
+            ArchiveRecursiveScanner>();
 
         services.AddSingleton<
             IKnownThreatHashStore,

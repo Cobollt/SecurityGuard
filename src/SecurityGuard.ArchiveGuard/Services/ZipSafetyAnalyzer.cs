@@ -51,33 +51,64 @@ public sealed class ZipSafetyAnalyzer
             pathInspector;
     }
 
-    public Task<ZipSafetyAssessment> AnalyzeAsync(
+    public async Task<ZipSafetyAssessment> AnalyzeAsync(
         string filePath,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(
             filePath);
 
+        await using var stream =
+            new FileStream(
+                filePath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read,
+                bufferSize:
+                    8192,
+                FileOptions.Asynchronous |
+                FileOptions.SequentialScan);
+
+        return await AnalyzeAsync(
+            stream,
+            cancellationToken);
+    }
+
+    public Task<ZipSafetyAssessment> AnalyzeAsync(
+        Stream stream,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(
+            stream);
+
         cancellationToken.ThrowIfCancellationRequested();
+
+        if (!stream.CanRead)
+        {
+            throw new InvalidOperationException(
+                "ZIP stream must be readable.");
+        }
+
+        if (!stream.CanSeek)
+        {
+            throw new InvalidOperationException(
+                "ArchiveGuard ZIP safety analysis requires a seekable stream.");
+        }
+
+        var originalPosition =
+            stream.Position;
 
         try
         {
-            using var stream =
-                new FileStream(
-                    filePath,
-                    FileMode.Open,
-                    FileAccess.Read,
-                    FileShare.Read,
-                    bufferSize:
-                        8192,
-                    FileOptions.SequentialScan);
+            stream.Position =
+                0;
 
             using var archive =
                 new ZipArchive(
                     stream,
                     ZipArchiveMode.Read,
                     leaveOpen:
-                        false);
+                        true);
 
             return Task.FromResult(
                 AnalyzeArchive(
@@ -90,8 +121,15 @@ public sealed class ZipSafetyAnalyzer
                 CreateInvalidStructureAssessment(
                     exception));
         }
+        finally
+        {
+            if (stream.CanSeek)
+            {
+                stream.Position =
+                    originalPosition;
+            }
+        }
     }
-
     private ZipSafetyAssessment AnalyzeArchive(
         ZipArchive archive,
         CancellationToken cancellationToken)

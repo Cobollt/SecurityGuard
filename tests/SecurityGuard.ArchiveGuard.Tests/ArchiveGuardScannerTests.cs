@@ -660,32 +660,49 @@ public sealed class ArchiveGuardScannerTests
         options ??=
             new ArchiveGuardOptions();
 
+        var detector =
+            new FileTypeDetector();
+
+        var pathInspector =
+            new ZipEntryPathInspector();
+
         var metadata =
             new ArchiveFileMetadataService(
                 new TestFileHashService(),
-                new FileTypeDetector(),
+                detector,
                 options);
+
+        IArchiveFileAnalyzer[] analyzers =
+        [
+            new KnownThreatHashAnalyzer(
+                hashStore ??
+                new EmptyKnownThreatHashStore()),
+
+            new DoubleExtensionAnalyzer(),
+
+            new FileTypeMismatchAnalyzer(
+                new FileTypeCompatibilityService())
+        ];
 
         var zipSafety =
             new ZipSafetyAnalyzer(
                 options,
-                new ZipEntryPathInspector());
+                pathInspector);
+
+        var recursive =
+            new ArchiveRecursiveScanner(
+                options,
+                zipSafety,
+                pathInspector,
+                detector,
+                analyzers,
+                new ArchiveTemporarySpoolService(
+                    options));
 
         return new ArchiveGuardScanner(
             metadata,
-            [
-                new KnownThreatHashAnalyzer(
-                    hashStore ??
-                    new EmptyKnownThreatHashStore()),
-
-                new DoubleExtensionAnalyzer(),
-
-                new FileTypeMismatchAnalyzer(
-                    new FileTypeCompatibilityService()),
-
-                new ZipStructureAnalyzer(
-                    zipSafety)
-            ]);
+            analyzers,
+            recursive);
     }
 
     [Fact]

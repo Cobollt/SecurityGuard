@@ -10,16 +10,21 @@ public sealed class ArchiveGuardScanner
 {
     private readonly IArchiveFileMetadataService _metadataService;
     private readonly IReadOnlyList<IArchiveFileAnalyzer> _analyzers;
+    private readonly IArchiveRecursiveScanner _recursiveScanner;
 
     public ArchiveGuardScanner(
         IArchiveFileMetadataService metadataService,
-        IEnumerable<IArchiveFileAnalyzer> analyzers)
+        IEnumerable<IArchiveFileAnalyzer> analyzers,
+        IArchiveRecursiveScanner recursiveScanner)
     {
         _metadataService =
             metadataService;
 
         _analyzers =
             analyzers.ToArray();
+
+        _recursiveScanner =
+            recursiveScanner;
     }
 
     public async Task<ArchiveGuardScanResult> ScanAsync(
@@ -101,6 +106,51 @@ public sealed class ArchiveGuardScanner
             }
         }
 
+        var recursiveVerdict =
+            ScanVerdict.Clean;
+
+        if (metadata.FileType ==
+            DetectedFileType.Zip)
+        {
+            try
+            {
+                var recursive =
+                    await _recursiveScanner.ScanZipAsync(
+                        metadata.FilePath,
+                        cancellationToken);
+
+                findings.AddRange(
+                    recursive.Findings);
+
+                recursiveVerdict =
+                    recursive.Verdict;
+            }
+            catch (OperationCanceledException)
+                when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                findings.Add(
+                    new ArchiveScanFinding(
+                        ArchiveFindingKind.AnalyzerFailure,
+                        ScanVerdict.Error,
+                        SecuritySeverity.High,
+                        "Recursive archive scanner failed",
+                        exception.Message));
+
+                recursiveVerdict =
+                    ScanVerdict.Error;
+            }
+        }
+
+        var verdict =
+            SelectHigherVerdict(
+                CalculateVerdict(
+                    findings),
+                recursiveVerdict);
+
         var verdict =
             CalculateVerdict(
                 findings);
@@ -153,5 +203,39 @@ public sealed class ArchiveGuardScanner
         }
 
         return ScanVerdict.Clean;
+    }
+
+    private static ScanVerdict SelectHigherVerdict(
+        ScanVerdict first,
+        ScanVerdict second)
+    {
+        return GetVerdictRank(
+                second) >
+            GetVerdictRank(
+                first)
+            ? second
+            : first;
+    }
+
+    private static int GetVerdictRank(
+        ScanVerdict verdict)
+    {
+        return verdict switch
+        {
+            ScanVerdict.Malicious =>
+                4,
+
+            ScanVerdict.Error =>
+                3,
+
+            ScanVerdict.Suspicious =>
+                2,
+
+            ScanVerdict.Unknown =>
+                1,
+
+            _ =>
+                0
+        };
     }
 }

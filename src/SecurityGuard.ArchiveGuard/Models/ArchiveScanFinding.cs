@@ -8,4 +8,5 @@ public sealed record ArchiveScanFinding(
     ScanVerdict Verdict,
     SecuritySeverity Severity,
     string Title,
-    string Details);
+    string Details,
+    string? EntryPath = null);
