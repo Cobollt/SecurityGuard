@@ -304,6 +304,17 @@ public static class ServiceRegistration
             ITransferGuardMonitor,
             TransferGuardMonitor>();
 
+        services.AddSingleton<
+            ZipEntryPathInspector>();
+
+        services.AddSingleton<
+            IZipSafetyAnalyzer,
+            ZipSafetyAnalyzer>();
+
+        services.AddSingleton<
+            IArchiveFileAnalyzer,
+            ZipStructureAnalyzer>();
+
         services.AddSingleton(
             new ArchiveGuardOptions());
 

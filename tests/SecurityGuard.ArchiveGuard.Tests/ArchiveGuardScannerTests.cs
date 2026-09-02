@@ -652,4 +652,153 @@ public sealed class ArchiveGuardScannerTests
                 true);
         }
     }
+
+    private static ArchiveGuardScanner CreateScanner(
+        IKnownThreatHashStore? hashStore = null,
+        ArchiveGuardOptions? options = null)
+    {
+        options ??=
+            new ArchiveGuardOptions();
+
+        var metadata =
+            new ArchiveFileMetadataService(
+                new TestFileHashService(),
+                new FileTypeDetector(),
+                options);
+
+        var zipSafety =
+            new ZipSafetyAnalyzer(
+                options,
+                new ZipEntryPathInspector());
+
+        return new ArchiveGuardScanner(
+            metadata,
+            [
+                new KnownThreatHashAnalyzer(
+                    hashStore ??
+                    new EmptyKnownThreatHashStore()),
+
+                new DoubleExtensionAnalyzer(),
+
+                new FileTypeMismatchAnalyzer(
+                    new FileTypeCompatibilityService()),
+
+                new ZipStructureAnalyzer(
+                    zipSafety)
+            ]);
+    }
+
+    [Fact]
+    public async Task Normal_zip_is_clean()
+    {
+        var root =
+            CreateTemporaryDirectory();
+
+        try
+        {
+            var file =
+                Path.Combine(
+                    root,
+                    "archive.zip");
+
+            using (
+                var archive =
+                    System.IO.Compression.ZipFile.Open(
+                        file,
+                        System.IO.Compression.ZipArchiveMode.Create))
+            {
+                var entry =
+                    archive.CreateEntry(
+                        "documents/readme.txt");
+
+                await using var stream =
+                    entry.Open();
+
+                await using var writer =
+                    new StreamWriter(
+                        stream);
+
+                await writer.WriteAsync(
+                    "SecurityGuard");
+            }
+
+            var scanner =
+                CreateScanner();
+
+            var result =
+                await scanner.ScanAsync(
+                    new ArchiveScanRequest(
+                        file));
+
+            Assert.Equal(
+                ScanVerdict.Clean,
+                result.Verdict);
+
+            Assert.Equal(
+                DetectedFileType.Zip,
+                result.FileType);
+        }
+        finally
+        {
+            Directory.Delete(
+                root,
+                true);
+        }
+    }
+
+    [Fact]
+    public async Task Zip_path_traversal_is_suspicious()
+    {
+        var root =
+            CreateTemporaryDirectory();
+
+        try
+        {
+            var file =
+                Path.Combine(
+                    root,
+                    "archive.zip");
+
+            using (
+                var archive =
+                    System.IO.Compression.ZipFile.Open(
+                        file,
+                        System.IO.Compression.ZipArchiveMode.Create))
+            {
+                var entry =
+                    archive.CreateEntry(
+                        "../outside.txt");
+
+                await using var stream =
+                    entry.Open();
+
+                await stream.WriteAsync(
+                    "test"u8.ToArray());
+            }
+
+            var scanner =
+                CreateScanner();
+
+            var result =
+                await scanner.ScanAsync(
+                    new ArchiveScanRequest(
+                        file));
+
+            Assert.Equal(
+                ScanVerdict.Suspicious,
+                result.Verdict);
+
+            Assert.Contains(
+                result.Findings,
+                finding =>
+                    finding.Kind ==
+                    ArchiveFindingKind.ZipPathTraversal);
+        }
+        finally
+        {
+            Directory.Delete(
+                root,
+                true);
+        }
+    }
 }

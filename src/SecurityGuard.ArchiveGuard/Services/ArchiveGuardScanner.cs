@@ -144,6 +144,14 @@ public sealed class ArchiveGuardScanner
             return ScanVerdict.Suspicious;
         }
 
+        if (findings.Any(
+                finding =>
+                    finding.Verdict ==
+                    ScanVerdict.Unknown))
+        {
+            return ScanVerdict.Unknown;
+        }
+
         return ScanVerdict.Clean;
     }
 }
