@@ -105,6 +105,7 @@ public sealed class ArchiveGuardScanner
                     await analyzer.AnalyzeAsync(
                         metadata,
                         stream,
+                        metadata.FilePath,
                         cancellationToken);
 
                 findings.AddRange(

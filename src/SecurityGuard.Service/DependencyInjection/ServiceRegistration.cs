@@ -304,6 +304,10 @@ public static class ServiceRegistration
         services.AddSingleton<
             ITransferGuardMonitor,
             TransferGuardMonitor>();
+        
+        services.AddSingleton<
+            IThreatHashRepository,
+            SqliteThreatHashRepository>();
 
         services.AddSingleton<
             IPeStaticAnalyzer,
@@ -353,7 +357,15 @@ public static class ServiceRegistration
 
         services.AddSingleton<
             IKnownThreatHashStore,
-            EmptyKnownThreatHashStore>();
+            KnownThreatHashStore>();
+
+        services.AddSingleton<
+            IAuthenticodeVerifier,
+            WindowsAuthenticodeVerifier>();
+
+        services.AddSingleton<
+            IArchiveSeekableContentAnalyzer,
+            AuthenticodeSeekableContentAnalyzer>();
 
         services.AddSingleton<
             IArchiveFileMetadataService,

@@ -53,11 +53,12 @@ public sealed class ArchiveTemporarySpoolService
                         path,
                         FileMode.CreateNew,
                         FileAccess.ReadWrite,
-                        FileShare.None,
+                        FileShare.Read |
+                        FileShare.Delete,
                         bufferSize:
                             64 * 1024,
                         FileOptions.Asynchronous |
-                        FileOptions.DeleteOnClose);
+                        FileOptions.SequentialScan);
 
                 return Task.FromResult(
                     new ArchiveTemporarySpool(

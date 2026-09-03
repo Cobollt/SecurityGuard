@@ -46,5 +46,11 @@ public enum ArchiveFindingKind
     ScriptDownloadExecute = 41,
     ScriptObfuscation = 42,
     ScriptAnalysisTruncated = 43,
-    ScriptDynamicExecution = 44
+    ScriptDynamicExecution = 44,
+    AuthenticodeUnsigned = 45,
+    AuthenticodeValid = 46,
+    AuthenticodeInvalid = 47,
+    AuthenticodeUntrusted = 48,
+    AuthenticodeRevoked = 49,
+    AuthenticodeVerificationUnavailable = 50
 }

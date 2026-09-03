@@ -26,6 +26,7 @@ public sealed class PeSeekableContentAnalyzer
     public async Task<IReadOnlyList<ArchiveScanFinding>> AnalyzeAsync(
         ArchiveFileMetadata metadata,
         Stream stream,
+        string? physicalFilePath,
         CancellationToken cancellationToken = default)
     {
         var result =

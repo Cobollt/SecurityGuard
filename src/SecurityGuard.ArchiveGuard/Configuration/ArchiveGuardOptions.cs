@@ -60,4 +60,7 @@ public sealed class ArchiveGuardOptions
 
     public int MaxScriptFindingsPerFile { get; init; } =
         8;
+
+    public bool AuthenticodeOnlineRevocationCheck { get; init; } =
+        false;
 }

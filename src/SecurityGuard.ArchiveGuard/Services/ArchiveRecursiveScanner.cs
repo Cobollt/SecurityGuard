@@ -789,6 +789,7 @@ public sealed class ArchiveRecursiveScanner
                             await analyzer.AnalyzeAsync(
                                 metadata,
                                 spool.Stream,
+                                spool.FilePath,
                                 cancellationToken);
 
                         foreach (var finding in
