@@ -25,4 +25,15 @@ public sealed class ArchiveGuardOptions
 
     public int MaxArchiveDepth { get; init; } =
         5;
+    public int MaxArchiveEntryCount { get; init; } =
+    10_000;
+
+    public long MaxArchiveExpandedBytes { get; init; } =
+        1L * 1024L * 1024L * 1024L;
+
+    public long MaxArchiveEntryBytes { get; init; } =
+        512L * 1024L * 1024L;
+
+    public double MaxArchiveCompressionRatio { get; init; } =
+        200.0;
 }

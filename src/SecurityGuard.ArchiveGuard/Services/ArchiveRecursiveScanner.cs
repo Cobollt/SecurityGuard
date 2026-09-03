@@ -1,5 +1,4 @@
 using System.Buffers;
-using System.IO.Compression;
 using System.Security.Cryptography;
 using SecurityGuard.ArchiveGuard.Configuration;
 using SecurityGuard.ArchiveGuard.Contracts;
@@ -13,7 +12,9 @@ public sealed class ArchiveRecursiveScanner
     : IArchiveRecursiveScanner
 {
     private readonly ArchiveGuardOptions _options;
-    private readonly IZipSafetyAnalyzer _zipSafetyAnalyzer;
+    private readonly IReadOnlyDictionary<
+        DetectedFileType,
+        IArchiveFormatHandler> _handlers;
     private readonly ZipEntryPathInspector _pathInspector;
     private readonly IFileTypeDetector _fileTypeDetector;
     private readonly IReadOnlyList<IArchiveFileAnalyzer> _analyzers;
@@ -21,7 +22,7 @@ public sealed class ArchiveRecursiveScanner
 
     public ArchiveRecursiveScanner(
         ArchiveGuardOptions options,
-        IZipSafetyAnalyzer zipSafetyAnalyzer,
+        IEnumerable<IArchiveFormatHandler> handlers,
         ZipEntryPathInspector pathInspector,
         IFileTypeDetector fileTypeDetector,
         IEnumerable<IArchiveFileAnalyzer> analyzers,
@@ -30,8 +31,10 @@ public sealed class ArchiveRecursiveScanner
         _options =
             options;
 
-        _zipSafetyAnalyzer =
-            zipSafetyAnalyzer;
+        _handlers =
+            handlers.ToDictionary(
+                handler =>
+                    handler.FileType);
 
         _pathInspector =
             pathInspector;
@@ -46,8 +49,16 @@ public sealed class ArchiveRecursiveScanner
             spoolService;
     }
 
-    public async Task<ArchiveRecursiveScanResult> ScanZipAsync(
+    public bool Supports(
+        DetectedFileType fileType)
+    {
+        return _handlers.ContainsKey(
+            fileType);
+    }
+
+    public async Task<ArchiveRecursiveScanResult> ScanAsync(
         string filePath,
+        DetectedFileType fileType,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(
@@ -70,8 +81,9 @@ public sealed class ArchiveRecursiveScanner
                 FileOptions.Asynchronous |
                 FileOptions.SequentialScan);
 
-        await ScanZipStreamAsync(
+        await ScanArchiveAsync(
             stream,
+            fileType,
             Path.GetFileName(
                 filePath),
             0,
@@ -87,15 +99,14 @@ public sealed class ArchiveRecursiveScanner
             context.BudgetExhausted);
     }
 
-    private async Task ScanZipStreamAsync(
+    private async Task ScanArchiveAsync(
         Stream stream,
+        DetectedFileType fileType,
         string logicalPath,
         int depth,
         RecursiveContext context,
         CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-
         if (depth >
             _options.MaxArchiveDepth)
         {
@@ -112,144 +123,350 @@ public sealed class ArchiveRecursiveScanner
             return;
         }
 
+        if (!_handlers.TryGetValue(
+                fileType,
+                out var handler))
+        {
+            AddFinding(
+                context,
+                new ArchiveScanFinding(
+                    ArchiveFindingKind.UnsupportedArchiveFormat,
+                    ScanVerdict.Unknown,
+                    SecuritySeverity.Medium,
+                    "Unsupported archive format",
+                    $"DetectedType={fileType}",
+                    logicalPath));
+
+            return;
+        }
+
+        if (handler.RequiresSeekableInput &&
+            !stream.CanSeek)
+        {
+            AddFinding(
+                context,
+                new ArchiveScanFinding(
+                    ArchiveFindingKind.ArchiveInvalidStructure,
+                    ScanVerdict.Error,
+                    SecuritySeverity.High,
+                    "Archive handler requires a seekable stream",
+                    $"DetectedType={fileType}",
+                    logicalPath));
+
+            return;
+        }
+
         context.ArchivesInspected++;
 
-        stream.Position =
-            0;
-
-        var safety =
-            await _zipSafetyAnalyzer.AnalyzeAsync(
-                stream,
-                cancellationToken);
-
-        AddFindings(
-            context,
-            safety.Findings,
-            logicalPath);
-
-        if (!safety.IsValidStructure)
+        if (stream.CanSeek)
         {
-            return;
+            stream.Position =
+                0;
         }
-
-        if (safety.EntryCount >
-                _options.MaxZipEntryCount ||
-            safety.TotalExpandedBytes >
-                _options.MaxZipExpandedBytes)
-        {
-            return;
-        }
-
-        stream.Position =
-            0;
-
-        using var archive =
-            new ZipArchive(
-                stream,
-                ZipArchiveMode.Read,
-                leaveOpen:
-                    true);
 
         var seenPaths =
             new HashSet<string>(
                 StringComparer.OrdinalIgnoreCase);
 
-        foreach (var entry in
-                 archive.Entries)
+        var localEntryCount =
+            0;
+
+        long localExpandedBytes =
+            0;
+
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if (context.BudgetExhausted)
-            {
-                return;
-            }
-
-            if (string.IsNullOrEmpty(
-                    entry.Name))
-            {
-                continue;
-            }
-
-            if (!context.Budget.TryRegisterEntry())
-            {
-                context.BudgetExhausted =
-                    true;
-
-                AddFinding(
-                    context,
-                    new ArchiveScanFinding(
-                        ArchiveFindingKind.RecursiveEntryCountExceeded,
-                        ScanVerdict.Unknown,
-                        SecuritySeverity.High,
-                        "Recursive archive entry limit exceeded",
-                        $"Limit={_options.MaxRecursiveEntryCount}",
-                        logicalPath));
-
-                return;
-            }
-
-            var path =
-                _pathInspector.Inspect(
-                    entry.FullName);
-
-            if (path.IsAbsolute ||
-                path.HasTraversal ||
-                path.HasAlternateDataStream)
-            {
-                continue;
-            }
-
-            if (!string.IsNullOrWhiteSpace(
-                    path.NormalizedPath) &&
-                !seenPaths.Add(
-                    path.NormalizedPath))
-            {
-                continue;
-            }
-
-            if (entry.IsEncrypted)
-            {
-                continue;
-            }
-
-            if (entry.Length >
-                _options.MaxZipEntryBytes)
-            {
-                continue;
-            }
-
-            var ratio =
-                CalculateCompressionRatio(
-                    entry.Length,
-                    entry.CompressedLength);
-
-            if (ratio >
-                _options.MaxZipCompressionRatio)
-            {
-                continue;
-            }
-
-            var entryPath =
-                BuildLogicalPath(
+            await foreach (
+                var entry in
+                handler.ReadEntriesAsync(
+                    stream,
                     logicalPath,
-                    entry.FullName);
+                    cancellationToken))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
 
-            await InspectEntryAsync(
-                entry,
-                entryPath,
-                depth,
+                localEntryCount++;
+
+                if (localEntryCount >
+                    GetEntryCountLimit(
+                        fileType))
+                {
+                    AddFinding(
+                        context,
+                        new ArchiveScanFinding(
+                            GetEntryCountFinding(
+                                fileType),
+                            ScanVerdict.Suspicious,
+                            SecuritySeverity.High,
+                            "Archive entry count limit exceeded",
+                            $"Entries={localEntryCount}; Limit={GetEntryCountLimit(fileType)}",
+                            logicalPath));
+
+                    return;
+                }
+
+                if (!context.Budget.TryRegisterEntry())
+                {
+                    context.BudgetExhausted =
+                        true;
+
+                    AddFinding(
+                        context,
+                        new ArchiveScanFinding(
+                            ArchiveFindingKind.RecursiveEntryCountExceeded,
+                            ScanVerdict.Unknown,
+                            SecuritySeverity.High,
+                            "Recursive archive entry limit exceeded",
+                            $"Limit={context.Budget.MaxEntries}",
+                            logicalPath));
+
+                    return;
+                }
+
+                if (entry.ExpandedLength is > 0)
+                {
+                    localExpandedBytes =
+                        SaturatingAdd(
+                            localExpandedBytes,
+                            entry.ExpandedLength.Value);
+
+                    if (localExpandedBytes >
+                        GetExpandedSizeLimit(
+                            fileType))
+                    {
+                        AddFinding(
+                            context,
+                            new ArchiveScanFinding(
+                                GetExpandedSizeFinding(
+                                    fileType),
+                                ScanVerdict.Suspicious,
+                                SecuritySeverity.Critical,
+                                "Archive expanded size limit exceeded",
+                                $"ExpandedBytes={localExpandedBytes}; Limit={GetExpandedSizeLimit(fileType)}",
+                                logicalPath));
+
+                        return;
+                    }
+                }
+
+                var path =
+                    _pathInspector.Inspect(
+                        entry.FullName);
+
+                var unsafePath =
+                    false;
+
+                if (path.IsAbsolute)
+                {
+                    unsafePath =
+                        true;
+
+                    AddFinding(
+                        context,
+                        new ArchiveScanFinding(
+                            GetAbsolutePathFinding(
+                                fileType),
+                            ScanVerdict.Suspicious,
+                            SecuritySeverity.High,
+                            "Archive entry contains an absolute path",
+                            $"Entry={entry.FullName}",
+                            BuildLogicalPath(
+                                logicalPath,
+                                entry.FullName)));
+                }
+
+                if (path.HasTraversal)
+                {
+                    unsafePath =
+                        true;
+
+                    AddFinding(
+                        context,
+                        new ArchiveScanFinding(
+                            GetTraversalFinding(
+                                fileType),
+                            ScanVerdict.Suspicious,
+                            SecuritySeverity.Critical,
+                            "Archive entry contains path traversal",
+                            $"Entry={entry.FullName}",
+                            BuildLogicalPath(
+                                logicalPath,
+                                entry.FullName)));
+                }
+
+                if (path.HasAlternateDataStream)
+                {
+                    unsafePath =
+                        true;
+
+                    AddFinding(
+                        context,
+                        new ArchiveScanFinding(
+                            GetAdsFinding(
+                                fileType),
+                            ScanVerdict.Suspicious,
+                            SecuritySeverity.High,
+                            "Archive entry contains a Windows alternate data stream path",
+                            $"Entry={entry.FullName}",
+                            BuildLogicalPath(
+                                logicalPath,
+                                entry.FullName)));
+                }
+
+                if (!string.IsNullOrWhiteSpace(
+                        path.NormalizedPath) &&
+                    !seenPaths.Add(
+                        path.NormalizedPath))
+                {
+                    unsafePath =
+                        true;
+
+                    AddFinding(
+                        context,
+                        new ArchiveScanFinding(
+                            GetDuplicateFinding(
+                                fileType),
+                            ScanVerdict.Suspicious,
+                            SecuritySeverity.Medium,
+                            "Archive contains duplicate normalized paths",
+                            $"Entry={entry.FullName}; Normalized={path.NormalizedPath}",
+                            BuildLogicalPath(
+                                logicalPath,
+                                entry.FullName)));
+                }
+
+                if (entry.IsEncrypted)
+                {
+                    AddFinding(
+                        context,
+                        new ArchiveScanFinding(
+                            GetEncryptedFinding(
+                                fileType),
+                            ScanVerdict.Unknown,
+                            SecuritySeverity.Medium,
+                            "Archive entry is encrypted",
+                            $"Entry={entry.FullName}",
+                            BuildLogicalPath(
+                                logicalPath,
+                                entry.FullName)));
+
+                    continue;
+                }
+
+                if (entry.IsLink)
+                {
+                    AddFinding(
+                        context,
+                        new ArchiveScanFinding(
+                            ArchiveFindingKind.ArchiveLinkEntry,
+                            ScanVerdict.Unknown,
+                            SecuritySeverity.Medium,
+                            "Archive entry is a filesystem link",
+                            $"Entry={entry.FullName}; Target={entry.LinkTarget ?? "Unknown"}",
+                            BuildLogicalPath(
+                                logicalPath,
+                                entry.FullName)));
+
+                    continue;
+                }
+
+                if (entry.IsDirectory ||
+                    unsafePath)
+                {
+                    continue;
+                }
+
+                if (entry.ExpandedLength >
+                    GetEntrySizeLimit(
+                        fileType))
+                {
+                    AddFinding(
+                        context,
+                        new ArchiveScanFinding(
+                            GetEntrySizeFinding(
+                                fileType),
+                            ScanVerdict.Suspicious,
+                            SecuritySeverity.High,
+                            "Archive entry size limit exceeded",
+                            $"Entry={entry.FullName}; Size={entry.ExpandedLength}; Limit={GetEntrySizeLimit(fileType)}",
+                            BuildLogicalPath(
+                                logicalPath,
+                                entry.FullName)));
+
+                    continue;
+                }
+
+                var ratio =
+                    CalculateCompressionRatio(
+                        entry.ExpandedLength,
+                        entry.CompressedLength);
+
+                if (ratio is not null &&
+                    ratio >
+                    GetCompressionRatioLimit(
+                        fileType))
+                {
+                    AddFinding(
+                        context,
+                        new ArchiveScanFinding(
+                            GetCompressionRatioFinding(
+                                fileType),
+                            ScanVerdict.Suspicious,
+                            SecuritySeverity.Critical,
+                            "Suspicious archive compression ratio",
+                            $"Entry={entry.FullName}; Ratio={ratio:F2}; Limit={GetCompressionRatioLimit(fileType):F2}",
+                            BuildLogicalPath(
+                                logicalPath,
+                                entry.FullName)));
+
+                    continue;
+                }
+
+                await InspectEntryAsync(
+                    entry,
+                    logicalPath,
+                    depth,
+                    context,
+                    cancellationToken);
+
+                if (context.BudgetExhausted)
+                {
+                    return;
+                }
+            }
+        }
+        catch (OperationCanceledException)
+            when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            AddFinding(
                 context,
-                cancellationToken);
+                new ArchiveScanFinding(
+                    GetInvalidStructureFinding(
+                        fileType),
+                    ScanVerdict.Error,
+                    SecuritySeverity.High,
+                    "Archive structure could not be read",
+                    $"{exception.GetType().Name}: {exception.Message}",
+                    logicalPath));
         }
     }
 
     private async Task InspectEntryAsync(
-        ZipArchiveEntry entry,
-        string logicalPath,
+        ArchiveFormatEntry entry,
+        string parentPath,
         int depth,
         RecursiveContext context,
         CancellationToken cancellationToken)
     {
+        var logicalPath =
+            BuildLogicalPath(
+                parentPath,
+                entry.FullName);
+
         ArchiveTemporarySpool? spool =
             null;
 
@@ -270,7 +487,10 @@ public sealed class ArchiveRecursiveScanner
         var detectedType =
             DetectedFileType.Unknown;
 
-        var nestedSizeFindingAdded =
+        var typeResolved =
+            false;
+
+        var spoolStarted =
             false;
 
         try
@@ -287,25 +507,39 @@ public sealed class ArchiveRecursiveScanner
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var budgetRemaining =
-                    context.Budget.RemainingBytes;
+                var requestSize =
+                    buffer.Length;
 
-                var entryRemaining =
+                if (!typeResolved &&
+                    headerLength <
+                    header.Length)
+                {
+                    requestSize =
+                        Math.Min(
+                            requestSize,
+                            header.Length -
+                            headerLength);
+                }
+
+                var remainingEntry =
                     Math.Max(
                         0,
-                        _options.MaxZipEntryBytes -
+                        _options.MaxArchiveEntryBytes -
                         actualBytes);
 
-                var requested =
-                    (int)Math.Min(
-                        buffer.Length,
-                        Math.Min(
-                            budgetRemaining + 1,
-                            entryRemaining + 1));
+                var remainingBudget =
+                    context.Budget.RemainingBytes;
 
-                if (requested <= 0)
+                requestSize =
+                    (int)Math.Min(
+                        requestSize,
+                        Math.Min(
+                            remainingEntry + 1,
+                            remainingBudget + 1));
+
+                if (requestSize <= 0)
                 {
-                    requested =
+                    requestSize =
                         1;
                 }
 
@@ -313,7 +547,7 @@ public sealed class ArchiveRecursiveScanner
                     await entryStream.ReadAsync(
                         buffer.AsMemory(
                             0,
-                            requested),
+                            requestSize),
                         cancellationToken);
 
                 if (read == 0)
@@ -334,7 +568,7 @@ public sealed class ArchiveRecursiveScanner
                             ScanVerdict.Unknown,
                             SecuritySeverity.High,
                             "Recursive archive read budget exceeded",
-                            $"ReadBytes={context.Budget.ExpandedBytesRead}; Limit={context.Budget.MaxExpandedBytes}",
+                            $"Limit={context.Budget.MaxExpandedBytes}",
                             logicalPath));
 
                     return;
@@ -344,7 +578,7 @@ public sealed class ArchiveRecursiveScanner
                     read;
 
                 if (actualBytes >
-                    _options.MaxZipEntryBytes)
+                    _options.MaxArchiveEntryBytes)
                 {
                     AddFinding(
                         context,
@@ -353,7 +587,7 @@ public sealed class ArchiveRecursiveScanner
                             ScanVerdict.Suspicious,
                             SecuritySeverity.Critical,
                             "Archive entry exceeded actual read-size limit",
-                            $"Entry={entry.FullName}; Limit={_options.MaxZipEntryBytes}",
+                            $"ReadBytes={actualBytes}; Limit={_options.MaxArchiveEntryBytes}",
                             logicalPath));
 
                     return;
@@ -367,7 +601,7 @@ public sealed class ArchiveRecursiveScanner
                 if (headerLength <
                     header.Length)
                 {
-                    var copyLength =
+                    var copy =
                         Math.Min(
                             read,
                             header.Length -
@@ -375,17 +609,16 @@ public sealed class ArchiveRecursiveScanner
 
                     buffer.AsSpan(
                             0,
-                            copyLength)
+                            copy)
                         .CopyTo(
                             header.AsSpan(
                                 headerLength));
 
                     headerLength +=
-                        copyLength;
+                        copy;
                 }
 
-                if (detectedType ==
-                    DetectedFileType.Unknown)
+                if (!typeResolved)
                 {
                     detectedType =
                         _fileTypeDetector.Detect(
@@ -393,8 +626,19 @@ public sealed class ArchiveRecursiveScanner
                                 0,
                                 headerLength));
 
-                    if (detectedType ==
-                        DetectedFileType.Zip)
+                    if (detectedType !=
+                            DetectedFileType.Unknown ||
+                        headerLength ==
+                            header.Length)
+                    {
+                        typeResolved =
+                            true;
+                    }
+
+                    if (detectedType !=
+                            DetectedFileType.Unknown &&
+                        Supports(
+                            detectedType))
                     {
                         if (depth >=
                             _options.MaxArchiveDepth)
@@ -409,20 +653,17 @@ public sealed class ArchiveRecursiveScanner
                                     $"Depth={depth + 1}; Limit={_options.MaxArchiveDepth}",
                                     logicalPath));
                         }
-                        else if (entry.Length >
+                        else if (entry.ExpandedLength >
                                  _options.MaxNestedArchiveBytes)
                         {
-                            nestedSizeFindingAdded =
-                                true;
-
                             AddFinding(
                                 context,
                                 new ArchiveScanFinding(
                                     ArchiveFindingKind.NestedArchiveSizeExceeded,
                                     ScanVerdict.Unknown,
                                     SecuritySeverity.High,
-                                    "Nested ZIP exceeds spool size limit",
-                                    $"ExpandedBytes={entry.Length}; Limit={_options.MaxNestedArchiveBytes}",
+                                    "Nested archive exceeds spool size limit",
+                                    $"Size={entry.ExpandedLength}; Limit={_options.MaxNestedArchiveBytes}",
                                     logicalPath));
                         }
                         else
@@ -432,14 +673,18 @@ public sealed class ArchiveRecursiveScanner
                                     cancellationToken);
 
                             await spool.Stream.WriteAsync(
-                                buffer.AsMemory(
+                                header.AsMemory(
                                     0,
-                                    read),
+                                    headerLength),
                                 cancellationToken);
+
+                            spoolStarted =
+                                true;
                         }
                     }
                 }
-                else if (spool is not null)
+                else if (spool is not null &&
+                         spoolStarted)
                 {
                     if (actualBytes >
                         _options.MaxNestedArchiveBytes)
@@ -449,21 +694,15 @@ public sealed class ArchiveRecursiveScanner
                         spool =
                             null;
 
-                        if (!nestedSizeFindingAdded)
-                        {
-                            nestedSizeFindingAdded =
-                                true;
-
-                            AddFinding(
-                                context,
-                                new ArchiveScanFinding(
-                                    ArchiveFindingKind.NestedArchiveSizeExceeded,
-                                    ScanVerdict.Unknown,
-                                    SecuritySeverity.High,
-                                    "Nested ZIP exceeded actual spool size limit",
-                                    $"ReadBytes={actualBytes}; Limit={_options.MaxNestedArchiveBytes}",
-                                    logicalPath));
-                        }
+                        AddFinding(
+                            context,
+                            new ArchiveScanFinding(
+                                ArchiveFindingKind.NestedArchiveSizeExceeded,
+                                ScanVerdict.Unknown,
+                                SecuritySeverity.High,
+                                "Nested archive exceeded actual spool size limit",
+                                $"ReadBytes={actualBytes}; Limit={_options.MaxNestedArchiveBytes}",
+                                logicalPath));
                     }
                     else
                     {
@@ -491,7 +730,8 @@ public sealed class ArchiveRecursiveScanner
                     Path.GetExtension(
                         fileName),
                     actualBytes,
-                    entry.LastWriteTime.ToUniversalTime(),
+                    entry.LastWriteAtUtc ??
+                    DateTimeOffset.UnixEpoch,
                     digest,
                     header[..headerLength],
                     detectedType);
@@ -502,19 +742,11 @@ public sealed class ArchiveRecursiveScanner
                 context,
                 cancellationToken);
 
-            if (detectedType !=
-                DetectedFileType.Zip)
-            {
-                return;
-            }
-
-            if (depth >=
-                _options.MaxArchiveDepth)
-            {
-                return;
-            }
-
-            if (spool is null)
+            if (!Supports(
+                    detectedType) ||
+                spool is null ||
+                depth >=
+                    _options.MaxArchiveDepth)
             {
                 return;
             }
@@ -525,8 +757,9 @@ public sealed class ArchiveRecursiveScanner
             spool.Stream.Position =
                 0;
 
-            await ScanZipStreamAsync(
+            await ScanArchiveAsync(
                 spool.Stream,
+                detectedType,
                 logicalPath,
                 depth + 1,
                 context,
@@ -611,24 +844,130 @@ public sealed class ArchiveRecursiveScanner
         }
     }
 
-    private void AddFindings(
-        RecursiveContext context,
-        IEnumerable<ArchiveScanFinding> findings,
-        string logicalPath)
+    private int GetEntryCountLimit(
+        DetectedFileType type)
     {
-        foreach (var finding in
-                 findings)
-        {
-            AddFinding(
-                context,
-                finding.EntryPath is null
-                    ? finding with
-                    {
-                        EntryPath =
-                            logicalPath
-                    }
-                    : finding);
-        }
+        return type ==
+               DetectedFileType.Zip
+            ? _options.MaxZipEntryCount
+            : _options.MaxArchiveEntryCount;
+    }
+
+    private long GetExpandedSizeLimit(
+        DetectedFileType type)
+    {
+        return type ==
+               DetectedFileType.Zip
+            ? _options.MaxZipExpandedBytes
+            : _options.MaxArchiveExpandedBytes;
+    }
+
+    private long GetEntrySizeLimit(
+        DetectedFileType type)
+    {
+        return type ==
+               DetectedFileType.Zip
+            ? _options.MaxZipEntryBytes
+            : _options.MaxArchiveEntryBytes;
+    }
+
+    private double GetCompressionRatioLimit(
+        DetectedFileType type)
+    {
+        return type ==
+               DetectedFileType.Zip
+            ? _options.MaxZipCompressionRatio
+            : _options.MaxArchiveCompressionRatio;
+    }
+
+    private static ArchiveFindingKind GetEntryCountFinding(
+        DetectedFileType type)
+    {
+        return type ==
+               DetectedFileType.Zip
+            ? ArchiveFindingKind.ZipEntryCountExceeded
+            : ArchiveFindingKind.ArchiveEntryCountExceeded;
+    }
+
+    private static ArchiveFindingKind GetExpandedSizeFinding(
+        DetectedFileType type)
+    {
+        return type ==
+               DetectedFileType.Zip
+            ? ArchiveFindingKind.ZipExpandedSizeExceeded
+            : ArchiveFindingKind.ArchiveExpandedSizeExceeded;
+    }
+
+    private static ArchiveFindingKind GetEntrySizeFinding(
+        DetectedFileType type)
+    {
+        return type ==
+               DetectedFileType.Zip
+            ? ArchiveFindingKind.ZipEntrySizeExceeded
+            : ArchiveFindingKind.ArchiveEntrySizeExceeded;
+    }
+
+    private static ArchiveFindingKind GetCompressionRatioFinding(
+        DetectedFileType type)
+    {
+        return type ==
+               DetectedFileType.Zip
+            ? ArchiveFindingKind.ZipCompressionRatioExceeded
+            : ArchiveFindingKind.ArchiveCompressionRatioExceeded;
+    }
+
+    private static ArchiveFindingKind GetTraversalFinding(
+        DetectedFileType type)
+    {
+        return type ==
+               DetectedFileType.Zip
+            ? ArchiveFindingKind.ZipPathTraversal
+            : ArchiveFindingKind.ArchivePathTraversal;
+    }
+
+    private static ArchiveFindingKind GetAbsolutePathFinding(
+        DetectedFileType type)
+    {
+        return type ==
+               DetectedFileType.Zip
+            ? ArchiveFindingKind.ZipAbsolutePath
+            : ArchiveFindingKind.ArchiveAbsolutePath;
+    }
+
+    private static ArchiveFindingKind GetDuplicateFinding(
+        DetectedFileType type)
+    {
+        return type ==
+               DetectedFileType.Zip
+            ? ArchiveFindingKind.ZipDuplicatePath
+            : ArchiveFindingKind.ArchiveDuplicatePath;
+    }
+
+    private static ArchiveFindingKind GetEncryptedFinding(
+        DetectedFileType type)
+    {
+        return type ==
+               DetectedFileType.Zip
+            ? ArchiveFindingKind.ZipEncryptedEntry
+            : ArchiveFindingKind.ArchiveEncryptedEntry;
+    }
+
+    private static ArchiveFindingKind GetAdsFinding(
+        DetectedFileType type)
+    {
+        return type ==
+               DetectedFileType.Zip
+            ? ArchiveFindingKind.ZipAlternateDataStreamPath
+            : ArchiveFindingKind.ArchiveAlternateDataStreamPath;
+    }
+
+    private static ArchiveFindingKind GetInvalidStructureFinding(
+        DetectedFileType type)
+    {
+        return type ==
+               DetectedFileType.Zip
+            ? ArchiveFindingKind.ZipInvalidStructure
+            : ArchiveFindingKind.ArchiveInvalidStructure;
     }
 
     private void AddFinding(
@@ -684,10 +1023,16 @@ public sealed class ArchiveRecursiveScanner
         };
     }
 
-    private static double CalculateCompressionRatio(
-        long expanded,
-        long compressed)
+    private static double? CalculateCompressionRatio(
+        long? expanded,
+        long? compressed)
     {
+        if (expanded is null ||
+            compressed is null)
+        {
+            return null;
+        }
+
         if (expanded <= 0)
         {
             return 1.0;
@@ -702,16 +1047,32 @@ public sealed class ArchiveRecursiveScanner
                compressed;
     }
 
+    private static long SaturatingAdd(
+        long current,
+        long value)
+    {
+        if (value <= 0)
+        {
+            return current;
+        }
+
+        if (current >
+            long.MaxValue -
+            value)
+        {
+            return long.MaxValue;
+        }
+
+        return current +
+               value;
+    }
+
     private static string BuildLogicalPath(
         string parent,
-        string entryName)
+        string entry)
     {
-        var normalized =
-            entryName.Replace(
-                '\\',
-                '/');
-
-        return $"{parent}!/{normalized}";
+        return
+            $"{parent}!/{entry.Replace('\\', '/')}";
     }
 
     private static string GetEntryFileName(
@@ -722,12 +1083,12 @@ public sealed class ArchiveRecursiveScanner
                 '\\',
                 '/');
 
-        var separator =
+        var index =
             normalized.LastIndexOf(
                 '/');
 
-        return separator >= 0
-            ? normalized[(separator + 1)..]
+        return index >= 0
+            ? normalized[(index + 1)..]
             : normalized;
     }
 

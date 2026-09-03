@@ -109,14 +109,15 @@ public sealed class ArchiveGuardScanner
         var recursiveVerdict =
             ScanVerdict.Clean;
 
-        if (metadata.FileType ==
-            DetectedFileType.Zip)
+        if (_recursiveScanner.Supports(
+            metadata.FileType))
         {
             try
             {
                 var recursive =
-                    await _recursiveScanner.ScanZipAsync(
+                    await _recursiveScanner.ScanAsync(
                         metadata.FilePath,
+                        metadata.FileType,
                         cancellationToken);
 
                 findings.AddRange(

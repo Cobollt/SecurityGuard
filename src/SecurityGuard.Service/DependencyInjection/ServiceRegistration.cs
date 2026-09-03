@@ -25,6 +25,7 @@ using SecurityGuard.ArchiveGuard.Analyzers;
 using SecurityGuard.ArchiveGuard.Configuration;
 using SecurityGuard.ArchiveGuard.Contracts;
 using SecurityGuard.ArchiveGuard.Services;
+using SecurityGuard.ArchiveGuard.Formats;
 
 namespace SecurityGuard.Service.DependencyInjection;
 
@@ -308,8 +309,24 @@ public static class ServiceRegistration
             ZipEntryPathInspector>();
 
         services.AddSingleton<
-            IZipSafetyAnalyzer,
-            ZipSafetyAnalyzer>();
+            IArchiveFormatHandler,
+            ZipArchiveFormatHandler>();
+
+        services.AddSingleton<
+            IArchiveFormatHandler,
+            TarArchiveFormatHandler>();
+
+        services.AddSingleton<
+            IArchiveFormatHandler,
+            GzipArchiveFormatHandler>();
+
+        services.AddSingleton<
+            IArchiveFormatHandler,
+            SevenZipArchiveFormatHandler>();
+
+        services.AddSingleton<
+            IArchiveFormatHandler,
+            RarArchiveFormatHandler>();
 
         services.AddSingleton(
             new ArchiveGuardOptions());

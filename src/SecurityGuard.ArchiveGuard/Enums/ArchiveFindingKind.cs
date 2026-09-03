@@ -23,5 +23,17 @@ public enum ArchiveFindingKind
     ArchiveEntryReadFailure = 18,
     ArchiveEntryActualSizeExceeded = 19,
     NestedArchiveSizeExceeded = 20,
-    RecursiveEntryCountExceeded = 21
+    RecursiveEntryCountExceeded = 21,
+    ArchiveEntryCountExceeded = 22,
+    ArchiveExpandedSizeExceeded = 23,
+    ArchiveEntrySizeExceeded = 24,
+    ArchiveCompressionRatioExceeded = 25,
+    ArchivePathTraversal = 26,
+    ArchiveAbsolutePath = 27,
+    ArchiveDuplicatePath = 28,
+    ArchiveEncryptedEntry = 29,
+    ArchiveInvalidStructure = 30,
+    ArchiveAlternateDataStreamPath = 31,
+    ArchiveLinkEntry = 32,
+    UnsupportedArchiveFormat = 33
 }

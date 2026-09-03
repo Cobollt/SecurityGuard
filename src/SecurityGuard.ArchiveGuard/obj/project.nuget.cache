@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "eur8cOoNy/U=",
+  "dgSpecHash": "CzFXo8RvGwM=",
   "success": true,
   "projectFilePath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.ArchiveGuard/SecurityGuard.ArchiveGuard.csproj",
   "expectedPackageFiles": [
+    "/Users/designyousupova/.nuget/packages/sharpcompress/0.50.4/sharpcompress.0.50.4.nupkg.sha512",
     "/Users/designyousupova/.nuget/packages/microsoft.windowsdesktop.app.ref/10.0.10/microsoft.windowsdesktop.app.ref.10.0.10.nupkg.sha512"
   ],
   "logs": []
