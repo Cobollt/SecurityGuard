@@ -11,10 +11,12 @@ public sealed class ArchiveGuardScanner
     private readonly IArchiveFileMetadataService _metadataService;
     private readonly IReadOnlyList<IArchiveFileAnalyzer> _analyzers;
     private readonly IArchiveRecursiveScanner _recursiveScanner;
+    private readonly IReadOnlyList<IArchiveSeekableContentAnalyzer> _seekableAnalyzers;
 
     public ArchiveGuardScanner(
         IArchiveFileMetadataService metadataService,
         IEnumerable<IArchiveFileAnalyzer> analyzers,
+        IEnumerable<IArchiveSeekableContentAnalyzer> seekableAnalyzers,
         IArchiveRecursiveScanner recursiveScanner)
     {
         _metadataService =
@@ -22,6 +24,9 @@ public sealed class ArchiveGuardScanner
 
         _analyzers =
             analyzers.ToArray();
+
+        _seekableAnalyzers =
+            seekableAnalyzers.ToArray();
 
         _recursiveScanner =
             recursiveScanner;
@@ -75,15 +80,31 @@ public sealed class ArchiveGuardScanner
             new List<ArchiveScanFinding>();
 
         foreach (var analyzer in
-                 _analyzers)
+                _seekableAnalyzers)
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            if (!analyzer.Supports(
+                    metadata.FileType))
+            {
+                continue;
+            }
 
             try
             {
+                await using var stream =
+                    new FileStream(
+                        metadata.FilePath,
+                        FileMode.Open,
+                        FileAccess.Read,
+                        FileShare.Read,
+                        bufferSize:
+                            64 * 1024,
+                        FileOptions.Asynchronous |
+                        FileOptions.SequentialScan);
+
                 var analyzerFindings =
                     await analyzer.AnalyzeAsync(
                         metadata,
+                        stream,
                         cancellationToken);
 
                 findings.AddRange(
@@ -101,7 +122,7 @@ public sealed class ArchiveGuardScanner
                         ArchiveFindingKind.AnalyzerFailure,
                         ScanVerdict.Error,
                         SecuritySeverity.High,
-                        $"Analyzer failed: {analyzer.GetType().Name}",
+                        $"Seekable analyzer failed: {analyzer.GetType().Name}",
                         exception.Message));
             }
         }

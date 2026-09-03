@@ -934,4 +934,120 @@ public sealed class ArchiveGuardScannerTests
         Assert.False(
             handler.RequiresSeekableInput);
     }
+
+    [Fact]
+    public async Task Suspicious_pe_inside_zip_is_analyzed()
+    {
+        var root =
+            CreateTemporaryDirectory();
+
+        try
+        {
+            var file =
+                Path.Combine(
+                    root,
+                    "outer.zip");
+
+            using (
+                var archive =
+                    System.IO.Compression.ZipFile.Open(
+                        file,
+                        System.IO.Compression.ZipArchiveMode.Create))
+            {
+                var entry =
+                    archive.CreateEntry(
+                        "payload.exe");
+
+                await using var stream =
+                    entry.Open();
+
+                await stream.WriteAsync(
+                    PeTestFileFactory.Create(
+                        writableExecutable:
+                            true));
+            }
+
+            var result =
+                await CreateScanner()
+                    .ScanAsync(
+                        new ArchiveScanRequest(
+                            file));
+
+            Assert.Equal(
+                ScanVerdict.Suspicious,
+                result.Verdict);
+
+            Assert.Contains(
+                result.Findings,
+                finding =>
+                    finding.Kind ==
+                        ArchiveFindingKind.PeWritableExecutableSection &&
+                    finding.EntryPath is not null &&
+                    finding.EntryPath.EndsWith(
+                        "payload.exe",
+                        StringComparison.OrdinalIgnoreCase));
+        }
+        finally
+        {
+            Directory.Delete(
+                root,
+                true);
+        }
+    }
+
+    [Fact]
+    public async Task Encoded_script_inside_zip_is_detected()
+    {
+        var root =
+            CreateTemporaryDirectory();
+
+        try
+        {
+            var file =
+                Path.Combine(
+                    root,
+                    "scripts.zip");
+
+            using (
+                var archive =
+                    System.IO.Compression.ZipFile.Open(
+                        file,
+                        System.IO.Compression.ZipArchiveMode.Create))
+            {
+                var entry =
+                    archive.CreateEntry(
+                        "loader.ps1");
+
+                await using var stream =
+                    entry.Open();
+
+                await stream.WriteAsync(
+                    System.Text.Encoding.UTF8.GetBytes(
+                        "powershell.exe -EncodedCommand VABlAHMAdAA="));
+            }
+
+            var result =
+                await CreateScanner()
+                    .ScanAsync(
+                        new ArchiveScanRequest(
+                            file));
+
+            Assert.Equal(
+                ScanVerdict.Suspicious,
+                result.Verdict);
+
+            Assert.Contains(
+                result.Findings,
+                finding =>
+                    finding.Kind ==
+                        ArchiveFindingKind.ScriptEncodedCommand &&
+                    finding.EntryPath is not null);
+        }
+        finally
+        {
+            Directory.Delete(
+                root,
+                true);
+        }
+    }
 }    

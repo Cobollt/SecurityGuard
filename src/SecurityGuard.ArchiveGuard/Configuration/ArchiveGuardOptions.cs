@@ -36,4 +36,28 @@ public sealed class ArchiveGuardOptions
 
     public double MaxArchiveCompressionRatio { get; init; } =
         200.0;
+    
+    public long MaxPeAnalysisBytes { get; init; } =
+        128L * 1024L * 1024L;
+
+    public int MaxPeSections { get; init; } =
+        96;
+
+    public int MaxPeImportDescriptors { get; init; } =
+        256;
+
+    public int MaxPeImports { get; init; } =
+        2048;
+
+    public int MaxPeImportNameBytes { get; init; } =
+        260;
+
+    public int MaxPeSectionEntropySampleBytes { get; init; } =
+        4 * 1024 * 1024;
+
+    public double PeHighEntropyThreshold { get; init; } =
+        7.20;
+
+    public int MaxScriptFindingsPerFile { get; init; } =
+        8;
 }

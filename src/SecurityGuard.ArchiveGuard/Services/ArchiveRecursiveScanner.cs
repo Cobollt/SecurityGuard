@@ -19,6 +19,7 @@ public sealed class ArchiveRecursiveScanner
     private readonly IFileTypeDetector _fileTypeDetector;
     private readonly IReadOnlyList<IArchiveFileAnalyzer> _analyzers;
     private readonly IArchiveTemporarySpoolService _spoolService;
+    private readonly IReadOnlyList<IArchiveSeekableContentAnalyzer> _seekableAnalyzers;
 
     public ArchiveRecursiveScanner(
         ArchiveGuardOptions options,
@@ -26,6 +27,7 @@ public sealed class ArchiveRecursiveScanner
         ZipEntryPathInspector pathInspector,
         IFileTypeDetector fileTypeDetector,
         IEnumerable<IArchiveFileAnalyzer> analyzers,
+        IEnumerable<IArchiveSeekableContentAnalyzer> seekableAnalyzers,
         IArchiveTemporarySpoolService spoolService)
     {
         _options =
@@ -44,6 +46,9 @@ public sealed class ArchiveRecursiveScanner
 
         _analyzers =
             analyzers.ToArray();
+
+        _seekableAnalyzers =
+            seekableAnalyzers.ToArray();
 
         _spoolService =
             spoolService;
@@ -637,8 +642,10 @@ public sealed class ArchiveRecursiveScanner
 
                     if (detectedType !=
                             DetectedFileType.Unknown &&
-                        Supports(
-                            detectedType))
+                        (Supports(
+                            detectedType) ||
+                        RequiresSeekableContentAnalysis(
+                            detectedType)))
                     {
                         if (depth >=
                             _options.MaxArchiveDepth)
@@ -653,17 +660,25 @@ public sealed class ArchiveRecursiveScanner
                                     $"Depth={depth + 1}; Limit={_options.MaxArchiveDepth}",
                                     logicalPath));
                         }
-                        else if (entry.ExpandedLength >
-                                 _options.MaxNestedArchiveBytes)
+                        else if (entry.ExpandedLength is not null &&
+                                entry.ExpandedLength >
+                                GetSpoolLimit(
+                                    detectedType))
                         {
                             AddFinding(
                                 context,
                                 new ArchiveScanFinding(
-                                    ArchiveFindingKind.NestedArchiveSizeExceeded,
+                                    detectedType ==
+                                        DetectedFileType.Pe
+                                            ? ArchiveFindingKind.PeAnalysisLimitExceeded
+                                            : ArchiveFindingKind.NestedArchiveSizeExceeded,
                                     ScanVerdict.Unknown,
-                                    SecuritySeverity.High,
-                                    "Nested archive exceeds spool size limit",
-                                    $"Size={entry.ExpandedLength}; Limit={_options.MaxNestedArchiveBytes}",
+                                    SecuritySeverity.Medium,
+                                    detectedType ==
+                                        DetectedFileType.Pe
+                                            ? "PE analysis size limit exceeded"
+                                            : "Nested archive exceeds spool size limit",
+                                    $"Size={entry.ExpandedLength}; Limit={GetSpoolLimit(detectedType)}",
                                     logicalPath));
                         }
                         else
@@ -687,7 +702,8 @@ public sealed class ArchiveRecursiveScanner
                          spoolStarted)
                 {
                     if (actualBytes >
-                        _options.MaxNestedArchiveBytes)
+                        GetSpoolLimit(
+                            detectedType))
                     {
                         await spool.DisposeAsync();
 
@@ -697,11 +713,17 @@ public sealed class ArchiveRecursiveScanner
                         AddFinding(
                             context,
                             new ArchiveScanFinding(
-                                ArchiveFindingKind.NestedArchiveSizeExceeded,
+                                detectedType ==
+                                    DetectedFileType.Pe
+                                        ? ArchiveFindingKind.PeAnalysisLimitExceeded
+                                        : ArchiveFindingKind.NestedArchiveSizeExceeded,
                                 ScanVerdict.Unknown,
-                                SecuritySeverity.High,
-                                "Nested archive exceeded actual spool size limit",
-                                $"ReadBytes={actualBytes}; Limit={_options.MaxNestedArchiveBytes}",
+                                SecuritySeverity.Medium,
+                                detectedType ==
+                                    DetectedFileType.Pe
+                                        ? "PE analysis exceeded actual spool limit"
+                                        : "Nested archive exceeded actual spool size limit",
+                                $"ReadBytes={actualBytes}; Limit={GetSpoolLimit(detectedType)}",
                                 logicalPath));
                     }
                     else
@@ -741,6 +763,65 @@ public sealed class ArchiveRecursiveScanner
                 logicalPath,
                 context,
                 cancellationToken);
+
+            if (spool is not null &&
+                RequiresSeekableContentAnalysis(
+                    detectedType))
+            {
+                await spool.Stream.FlushAsync(
+                    cancellationToken);
+
+                foreach (var analyzer in
+                        _seekableAnalyzers)
+                {
+                    if (!analyzer.Supports(
+                            detectedType))
+                    {
+                        continue;
+                    }
+
+                    spool.Stream.Position =
+                        0;
+
+                    try
+                    {
+                        var analyzerFindings =
+                            await analyzer.AnalyzeAsync(
+                                metadata,
+                                spool.Stream,
+                                cancellationToken);
+
+                        foreach (var finding in
+                                analyzerFindings)
+                        {
+                            AddFinding(
+                                context,
+                                finding with
+                                {
+                                    EntryPath =
+                                        logicalPath
+                                });
+                        }
+                    }
+                    catch (OperationCanceledException)
+                        when (cancellationToken.IsCancellationRequested)
+                    {
+                        throw;
+                    }
+                    catch (Exception exception)
+                    {
+                        AddFinding(
+                            context,
+                            new ArchiveScanFinding(
+                                ArchiveFindingKind.AnalyzerFailure,
+                                ScanVerdict.Error,
+                                SecuritySeverity.High,
+                                $"Seekable analyzer failed: {analyzer.GetType().Name}",
+                                exception.Message,
+                                logicalPath));
+                    }
+                }
+            }
 
             if (!Supports(
                     detectedType) ||
@@ -1112,5 +1193,26 @@ public sealed class ArchiveRecursiveScanner
         public int ArchivesInspected { get; set; }
 
         public bool BudgetExhausted { get; set; }
+    }
+
+    private bool RequiresSeekableContentAnalysis(
+        DetectedFileType fileType)
+    {
+        return _seekableAnalyzers.Any(
+            analyzer =>
+                analyzer.Supports(
+                    fileType));
+    }
+
+    private long GetSpoolLimit(
+        DetectedFileType fileType)
+    {
+        if (fileType ==
+            DetectedFileType.Pe)
+        {
+            return _options.MaxPeAnalysisBytes;
+        }
+
+        return _options.MaxNestedArchiveBytes;
     }
 }

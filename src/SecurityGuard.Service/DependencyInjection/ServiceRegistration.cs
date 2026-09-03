@@ -306,6 +306,18 @@ public static class ServiceRegistration
             TransferGuardMonitor>();
 
         services.AddSingleton<
+            IPeStaticAnalyzer,
+            PeStaticAnalyzer>();
+
+        services.AddSingleton<
+            IArchiveSeekableContentAnalyzer,
+            PeSeekableContentAnalyzer>();
+
+        services.AddSingleton<
+            IArchiveFileAnalyzer,
+            ScriptStaticAnalyzer>();
+
+        services.AddSingleton<
             ZipEntryPathInspector>();
 
         services.AddSingleton<

@@ -35,5 +35,16 @@ public enum ArchiveFindingKind
     ArchiveInvalidStructure = 30,
     ArchiveAlternateDataStreamPath = 31,
     ArchiveLinkEntry = 32,
-    UnsupportedArchiveFormat = 33
+    UnsupportedArchiveFormat = 33,
+    PeInvalidStructure = 34,
+    PeWritableExecutableSection = 35,
+    PeHighEntropySection = 36,
+    PeSuspiciousImportCombination = 37,
+    PeEntryPointOutsideExecutableSection = 38,
+    PeAnalysisLimitExceeded = 39,
+    ScriptEncodedCommand = 40,
+    ScriptDownloadExecute = 41,
+    ScriptObfuscation = 42,
+    ScriptAnalysisTruncated = 43,
+    ScriptDynamicExecution = 44
 }
