@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Hosting;
 using SecurityGuard.Core.Ipc;
+using System.IO.Pipes;
 
 namespace SecurityGuard.Service.Ipc;
 

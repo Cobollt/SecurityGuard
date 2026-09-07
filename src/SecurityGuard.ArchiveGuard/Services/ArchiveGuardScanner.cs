@@ -73,14 +73,45 @@ public sealed class ArchiveGuardScanner
                         exception.Message)
                 ],
                 startedAt,
-                DateTimeOffset.UtcNow);
+                DateTimeOffset.UtcNow,
+                DetectedFileType.Unknown);
         }
 
         var findings =
             new List<ArchiveScanFinding>();
 
         foreach (var analyzer in
-                _seekableAnalyzers)
+                 _analyzers)
+        {
+            try
+            {
+                var analyzerFindings =
+                    await analyzer.AnalyzeAsync(
+                        metadata,
+                        cancellationToken);
+
+                findings.AddRange(
+                    analyzerFindings);
+            }
+            catch (OperationCanceledException)
+                when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                findings.Add(
+                    new ArchiveScanFinding(
+                        ArchiveFindingKind.AnalyzerFailure,
+                        ScanVerdict.Error,
+                        SecuritySeverity.High,
+                        $"Analyzer failed: {analyzer.GetType().Name}",
+                        exception.Message));
+            }
+        }
+
+        foreach (var analyzer in
+                 _seekableAnalyzers)
         {
             if (!analyzer.Supports(
                     metadata.FileType))
@@ -132,7 +163,7 @@ public sealed class ArchiveGuardScanner
             ScanVerdict.Clean;
 
         if (_recursiveScanner.Supports(
-            metadata.FileType))
+                metadata.FileType))
         {
             try
             {
@@ -173,10 +204,6 @@ public sealed class ArchiveGuardScanner
                 CalculateVerdict(
                     findings),
                 recursiveVerdict);
-
-        var verdict =
-            CalculateVerdict(
-                findings);
 
         return new ArchiveGuardScanResult(
             Guid.NewGuid(),

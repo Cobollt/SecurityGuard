@@ -4,9 +4,10 @@ using System.Threading.Channels;
 using SecurityGuard.TransferGuard.Configuration;
 using SecurityGuard.TransferGuard.Contracts;
 using SecurityGuard.TransferGuard.Models;
+using System.Runtime.Versioning;
 
 namespace SecurityGuard.TransferGuard.Monitoring;
-
+[SupportedOSPlatform("windows")]
 public sealed class WindowsOutboundConnectionEventSource
     : IOutboundConnectionEventSource
 {
@@ -87,9 +88,16 @@ public sealed class WindowsOutboundConnectionEventSource
 
             try
             {
+                var detectedAtUtc =
+                    record.TimeCreated is { } timeCreated
+                        ? new DateTimeOffset(
+                            timeCreated.ToUniversalTime())
+                        : DateTimeOffset.UtcNow;
+
                 var connection =
                     _parser.Parse(
-                        record.ToXml());
+                        record.ToXml(),
+                        detectedAtUtc);
 
                 if (connection is null)
                 {

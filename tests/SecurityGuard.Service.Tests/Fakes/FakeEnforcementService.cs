@@ -27,6 +27,28 @@ public sealed class FakeEnforcementService : IAlgorithmEnforcementService
         return Level;
     }
 
+    public Task RemoveBlockAsync(
+        Guid securityRuleId,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return Task.CompletedTask;
+    }
+
+    public Task<AlgorithmEnforcementSnapshot> InspectAsync(
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return Task.FromResult(
+            new AlgorithmEnforcementSnapshot(
+                new HashSet<Guid>(),
+                new HashSet<Guid>(),
+                false,
+                false));
+    }
+
     public Task<AlgorithmEnforcementResult> AddBlockAsync(
         Guid securityRuleId,
         string filePath,

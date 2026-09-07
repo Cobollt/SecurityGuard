@@ -166,6 +166,22 @@ public sealed class DatabaseInitializer
                 completed_at_utc TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS threat_hashes
+            (
+                sha256 TEXT PRIMARY KEY,
+                source TEXT NOT NULL,
+                description TEXT NULL,
+                enabled INTEGER NOT NULL,
+                created_at_utc TEXT NOT NULL,
+                updated_at_utc TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_threat_hashes_enabled
+            ON threat_hashes(enabled);
+
+            CREATE INDEX IF NOT EXISTS idx_threat_hashes_updated
+            ON threat_hashes(updated_at_utc DESC);
+
             CREATE INDEX IF NOT EXISTS idx_scan_results_sha256
             ON scan_results(sha256);
 

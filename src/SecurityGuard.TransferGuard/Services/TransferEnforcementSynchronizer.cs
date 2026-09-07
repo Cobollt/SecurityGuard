@@ -1,5 +1,6 @@
 using SecurityGuard.Core.Contracts;
 using SecurityGuard.Core.Enums;
+using SecurityGuard.Core.Models;
 using SecurityGuard.TransferGuard.Contracts;
 using SecurityGuard.TransferGuard.Models;
 

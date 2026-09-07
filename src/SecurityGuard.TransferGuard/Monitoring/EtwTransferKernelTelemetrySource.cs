@@ -122,7 +122,7 @@ public sealed class EtwTransferKernelTelemetrySource
                             data.TimeStamp)));
             };
 
-        session.Source.Kernel.FileIoRead +=
+        session.Source.Kernel.FileIORead +=
             data =>
             {
                 if (!ShouldObserveProcess(

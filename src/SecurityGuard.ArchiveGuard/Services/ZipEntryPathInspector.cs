@@ -23,7 +23,7 @@ public sealed class ZipEntryPathInspector
 
         var absolute =
             path.StartsWith(
-                '/',
+                "/",
                 StringComparison.Ordinal) ||
             drivePrefix;
 

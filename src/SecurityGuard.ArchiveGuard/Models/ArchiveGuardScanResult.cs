@@ -1,14 +1,15 @@
+using SecurityGuard.ArchiveGuard.Enums;
 using SecurityGuard.Core.Enums;
 
-namespace SecurityGuard.Core.Models;
+namespace SecurityGuard.ArchiveGuard.Models;
 
-public sealed record ScanResult(
+public sealed record ArchiveGuardScanResult(
     Guid Id,
-    SecurityModuleKind Module,
     string FilePath,
     string? Sha256,
     long? FileSize,
     ScanVerdict Verdict,
-    string Summary,
+    IReadOnlyList<ArchiveScanFinding> Findings,
     DateTimeOffset StartedAtUtc,
-    DateTimeOffset CompletedAtUtc);
+    DateTimeOffset CompletedAtUtc,
+    DetectedFileType FileType = DetectedFileType.Unknown);

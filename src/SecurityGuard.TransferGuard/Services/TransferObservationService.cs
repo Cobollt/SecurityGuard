@@ -20,7 +20,7 @@ public sealed class TransferObservationService
 
         _pathNormalizer =
             pathNormalizer;
-        
+
         _processRegistry =
             processRegistry;
     }
@@ -29,6 +29,9 @@ public sealed class TransferObservationService
         FilteringPlatformConnectionEvent connection,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(
+            connection);
+
         var process =
             await _processResolver.GetAsync(
                 connection.ProcessId,
@@ -61,32 +64,9 @@ public sealed class TransferObservationService
                     applicationPath);
         }
 
-        return new NetworkConnectionObservation(
-            Guid.NewGuid(),
-            connection.DetectedAtUtc,
-            connection.Protocol,
-            connection.AddressFamily,
-            connection.LocalAddress,
-            connection.LocalPort,
-            connection.RemoteAddress,
-            connection.RemotePort,
-            process,
-            applicationPath);
-    }
-
-    private static ProcessInfo? CreateFallbackProcess(
-        FilteringPlatformConnectionEvent connection,
-        string? applicationPath)
-    {
-        if (string.IsNullOrWhiteSpace(
-                applicationPath))
-        {
-            return null;
-        }
-
-    var processInstance =
-        _processRegistry.Resolve(
-            connection.ProcessId);
+        var processInstance =
+            _processRegistry.Resolve(
+                connection.ProcessId);
 
         return new NetworkConnectionObservation(
             Guid.NewGuid(),
@@ -100,5 +80,36 @@ public sealed class TransferObservationService
             process,
             applicationPath,
             processInstance);
+    }
+
+    private static ProcessInfo? CreateFallbackProcess(
+        FilteringPlatformConnectionEvent connection,
+        string? applicationPath)
+    {
+        if (string.IsNullOrWhiteSpace(
+                applicationPath))
+        {
+            return null;
+        }
+
+        var processName =
+            Path.GetFileNameWithoutExtension(
+                applicationPath);
+
+        if (string.IsNullOrWhiteSpace(
+                processName))
+        {
+            processName =
+                $"PID-{connection.ProcessId}";
+        }
+
+        return new ProcessInfo(
+            connection.ProcessId,
+            null,
+            processName,
+            applicationPath,
+            null,
+            null,
+            null);
     }
 }

@@ -32,6 +32,7 @@ public sealed class TransferManualRuleServiceTests
         var service =
             new TransferManualRuleService(
                 repository,
+                new FakePathNormalizer(),
                 enforcement,
                 new TransferEnforcementRuleFactory(
                     new FakePathNormalizer()),
@@ -137,6 +138,7 @@ public sealed class TransferManualRuleServiceTests
         var service =
             new TransferManualRuleService(
                 repository,
+                new FakePathNormalizer(),
                 enforcement,
                 new TransferEnforcementRuleFactory(
                     new FakePathNormalizer()),
@@ -204,6 +206,7 @@ public sealed class TransferManualRuleServiceTests
         var service =
             new TransferManualRuleService(
                 repository,
+                new FakePathNormalizer(),
                 enforcement,
                 new TransferEnforcementRuleFactory(
                     new FakePathNormalizer()),
@@ -280,6 +283,7 @@ public sealed class TransferManualRuleServiceTests
         var service =
             new TransferManualRuleService(
                 repository,
+                new FakePathNormalizer(),
                 enforcement,
                 new TransferEnforcementRuleFactory(
                     new FakePathNormalizer()),
@@ -340,6 +344,7 @@ public sealed class TransferManualRuleServiceTests
         var service =
             new TransferManualRuleService(
                 repository,
+                new FakePathNormalizer(),
                 enforcement,
                 new TransferEnforcementRuleFactory(
                     new FakePathNormalizer()),

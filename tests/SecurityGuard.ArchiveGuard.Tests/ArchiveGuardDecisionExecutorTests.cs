@@ -207,15 +207,44 @@ public sealed class ArchiveGuardDecisionExecutorTests
             SecurityDecisionRequest request,
             CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             _request =
                 request;
 
             return Task.CompletedTask;
         }
 
+        public Task<bool> TryAddAsync(
+            SecurityDecisionRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (_request is not null &&
+                !string.IsNullOrWhiteSpace(
+                    request.Identity) &&
+                string.Equals(
+                    _request.Identity,
+                    request.Identity,
+                    StringComparison.Ordinal))
+            {
+                return Task.FromResult(
+                    false);
+            }
+
+            _request =
+                request;
+
+            return Task.FromResult(
+                true);
+        }
+
         public Task<IReadOnlyList<SecurityDecisionRequest>> GetPendingAsync(
             CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             IReadOnlyList<SecurityDecisionRequest> result =
                 _request is null
                     ? []
@@ -229,6 +258,8 @@ public sealed class ArchiveGuardDecisionExecutorTests
             Guid id,
             CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             return Task.FromResult(
                 _request?.Id ==
                 id
@@ -236,10 +267,55 @@ public sealed class ArchiveGuardDecisionExecutorTests
                     : null);
         }
 
+        public Task<SecurityDecisionRequest?> GetByIdentityAsync(
+            string identity,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (_request is null ||
+                !string.Equals(
+                    _request.Identity,
+                    identity,
+                    StringComparison.Ordinal))
+            {
+                return Task.FromResult<
+                    SecurityDecisionRequest?>(
+                    null);
+            }
+
+            return Task.FromResult<
+                SecurityDecisionRequest?>(
+                    _request);
+        }
+
+        public Task<int> RemoveOlderThanAsync(
+            DateTimeOffset cutoffUtc,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (_request is null ||
+                _request.CreatedAtUtc >=
+                cutoffUtc)
+            {
+                return Task.FromResult(
+                    0);
+            }
+
+            _request =
+                null;
+
+            return Task.FromResult(
+                1);
+        }
+
         public Task RemoveAsync(
             Guid id,
             CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (_request?.Id ==
                 id)
             {

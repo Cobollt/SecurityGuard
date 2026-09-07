@@ -73,7 +73,7 @@ public sealed class RarArchiveFormatHandler
                 {
                     token.ThrowIfCancellationRequested();
 
-                    return ValueTask.FromResult(
+                    return ValueTask.FromResult<Stream>(
                         reader.OpenEntryStream());
                 });
 

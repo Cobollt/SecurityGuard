@@ -40,7 +40,7 @@ public sealed class TransferRuleContextFactoryTests
             context.Process);
 
         Assert.Equal(
-            @"\device\harddiskvolume3\apps\client.exe",
+            @"C:\Apps\client.exe",
             context.ProcessPath);
 
         Assert.Equal(

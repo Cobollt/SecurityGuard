@@ -5,6 +5,7 @@ using SecurityGuard.Service.Ipc;
 using SecurityGuard.TransferGuard.Contracts;
 using SecurityGuard.TransferGuard.Enums;
 using SecurityGuard.TransferGuard.Models;
+using SecurityGuard.Core.Enums;
 
 namespace SecurityGuard.Service.Tests;
 

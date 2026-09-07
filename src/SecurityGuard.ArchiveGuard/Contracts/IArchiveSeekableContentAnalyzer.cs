@@ -11,5 +11,6 @@ public interface IArchiveSeekableContentAnalyzer
     Task<IReadOnlyList<ArchiveScanFinding>> AnalyzeAsync(
         ArchiveFileMetadata metadata,
         Stream stream,
+        string? physicalFilePath,
         CancellationToken cancellationToken = default);
 }

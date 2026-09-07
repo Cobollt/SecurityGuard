@@ -1122,11 +1122,11 @@ public sealed class ArchiveRecursiveScanner
 
         if (compressed <= 0)
         {
-            return double.PositiveInfinity;
+            return null;
         }
 
         return (double)expanded /
-               compressed;
+            compressed;
     }
 
     private static long SaturatingAdd(

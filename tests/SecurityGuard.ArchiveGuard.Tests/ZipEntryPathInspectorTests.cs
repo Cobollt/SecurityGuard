@@ -1,4 +1,9 @@
+using SecurityGuard.ArchiveGuard.Configuration;
+using SecurityGuard.ArchiveGuard.Enums;
+using SecurityGuard.ArchiveGuard.Models;
 using SecurityGuard.ArchiveGuard.Services;
+using SecurityGuard.Core.Enums;
+using static SecurityGuard.ArchiveGuard.Tests.ArchiveGuardTestFactory;
 
 namespace SecurityGuard.ArchiveGuard.Tests;
 
@@ -499,7 +504,7 @@ public sealed class ZipEntryPathInspectorTests
                     entry.Open();
 
                 await stream.WriteAsync(
-                    CreatePeFile());
+                    PeTestFileFactory.Create());
             }
 
             var scanner =

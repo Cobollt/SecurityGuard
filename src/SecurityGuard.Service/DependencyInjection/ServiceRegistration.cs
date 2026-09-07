@@ -386,6 +386,25 @@ public static class ServiceRegistration
         services.AddSingleton<
             IArchiveFileAnalyzer,
             FileTypeMismatchAnalyzer>();
+        
+        services.AddSingleton<
+            ArchiveGuardDecisionRequestFactory>();
+
+        services.AddSingleton<
+            IArchiveGuardAuditSink,
+            ArchiveGuardAuditSink>();
+
+        services.AddSingleton<
+            IArchiveGuardFileActionService,
+            ArchiveGuardFileActionService>();
+
+        services.AddSingleton<
+            IArchiveGuardWorkflowService,
+            ArchiveGuardWorkflowService>();
+
+        services.AddSingleton<
+            IArchiveGuardDecisionExecutor,
+            ArchiveGuardDecisionExecutor>();
                 
         services.AddHostedService<
             SecurityRuleExpirationHostedService>();
@@ -413,7 +432,6 @@ public static class ServiceRegistration
                 provider.GetRequiredService<
                     AlgorithmGuardHostedService>());
                     
-        services.AddHostedService<SecurityGuardWorker>();
         services.AddHostedService<
             AlgorithmDecisionMaintenanceHostedService>();
 

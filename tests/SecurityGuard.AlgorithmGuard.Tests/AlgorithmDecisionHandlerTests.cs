@@ -5,6 +5,9 @@ using SecurityGuard.Infrastructure.Hashing;
 using SecurityGuard.Storage.Configuration;
 using SecurityGuard.Storage.Database;
 using SecurityGuard.Storage.Repositories;
+using SecurityGuard.AlgorithmGuard.Models;
+using SecurityGuard.AlgorithmGuard.Configuration;
+using SecurityGuard.AlgorithmGuard.Enums;
 
 namespace SecurityGuard.AlgorithmGuard.Tests;
 
@@ -89,6 +92,14 @@ public sealed class AlgorithmDecisionHandlerTests
                             @"DESKTOP\User",
                         ProcessPublisher:
                             "Microsoft"));
+            
+            await handler.HandleAsync(
+                request,
+                new SecurityDecision(
+                    request.Id,
+                    SecurityAction.Allow,
+                    true,
+                    DateTimeOffset.UtcNow));
 
             var rules =
                 await ruleRepository.GetEnabledAsync();
@@ -188,11 +199,11 @@ public sealed class AlgorithmDecisionHandlerTests
 
             var handler =
                 new AlgorithmDecisionHandler(
-                    hashService,
-                    ruleRepository,
+                    new Sha256FileHashService(),
+                    repository,
                     new FakeQuarantineService(),
                     new AlgorithmTemporaryDecisionStore(),
-                    new FakeEnforcementService(),
+                    enforcement,
                     new AlgorithmGuardOptions(),
                     runtime);
 
@@ -280,6 +291,28 @@ public sealed class AlgorithmDecisionHandlerTests
             return SecurityGuard.AlgorithmGuard.Enums.AlgorithmEnforcementLevel.AppLockerBlocked;
             }
 
+        public Task RemoveBlockAsync(
+            Guid securityRuleId,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return Task.CompletedTask;
+        }
+
+        public Task<AlgorithmEnforcementSnapshot> InspectAsync(
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return Task.FromResult(
+                new AlgorithmEnforcementSnapshot(
+                    new HashSet<Guid>(),
+                    new HashSet<Guid>(),
+                    false,
+                    false));
+        }
+
         public Task<SecurityGuard.AlgorithmGuard.Models.AlgorithmEnforcementResult>
             AddBlockAsync(
                 Guid securityRuleId,
@@ -303,6 +336,28 @@ public sealed class AlgorithmDecisionHandlerTests
             string? filePath)
         {
             return SecurityGuard.AlgorithmGuard.Enums.AlgorithmEnforcementLevel.AppLockerBlocked;
+        }
+
+        public Task RemoveBlockAsync(
+            Guid securityRuleId,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return Task.CompletedTask;
+        }
+
+        public Task<AlgorithmEnforcementSnapshot> InspectAsync(
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return Task.FromResult(
+                new AlgorithmEnforcementSnapshot(
+                    new HashSet<Guid>(),
+                    new HashSet<Guid>(),
+                    false,
+                    false));
         }
 
         public Task<SecurityGuard.AlgorithmGuard.Models.AlgorithmEnforcementResult>

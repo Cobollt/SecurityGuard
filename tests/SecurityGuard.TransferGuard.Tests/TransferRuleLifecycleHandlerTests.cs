@@ -9,14 +9,18 @@ namespace SecurityGuard.TransferGuard.Tests;
 public sealed class TransferRuleLifecycleHandlerTests
 {
     [Fact]
-    public async Task Block_rule_removes_firewall_enforcement()
+    public async Task Network_block_removes_permanent_enforcement()
     {
-        var enforcement =
+        var permanent =
             new RecordingEnforcementService();
+
+        var temporary =
+            new RecordingTemporaryEnforcementService();
 
         var handler =
             new TransferRuleLifecycleHandler(
-                enforcement);
+                permanent,
+                temporary);
 
         var rule =
             new SecurityRule(
@@ -36,7 +40,53 @@ public sealed class TransferRuleLifecycleHandlerTests
 
         Assert.Equal(
             rule.Id,
-            enforcement.RemovedRuleId);
+            permanent.RemovedRuleId);
+
+        Assert.Null(
+            temporary.RemovedSourceRuleId);
+    }
+
+    [Fact]
+    public async Task File_block_removes_linked_temporary_enforcement()
+    {
+        var permanent =
+            new RecordingEnforcementService();
+
+        var temporary =
+            new RecordingTemporaryEnforcementService();
+
+        var handler =
+            new TransferRuleLifecycleHandler(
+                permanent,
+                temporary);
+
+        var rule =
+            new SecurityRule(
+                Guid.NewGuid(),
+                "Block document",
+                SecurityModuleKind.TransferGuard,
+                RuleDecision.Block,
+                RuleScope.FileExtension,
+                ".docx",
+                true,
+                250,
+                DateTimeOffset.UtcNow,
+                null,
+                [
+                    new SecurityRuleCondition(
+                        RuleScope.TransferActivityKind,
+                        "FileTransfer")
+                ]);
+
+        await handler.BeforeDeleteAsync(
+            rule);
+
+        Assert.Null(
+            permanent.RemovedRuleId);
+
+        Assert.Equal(
+            rule.Id,
+            temporary.RemovedSourceRuleId);
     }
 
     private sealed class RecordingEnforcementService
@@ -122,48 +172,5 @@ public sealed class TransferRuleLifecycleHandlerTests
             return Task.FromResult(
                 0);
         }
-    }
-
-    [Fact]
-    public async Task File_block_removes_linked_temporary_enforcement()
-    {
-        var permanent =
-            new RecordingEnforcementService();
-
-        var temporary =
-            new RecordingTemporaryEnforcementService();
-
-        var handler =
-            new TransferRuleLifecycleHandler(
-                enforcement,
-                temporary);
-
-        var rule =
-            new SecurityRule(
-                Guid.NewGuid(),
-                "Block document",
-                SecurityModuleKind.TransferGuard,
-                RuleDecision.Block,
-                RuleScope.FileExtension,
-                ".docx",
-                true,
-                250,
-                DateTimeOffset.UtcNow,
-                null,
-                [
-                    new SecurityRuleCondition(
-                        RuleScope.TransferActivityKind,
-                        "FileTransfer")
-                ]);
-
-        await handler.BeforeDeleteAsync(
-            rule);
-
-        Assert.Equal(
-            rule.Id,
-            enforcement.RemovedRuleId);
-
-        Assert.Null(
-            temporary.RemovedSourceRuleId);
     }
 }

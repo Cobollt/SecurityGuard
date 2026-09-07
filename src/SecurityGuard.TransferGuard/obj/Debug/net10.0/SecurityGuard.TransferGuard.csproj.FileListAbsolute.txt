@@ -14,3 +14,12 @@
 /Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/obj/Debug/net10.0/refint/SecurityGuard.TransferGuard.dll
 /Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/obj/Debug/net10.0/SecurityGuard.TransferGuard.pdb
 /Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/obj/Debug/net10.0/ref/SecurityGuard.TransferGuard.dll
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/bin/Debug/net10.0/x86/KernelTraceControl.dll
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/bin/Debug/net10.0/x86/KernelTraceControl.Win61.dll
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/bin/Debug/net10.0/x86/msdia140.dll
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/bin/Debug/net10.0/amd64/KernelTraceControl.dll
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/bin/Debug/net10.0/amd64/msdia140.dll
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/bin/Debug/net10.0/arm64/KernelTraceControl.dll
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/bin/Debug/net10.0/arm64/msdia140.dll
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/bin/Debug/net10.0/TraceReloggerLib.dll
+/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/bin/Debug/net10.0/Dia2Lib.dll

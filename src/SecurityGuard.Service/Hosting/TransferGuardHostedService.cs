@@ -5,6 +5,7 @@ using SecurityGuard.TransferGuard.Configuration;
 using SecurityGuard.TransferGuard.Contracts;
 using SecurityGuard.TransferGuard.Enums;
 using SecurityGuard.TransferGuard.Models;
+using SecurityGuard.TransferGuard.Services;
 
 namespace SecurityGuard.Service.Hosting;
 
@@ -166,9 +167,6 @@ public sealed class TransferGuardHostedService
 
         try
         {
-            _runtimeState.CurrentSettings.FailurePolicy =
-                settings;
-
             if (!settings.Enabled)
             {
                 await StopMonitorAsync();

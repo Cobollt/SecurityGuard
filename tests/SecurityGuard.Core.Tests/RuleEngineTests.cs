@@ -22,7 +22,9 @@ public sealed class RuleEngineTests
                 FileHash: "ABC"));
 
         Assert.False(result.Matched);
-        Assert.Null(result.Decision);
+        Assert.Equal(
+            RuleDecision.Allow,
+            result.Decision);
     }
 
     [Fact]

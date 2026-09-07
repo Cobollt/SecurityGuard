@@ -1,9 +1,11 @@
 using SecurityGuard.ArchiveGuard.Contracts;
 using SecurityGuard.ArchiveGuard.Enums;
+using SecurityGuard.ArchiveGuard.Formats;
 using SecurityGuard.ArchiveGuard.Models;
 using SecurityGuard.ArchiveGuard.Services;
 using SecurityGuard.Core.Enums;
 using Xunit;
+using static SecurityGuard.ArchiveGuard.Tests.ArchiveGuardTestFactory;
 
 namespace SecurityGuard.ArchiveGuard.Tests;
 
@@ -20,7 +22,7 @@ public sealed class ArchiveGuardScannerTests
                 metadata);
 
         var scanner =
-            new ArchiveGuardScanner(
+            CreateUnitScanner(
                 metadataService,
                 []);
 
@@ -76,7 +78,7 @@ public sealed class ArchiveGuardScannerTests
                 "File has a suspicious double extension.");
 
         var scanner =
-            new ArchiveGuardScanner(
+            CreateUnitScanner(
                 new FakeMetadataService(
                     metadata),
                 [
@@ -133,7 +135,7 @@ public sealed class ArchiveGuardScannerTests
                 "File hash matches a blocked hash.");
 
         var scanner =
-            new ArchiveGuardScanner(
+            CreateUnitScanner(
                 new FakeMetadataService(
                     metadata),
                 [
@@ -193,7 +195,7 @@ public sealed class ArchiveGuardScannerTests
                 "Analyzer failed.");
 
         var scanner =
-            new ArchiveGuardScanner(
+            CreateUnitScanner(
                 new FakeMetadataService(
                     metadata),
                 [
@@ -241,7 +243,7 @@ public sealed class ArchiveGuardScannerTests
                 "Suspicious file name.");
 
         var scanner =
-            new ArchiveGuardScanner(
+            CreateUnitScanner(
                 new FakeMetadataService(
                     metadata),
                 [
@@ -273,7 +275,7 @@ public sealed class ArchiveGuardScannerTests
             CreateMetadata();
 
         var scanner =
-            new ArchiveGuardScanner(
+            CreateUnitScanner(
                 new FakeMetadataService(
                     metadata),
                 [
@@ -328,7 +330,7 @@ public sealed class ArchiveGuardScannerTests
                 "Suspicious file name.");
 
         var scanner =
-            new ArchiveGuardScanner(
+            CreateUnitScanner(
                 new FakeMetadataService(
                     metadata),
                 [
@@ -370,7 +372,7 @@ public sealed class ArchiveGuardScannerTests
     public async Task Metadata_failure_returns_error_result()
     {
         var scanner =
-            new ArchiveGuardScanner(
+            CreateUnitScanner(
                 new FakeMetadataService(
                     new IOException(
                         "Unable to read file")),
@@ -437,7 +439,7 @@ public sealed class ArchiveGuardScannerTests
                 metadata);
 
         var scanner =
-            new ArchiveGuardScanner(
+            CreateUnitScanner(
                 metadataService,
                 []);
 
@@ -467,7 +469,7 @@ public sealed class ArchiveGuardScannerTests
             new RecordingAnalyzer();
 
         var scanner =
-            new ArchiveGuardScanner(
+            CreateUnitScanner(
                 new FakeMetadataService(
                     metadata),
                 [
@@ -505,7 +507,7 @@ public sealed class ArchiveGuardScannerTests
         cancellation.Cancel();
 
         var scanner =
-            new ArchiveGuardScanner(
+            CreateUnitScanner(
                 new CancellationMetadataService(),
                 []);
 
@@ -532,7 +534,7 @@ public sealed class ArchiveGuardScannerTests
                 cancellation);
 
         var scanner =
-            new ArchiveGuardScanner(
+            CreateUnitScanner(
                 new FakeMetadataService(
                     metadata),
                 [
@@ -557,7 +559,7 @@ public sealed class ArchiveGuardScannerTests
                 ".7z");
 
         var scanner =
-            new ArchiveGuardScanner(
+            CreateUnitScanner(
                 new FakeMetadataService(
                     metadata),
                 []);

@@ -43,7 +43,7 @@ public sealed class TransferFileEnforcementCoordinator
 
     public Task<TransferFileEnforcementResult> ApplyCandidateBlockAsync(
         Guid sourceSecurityRuleId,
-        SecurityDecisionRequest request,
+        FileTransferCandidate candidate,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(
@@ -66,14 +66,15 @@ public sealed class TransferFileEnforcementCoordinator
 
         return ApplyAsync(
             sourceSecurityRuleId,
-            context.ProcessPath,
-            context.RemoteAddress,
-            context.RemotePort,
-            protocol,
+            processPath,
+            candidate.Connection.RemoteAddress,
+            candidate.Connection.RemotePort,
+            candidate.Connection.Protocol,
             cancellationToken);
     }
 
     public Task<TransferFileEnforcementResult> ApplyDecisionBlockAsync(
+        Guid sourceSecurityRuleId,
         SecurityDecisionRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -95,6 +96,7 @@ public sealed class TransferFileEnforcementCoordinator
         }
 
         return ApplyAsync(
+            sourceSecurityRuleId,
             context.ProcessPath,
             context.RemoteAddress,
             context.RemotePort,

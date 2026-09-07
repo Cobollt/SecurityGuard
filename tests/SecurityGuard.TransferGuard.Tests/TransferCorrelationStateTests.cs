@@ -3,7 +3,6 @@ using SecurityGuard.TransferGuard.Configuration;
 using SecurityGuard.TransferGuard.Enums;
 using SecurityGuard.TransferGuard.Models;
 using SecurityGuard.TransferGuard.Services;
-using SecurityGuard.TransferGuard.Enums;
 
 namespace SecurityGuard.TransferGuard.Tests;
 

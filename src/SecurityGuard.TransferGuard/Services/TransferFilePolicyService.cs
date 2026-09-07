@@ -2,6 +2,7 @@ using SecurityGuard.Core.Contracts;
 using SecurityGuard.Core.Enums;
 using SecurityGuard.Core.Models;
 using SecurityGuard.TransferGuard.Configuration;
+using SecurityGuard.TransferGuard.Contracts;
 using SecurityGuard.TransferGuard.Enums;
 using SecurityGuard.TransferGuard.Models;
 
@@ -15,29 +16,6 @@ public sealed class TransferFilePolicyService
     private readonly IAuditService _auditService;
     private readonly TransferGuardOptions _options;
     private readonly ITransferFileEnforcementCoordinator _enforcementCoordinator;
-
-    public TransferFilePolicyService(
-        TransferFileRuleContextFactory contextFactory,
-        IRuleEngine ruleEngine,
-        IDecisionRequestRepository decisionRepository,
-        IAuditService auditService,
-        TransferGuardOptions options)
-    {
-        _contextFactory =
-            contextFactory;
-
-        _ruleEngine =
-            ruleEngine;
-
-        _decisionRepository =
-            decisionRepository;
-
-        _auditService =
-            auditService;
-
-        _options =
-            options;
-    }
 
     public async Task HandleAsync(
         FileTransferCandidate candidate,

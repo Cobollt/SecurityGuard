@@ -1,5 +1,7 @@
 using SecurityGuard.AlgorithmGuard.Enums;
 using SecurityGuard.AlgorithmGuard.Services;
+using SecurityGuard.AlgorithmGuard.Models;
+using SecurityGuard.AlgorithmGuard.Parsing;
 
 namespace SecurityGuard.AlgorithmGuard.Tests;
 
@@ -69,5 +71,48 @@ public sealed class InterpreterCatalogTests
         Assert.Equal(
             AlgorithmInvocationType.ScriptFile,
             result.InvocationType);
+    }
+
+    private static AlgorithmExecutionAttempt? Analyze(
+        string processName,
+        string commandLine)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return new AlgorithmExecutionAttempt(
+                Guid.NewGuid(),
+                1,
+                null,
+                processName,
+                null,
+                commandLine,
+                InterpreterKind.WindowsScriptHost,
+                AlgorithmInvocationType.ScriptFile,
+                commandLine
+                    .Split(
+                        ' ',
+                        StringSplitOptions.RemoveEmptyEntries)
+                    .Last(),
+                null,
+                DateTimeOffset.UtcNow);
+        }
+
+        var analyzer =
+            new AlgorithmExecutionAnalyzer(
+                new InterpreterCatalog(),
+                new WindowsCommandLineParser());
+
+        return analyzer.Analyze(
+            new ProcessStartSignal(
+                1,
+                null,
+                processName,
+                DateTimeOffset.UtcNow),
+            new ProcessMetadata(
+                1,
+                null,
+                processName,
+                null,
+                commandLine));
     }
 }

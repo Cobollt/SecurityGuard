@@ -8,8 +8,12 @@ public sealed class TransferTemporaryBlockIdentityTests
     [Fact]
     public void Same_endpoint_has_same_identity()
     {
+        var sourceRuleId =
+            Guid.NewGuid();
+
         var first =
             TransferTemporaryBlockIdentity.Create(
+                sourceRuleId,
                 @"C:\Apps\client.exe",
                 "1.1.1.1",
                 443,
@@ -17,6 +21,7 @@ public sealed class TransferTemporaryBlockIdentityTests
 
         var second =
             TransferTemporaryBlockIdentity.Create(
+                sourceRuleId,
                 @"c:\apps\CLIENT.exe",
                 "1.1.1.1",
                 443,
@@ -32,6 +37,7 @@ public sealed class TransferTemporaryBlockIdentityTests
     {
         var first =
             TransferTemporaryBlockIdentity.Create(
+                Guid.NewGuid(),
                 @"C:\Apps\client.exe",
                 "1.1.1.1",
                 443,
@@ -39,6 +45,7 @@ public sealed class TransferTemporaryBlockIdentityTests
 
         var second =
             TransferTemporaryBlockIdentity.Create(
+                Guid.NewGuid(),
                 @"C:\Apps\client.exe",
                 "8.8.8.8",
                 443,

@@ -1,13 +1,23 @@
+using System.Globalization;
 using Microsoft.Data.Sqlite;
 using SecurityGuard.Core.Contracts;
 using SecurityGuard.Core.Models;
+using SecurityGuard.Storage.Database;
 
 namespace SecurityGuard.Storage.Repositories;
 
-public sealed class SqliteThreatHashRepository(
-    SqliteDatabase database)
+public sealed class SqliteThreatHashRepository
     : IThreatHashRepository
 {
+    private readonly SqliteConnectionFactory _connectionFactory;
+
+    public SqliteThreatHashRepository(
+        SqliteConnectionFactory connectionFactory)
+    {
+        _connectionFactory =
+            connectionFactory;
+    }
+
     public async Task<ThreatHashEntry?> GetBySha256Async(
         string sha256,
         CancellationToken cancellationToken = default)
@@ -17,10 +27,10 @@ public sealed class SqliteThreatHashRepository(
                 sha256);
 
         await using var connection =
-            await OpenAsync(
+            await _connectionFactory.OpenAsync(
                 cancellationToken);
 
-        var command =
+        await using var command =
             connection.CreateCommand();
 
         command.CommandText =
@@ -59,10 +69,10 @@ public sealed class SqliteThreatHashRepository(
         CancellationToken cancellationToken = default)
     {
         await using var connection =
-            await OpenAsync(
+            await _connectionFactory.OpenAsync(
                 cancellationToken);
 
-        var command =
+        await using var command =
             connection.CreateCommand();
 
         command.CommandText =
@@ -116,15 +126,16 @@ public sealed class SqliteThreatHashRepository(
         }
 
         await using var connection =
-            await OpenAsync(
+            await _connectionFactory.OpenAsync(
                 cancellationToken);
 
-        var command =
+        await using var command =
             connection.CreateCommand();
 
         command.CommandText =
             """
-            INSERT INTO threat_hashes (
+            INSERT INTO threat_hashes
+            (
                 sha256,
                 source,
                 description,
@@ -132,7 +143,8 @@ public sealed class SqliteThreatHashRepository(
                 created_at_utc,
                 updated_at_utc
             )
-            VALUES (
+            VALUES
+            (
                 $sha256,
                 $source,
                 $description,
@@ -140,7 +152,8 @@ public sealed class SqliteThreatHashRepository(
                 $createdAtUtc,
                 $updatedAtUtc
             )
-            ON CONFLICT(sha256) DO UPDATE SET
+            ON CONFLICT(sha256)
+            DO UPDATE SET
                 source = excluded.source,
                 description = excluded.description,
                 enabled = excluded.enabled,
@@ -168,13 +181,19 @@ public sealed class SqliteThreatHashRepository(
 
         command.Parameters.AddWithValue(
             "$createdAtUtc",
-            entry.CreatedAtUtc.ToUniversalTime()
-                .ToString("O"));
+            entry.CreatedAtUtc
+                .ToUniversalTime()
+                .ToString(
+                    "O",
+                    CultureInfo.InvariantCulture));
 
         command.Parameters.AddWithValue(
             "$updatedAtUtc",
-            entry.UpdatedAtUtc.ToUniversalTime()
-                .ToString("O"));
+            entry.UpdatedAtUtc
+                .ToUniversalTime()
+                .ToString(
+                    "O",
+                    CultureInfo.InvariantCulture));
 
         await command.ExecuteNonQueryAsync(
             cancellationToken);
@@ -189,10 +208,10 @@ public sealed class SqliteThreatHashRepository(
                 sha256);
 
         await using var connection =
-            await OpenAsync(
+            await _connectionFactory.OpenAsync(
                 cancellationToken);
 
-        var command =
+        await using var command =
             connection.CreateCommand();
 
         command.CommandText =
@@ -209,43 +228,30 @@ public sealed class SqliteThreatHashRepository(
             cancellationToken);
     }
 
-    private async Task<SqliteConnection> OpenAsync(
-        CancellationToken cancellationToken)
-    {
-        var connection =
-            new SqliteConnection(
-                database.ConnectionString);
-
-        await connection.OpenAsync(
-            cancellationToken);
-
-        var pragma =
-            connection.CreateCommand();
-
-        pragma.CommandText =
-            "PRAGMA foreign_keys=ON;";
-
-        await pragma.ExecuteNonQueryAsync(
-            cancellationToken);
-
-        return connection;
-    }
-
     private static ThreatHashEntry Read(
         SqliteDataReader reader)
     {
         return new ThreatHashEntry(
-            reader.GetString(0),
-            reader.GetString(1),
-            reader.IsDBNull(2)
+            reader.GetString(
+                0),
+            reader.GetString(
+                1),
+            reader.IsDBNull(
+                2)
                 ? null
-                : reader.GetString(2),
-            reader.GetInt32(3) ==
-                1,
+                : reader.GetString(
+                    2),
+            reader.GetInt32(
+                3) ==
+            1,
             DateTimeOffset.Parse(
-                reader.GetString(4)),
+                reader.GetString(
+                    4),
+                CultureInfo.InvariantCulture),
             DateTimeOffset.Parse(
-                reader.GetString(5)));
+                reader.GetString(
+                    5),
+                CultureInfo.InvariantCulture));
     }
 
     private static string Normalize(
@@ -254,14 +260,14 @@ public sealed class SqliteThreatHashRepository(
         ArgumentException.ThrowIfNullOrWhiteSpace(
             sha256);
 
-        sha256 =
+        var normalized =
             sha256
                 .Trim()
                 .ToUpperInvariant();
 
-        if (sha256.Length !=
+        if (normalized.Length !=
                 64 ||
-            sha256.Any(
+            normalized.Any(
                 value =>
                     !Uri.IsHexDigit(
                         value)))
@@ -271,6 +277,6 @@ public sealed class SqliteThreatHashRepository(
                 nameof(sha256));
         }
 
-        return sha256;
+        return normalized;
     }
 }
