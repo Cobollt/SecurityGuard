@@ -4,11 +4,19 @@ namespace SecurityGuard.Core.Contracts;
 
 public interface IScanResultRepository
 {
-    Task AddAsync(
+    Task UpsertAsync(
         ScanResult result,
         CancellationToken cancellationToken = default);
 
-    Task<ScanResult?> GetLatestByHashAsync(
+    Task<ScanResult?> GetByIdAsync(
+        Guid id,
+        CancellationToken cancellationToken = default);
+
+    Task<ScanResult?> GetLatestBySha256Async(
         string sha256,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<ScanResult>> GetRecentAsync(
+        int limit,
         CancellationToken cancellationToken = default);
 }
