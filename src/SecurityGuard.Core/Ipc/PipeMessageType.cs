@@ -11,5 +11,9 @@ public enum PipeMessageType
     UpdateAlgorithmGuardSettings = 6,
     GetTransferGuardSettings = 7,
     UpdateTransferGuardSettings = 8,
-    CreateTransferGuardRule = 9
+    CreateTransferGuardRule = 9,
+    GetScanResults = 10,
+    GetScanResult = 11,
+    ScanFile = 12,
+    ApplyArchiveDecision = 13
 }

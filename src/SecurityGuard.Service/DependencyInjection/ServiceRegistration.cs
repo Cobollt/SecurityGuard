@@ -439,6 +439,10 @@ public static class ServiceRegistration
         services.AddSingleton<
             ISecurityDecisionHandler,
             ArchiveGuardDecisionHandler>();
+        
+        services.AddSingleton<
+            IArchiveGuardIpcService,
+            ArchiveGuardIpcService>();
                 
         services.AddHostedService<
             SecurityRuleExpirationHostedService>();

@@ -293,4 +293,30 @@ public sealed class SecurityGuardClient
         return PipeJsonSerializer.Deserialize<SecurityRule>(
             response.Payload);
     }
+
+    public Task<ArchiveGuardScanIpcDto> ScanArchiveGuardAsync(
+        string filePath,
+        CancellationToken cancellationToken = default)
+    {
+        return SendAsync<
+            ArchiveGuardScanIpcRequest,
+            ArchiveGuardScanIpcDto>(
+            PipeRequestType.ScanArchiveGuardFile,
+            new ArchiveGuardScanIpcRequest(
+                filePath),
+            cancellationToken);
+    }
+
+    public Task<IReadOnlyList<ArchiveGuardRecentScanIpcDto>> GetArchiveGuardRecentScansAsync(
+        int limit,
+        CancellationToken cancellationToken = default)
+    {
+        return SendAsync<
+            ArchiveGuardRecentScansIpcRequest,
+            IReadOnlyList<ArchiveGuardRecentScanIpcDto>>(
+            PipeRequestType.GetArchiveGuardRecentScans,
+            new ArchiveGuardRecentScansIpcRequest(
+                limit),
+            cancellationToken);
+    }
 }

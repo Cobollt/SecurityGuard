@@ -5,6 +5,7 @@ using SecurityGuard.AlgorithmGuard.Contracts;
 using SecurityGuard.AlgorithmGuard.Models;
 using SecurityGuard.TransferGuard.Contracts;
 using SecurityGuard.TransferGuard.Models;
+using SecurityGuard.Service.Application;
 
 namespace SecurityGuard.Service.Ipc;
 
@@ -16,6 +17,7 @@ public sealed class PipeRequestHandler
     private readonly IAlgorithmGuardSettingsCoordinator _algorithmGuardSettings;
     private readonly ITransferGuardSettingsCoordinator _transferGuardSettings;
     private readonly ITransferManualRuleService _transferManualRuleService;
+    private readonly IArchiveGuardIpcService _archiveGuardIpcService;
 
     public PipeRequestHandler(
         ISecuritySnapshotService snapshotService,
@@ -23,7 +25,8 @@ public sealed class PipeRequestHandler
         IRuleManagementService ruleManagementService,
         IAlgorithmGuardSettingsCoordinator algorithmGuardSettings,
         ITransferGuardSettingsCoordinator transferGuardSettings,
-        ITransferManualRuleService transferManualRuleService)
+        ITransferManualRuleService transferManualRuleService,
+        IArchiveGuardIpcService archiveGuardIpcService)
     {
         _snapshotService =
             snapshotService;
@@ -42,6 +45,9 @@ public sealed class PipeRequestHandler
 
         _transferManualRuleService =
             transferManualRuleService;
+
+        _archiveGuardIpcService =
+            archiveGuardIpcService;
     }   
 
     public async Task<PipeResponse> HandleAsync(
@@ -293,5 +299,41 @@ public sealed class PipeRequestHandler
             request.Id,
             PipeJsonSerializer.Serialize(
                 rule));
+    }
+
+    private async Task<PipeResponse> HandleArchiveGuardScanAsync(
+        PipeRequest request,
+        CancellationToken cancellationToken)
+    {
+        var payload =
+            request.DeserializePayload<
+                ArchiveGuardScanIpcRequest>();
+
+        var result =
+            await _archiveGuardIpcService.ScanAsync(
+                payload,
+                cancellationToken);
+
+        return PipeResponse.Success(
+            request.Id,
+            result);
+    }
+
+    private async Task<PipeResponse> HandleArchiveGuardRecentAsync(
+        PipeRequest request,
+        CancellationToken cancellationToken)
+    {
+        var payload =
+            request.DeserializePayload<
+                ArchiveGuardRecentScansIpcRequest>();
+
+        var result =
+            await _archiveGuardIpcService.GetRecentAsync(
+                payload,
+                cancellationToken);
+
+        return PipeResponse.Success(
+            request.Id,
+            result);
     }
 }
