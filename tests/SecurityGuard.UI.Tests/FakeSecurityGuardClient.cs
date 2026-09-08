@@ -39,6 +39,13 @@ internal sealed class FakeSecurityGuardClient
 
     public IReadOnlyList<ArchiveGuardRecentScanIpcDto> ArchiveScanHistory { get; set; } =
         [];
+    
+    public ArchiveGuardAutoScanSettingsIpcDto ArchiveGuardSettings { get; set; } =
+        new(
+            true,
+            true,
+            [],
+            []);
 
     public Task<ArchiveGuardScanIpcDto> ScanArchiveGuardAsync(
         string filePath,
@@ -218,5 +225,31 @@ internal sealed class FakeSecurityGuardClient
 
         return Task.FromResult(
             rule);
+    }
+
+    public Task<ArchiveGuardAutoScanSettingsIpcDto> GetArchiveGuardAutoScanSettingsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfConfigured();
+
+        return Task.FromResult(
+            ArchiveGuardSettings);
+    }
+
+    public Task<ArchiveGuardAutoScanSettingsIpcDto> UpdateArchiveGuardAutoScanSettingsAsync(
+        ArchiveGuardUpdateAutoScanSettingsIpcRequest settings,
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfConfigured();
+
+        ArchiveGuardSettings =
+            new ArchiveGuardAutoScanSettingsIpcDto(
+                settings.Enabled,
+                settings.ScanUserDownloads,
+                settings.AdditionalDirectories,
+                settings.AdditionalDirectories);
+
+        return Task.FromResult(
+            ArchiveGuardSettings);
     }
 }

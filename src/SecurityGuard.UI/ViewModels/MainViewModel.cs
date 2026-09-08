@@ -49,6 +49,13 @@ public sealed class MainViewModel
 
     private bool _archiveDecisionResolved;
 
+    private bool _archiveGuardAutoScanEnabled;
+
+    private bool _archiveGuardScanUserDownloads =
+        true;
+
+    private string? _selectedArchiveGuardAdditionalDirectory;
+
     public ObservableCollection<ModuleStatus> Modules { get; } =
         [];
 
@@ -90,6 +97,12 @@ public sealed class MainViewModel
 
     public ICommand SaveTransferGuardSettingsCommand { get; }
 
+    public ICommand SaveArchiveGuardSettingsCommand { get; }
+
+    public ICommand AddArchiveGuardDirectoryCommand { get; }
+
+    public ICommand RemoveArchiveGuardDirectoryCommand { get; }
+
     public ICommand SelectArchiveFileCommand { get; }
 
     public ICommand ScanArchiveFileCommand { get; }
@@ -101,6 +114,12 @@ public sealed class MainViewModel
     public ICommand ArchiveAddExceptionCommand { get; }
 
     public ICommand ArchiveQuarantineCommand { get; }
+
+    public ObservableCollection<string> ArchiveGuardAdditionalDirectories { get; } =
+        [];
+
+    public ObservableCollection<string> ArchiveGuardWatchedDirectories { get; } =
+        [];
 
     public ICommand ArchiveDeleteCommand { get; }
 
@@ -287,6 +306,24 @@ public sealed class MainViewModel
         SaveAlgorithmGuardSettingsCommand =
             new AsyncRelayCommand(
                 SaveAlgorithmGuardSettingsAsync);
+        
+            SaveArchiveGuardSettingsCommand =
+                new AsyncRelayCommand(
+                    SaveArchiveGuardSettingsAsync);
+
+            AddArchiveGuardDirectoryCommand =
+                new RelayCommand(
+                    _ =>
+                        AddArchiveGuardDirectory());
+
+            RemoveArchiveGuardDirectoryCommand =
+                new RelayCommand(
+                    _ =>
+                        RemoveArchiveGuardDirectory(),
+                    _ =>
+                        !string.IsNullOrWhiteSpace(
+                            SelectedArchiveGuardAdditionalDirectory));
+
 
         SaveTransferGuardSettingsCommand =
             new AsyncRelayCommand(
@@ -386,12 +423,19 @@ public sealed class MainViewModel
 
             var transferSettingsTask =
                 _client.GetTransferGuardSettingsAsync();
+            
+            var archiveSettingsTask =
+                _client.GetArchiveGuardAutoScanSettingsAsync();
 
             await Task.WhenAll(
                 snapshotTask,
                 rulesTask,
                 algorithmSettingsTask,
-                transferSettingsTask);
+                transferSettingsTask,
+                archiveSettingsTask);
+            
+            var archiveSettings =
+                await archiveSettingsTask;
 
             var snapshot =
                 await snapshotTask;
@@ -422,6 +466,9 @@ public sealed class MainViewModel
 
             ApplyTransferGuardSettings(
                 transferSettings);
+            
+            ApplyArchiveGuardSettings(
+                archiveSettings);
 
             LastRefreshUtc =
                 DateTimeOffset.UtcNow;
@@ -946,6 +993,111 @@ public sealed class MainViewModel
         };
     }
 
+    private void ApplyArchiveGuardSettings(
+        ArchiveGuardAutoScanSettingsIpcDto settings)
+    {
+        ArchiveGuardAutoScanEnabled =
+            settings.Enabled;
+
+        ArchiveGuardScanUserDownloads =
+            settings.ScanUserDownloads;
+
+        Replace(
+            ArchiveGuardAdditionalDirectories,
+            settings.AdditionalDirectories);
+
+        Replace(
+            ArchiveGuardWatchedDirectories,
+            settings.WatchedDirectories);
+    }
+
+    private async Task SaveArchiveGuardSettingsAsync()
+    {
+        try
+        {
+            var request =
+                new ArchiveGuardUpdateAutoScanSettingsIpcRequest(
+                    ArchiveGuardAutoScanEnabled,
+                    ArchiveGuardScanUserDownloads,
+                    ArchiveGuardAdditionalDirectories.ToArray());
+
+            var result =
+                await _client.UpdateArchiveGuardAutoScanSettingsAsync(
+                    request);
+
+            ApplyArchiveGuardSettings(
+                result);
+
+            LastError =
+                null;
+
+            await RefreshAsync();
+        }
+        catch (Exception exception)
+        {
+            LastError =
+                exception.Message;
+        }
+    }
+
+    private void AddArchiveGuardDirectory()
+    {
+        var dialog =
+            new OpenFolderDialog
+            {
+                Title =
+                    "Выберите папку для автоматической проверки",
+
+                Multiselect =
+                    false
+            };
+
+        if (dialog.ShowDialog() !=
+            true)
+        {
+            return;
+        }
+
+        var directory =
+            Path.GetFullPath(
+                dialog.FolderName);
+
+        if (ArchiveGuardAdditionalDirectories.Any(
+                existing =>
+                    string.Equals(
+                        Path.GetFullPath(
+                            existing),
+                        directory,
+                        StringComparison.OrdinalIgnoreCase)))
+        {
+            return;
+        }
+
+        ArchiveGuardAdditionalDirectories.Add(
+            directory);
+    }
+
+    private void RemoveArchiveGuardDirectory()
+    {
+        if (string.IsNullOrWhiteSpace(
+                SelectedArchiveGuardAdditionalDirectory))
+        {
+            return;
+        }
+
+        ArchiveGuardAdditionalDirectories.Remove(
+            SelectedArchiveGuardAdditionalDirectory);
+
+        SelectedArchiveGuardAdditionalDirectory =
+            null;
+
+        if (RemoveArchiveGuardDirectoryCommand is
+            RelayCommand command)
+        {
+            command.RaiseCanExecuteChanged();
+        }
+    }
+
     private static void Replace<T>(
         ObservableCollection<T> collection,
         IEnumerable<T> values)
@@ -1009,4 +1161,44 @@ public sealed class MainViewModel
     public bool ArchiveHasPendingDecision =>
         ArchiveScanResult?.DecisionRequestId is not null &&
         !_archiveDecisionResolved;
+    
+    public bool ArchiveGuardAutoScanEnabled
+    {
+        get =>
+            _archiveGuardAutoScanEnabled;
+
+        set =>
+            SetProperty(
+                ref _archiveGuardAutoScanEnabled,
+                value);
+    }
+
+    public bool ArchiveGuardScanUserDownloads
+    {
+        get =>
+            _archiveGuardScanUserDownloads;
+
+        set =>
+            SetProperty(
+                ref _archiveGuardScanUserDownloads,
+                value);
+    }
+
+    public string? SelectedArchiveGuardAdditionalDirectory
+    {
+        get =>
+            _selectedArchiveGuardAdditionalDirectory;
+
+        set
+        {
+            if (SetProperty(
+                    ref _selectedArchiveGuardAdditionalDirectory,
+                    value) &&
+                RemoveArchiveGuardDirectoryCommand is
+                    RelayCommand command)
+            {
+                command.RaiseCanExecuteChanged();
+            }
+        }
+    }
 }

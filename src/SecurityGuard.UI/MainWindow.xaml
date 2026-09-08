@@ -1169,6 +1169,71 @@
 
                             <Separator Margin="0,30,0,24" />
 
+                            <TextBlock Text="ArchiveGuard"
+                                    FontSize="20"
+                                    FontWeight="SemiBold"
+                                    Margin="0,0,0,12" />
+
+                            <CheckBox Content="Включить автоматическую проверку новых файлов"
+                                    IsChecked="{Binding ArchiveGuardAutoScanEnabled}"
+                                    FontSize="15"
+                                    Margin="0,4,0,12" />
+
+                            <CheckBox Content="Автоматически контролировать папки Downloads пользователей"
+                                    IsChecked="{Binding ArchiveGuardScanUserDownloads}"
+                                    FontSize="15"
+                                    Margin="0,4,0,16" />
+
+                            <TextBlock Text="Дополнительные контролируемые папки"
+                                    FontWeight="SemiBold"
+                                    Margin="0,8,0,6" />
+
+                            <ListBox ItemsSource="{Binding ArchiveGuardAdditionalDirectories}"
+                                    SelectedItem="{Binding SelectedArchiveGuardAdditionalDirectory}"
+                                    MinHeight="80"
+                                    MaxHeight="160"
+                                    Width="700"
+                                    HorizontalAlignment="Left" />
+
+                            <StackPanel Orientation="Horizontal"
+                                        Margin="0,8,0,0">
+
+                                <Button Content="Добавить папку"
+                                        Width="140"
+                                        Command="{Binding AddArchiveGuardDirectoryCommand}" />
+
+                                <Button Content="Удалить"
+                                        Width="110"
+                                        Margin="8,0,0,0"
+                                        Command="{Binding RemoveArchiveGuardDirectoryCommand}" />
+
+                            </StackPanel>
+
+                            <TextBlock Text="Фактически контролируемые каталоги"
+                                    FontWeight="SemiBold"
+                                    Margin="0,20,0,6" />
+
+                            <ListBox ItemsSource="{Binding ArchiveGuardWatchedDirectories}"
+                                    MinHeight="80"
+                                    MaxHeight="180"
+                                    Width="700"
+                                    HorizontalAlignment="Left"
+                                    IsEnabled="False" />
+
+                            <TextBlock Text="Здесь отображаются каталоги, для которых службе реально удалось запустить наблюдение."
+                                    TextWrapping="Wrap"
+                                    MaxWidth="700"
+                                    HorizontalAlignment="Left"
+                                    Margin="0,8,0,0" />
+
+                            <Button Content="Сохранить настройки ArchiveGuard"
+                                    Width="270"
+                                    HorizontalAlignment="Left"
+                                    Margin="0,20,0,0"
+                                    Command="{Binding SaveArchiveGuardSettingsCommand}" />
+
+                            <Separator Margin="0,30,0,24" />
+
                             <TextBlock Text="Состояние службы"
                                        FontSize="16"
                                        FontWeight="SemiBold"

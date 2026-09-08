@@ -7,6 +7,8 @@ using SecurityGuard.Core.Models;
 using SecurityGuard.Service.Application;
 using SecurityGuard.TransferGuard.Contracts;
 using SecurityGuard.TransferGuard.Models;
+using SecurityGuard.ArchiveGuard.Contracts;
+using SecurityGuard.ArchiveGuard.Models;
 
 namespace SecurityGuard.Service.Ipc;
 
@@ -19,6 +21,7 @@ public sealed class PipeRequestHandler
     private readonly ITransferGuardSettingsCoordinator _transferGuardSettings;
     private readonly ITransferManualRuleService _transferManualRuleService;
     private readonly IArchiveGuardIpcService? _archiveGuardIpcService;
+    private readonly IArchiveGuardAutoScanSettingsCoordinator? _archiveGuardAutoScanSettings;
 
     public PipeRequestHandler(
         ISecuritySnapshotService snapshotService,
@@ -27,7 +30,8 @@ public sealed class PipeRequestHandler
         IAlgorithmGuardSettingsCoordinator algorithmGuardSettings,
         ITransferGuardSettingsCoordinator transferGuardSettings,
         ITransferManualRuleService transferManualRuleService,
-        IArchiveGuardIpcService? archiveGuardIpcService = null)
+        IArchiveGuardIpcService? archiveGuardIpcService = null,
+        IArchiveGuardAutoScanSettingsCoordinator? archiveGuardAutoScanSettings = null)
     {
         _snapshotService =
             snapshotService;
@@ -49,6 +53,9 @@ public sealed class PipeRequestHandler
 
         _archiveGuardIpcService =
             archiveGuardIpcService;
+
+        _archiveGuardAutoScanSettings =
+            archiveGuardAutoScanSettings;
     }
 
     public async Task<PipeResponse> HandleAsync(
@@ -116,6 +123,16 @@ public sealed class PipeRequestHandler
 
                 PipeMessageType.GetScanResults =>
                     await GetArchiveGuardScanResultsAsync(
+                        request,
+                        cancellationToken),
+                
+                PipeMessageType.GetArchiveGuardSettings =>
+                    await GetArchiveGuardSettingsAsync(
+                        request,
+                        cancellationToken),
+
+                PipeMessageType.UpdateArchiveGuardSettings =>
+                    await UpdateArchiveGuardSettingsAsync(
                         request,
                         cancellationToken),
 
@@ -374,5 +391,90 @@ public sealed class PipeRequestHandler
             request.Id,
             PipeJsonSerializer.Serialize(
                 result));
+    }
+
+    private async Task<PipeResponse> GetArchiveGuardSettingsAsync(
+        PipeRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (_archiveGuardAutoScanSettings is null)
+        {
+            return PipeResponse.Fail(
+                request.Id,
+                "ArchiveGuard settings service is unavailable.");
+        }
+
+        var state =
+            await _archiveGuardAutoScanSettings.GetAsync(
+                cancellationToken);
+
+        return PipeResponse.Ok(
+            request.Id,
+            PipeJsonSerializer.Serialize(
+                ToArchiveGuardSettingsDto(
+                    state)));
+    }
+
+    private async Task<PipeResponse> UpdateArchiveGuardSettingsAsync(
+        PipeRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (_archiveGuardAutoScanSettings is null)
+        {
+            return PipeResponse.Fail(
+                request.Id,
+                "ArchiveGuard settings service is unavailable.");
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                request.Payload))
+        {
+            return PipeResponse.Fail(
+                request.Id,
+                "ArchiveGuard settings payload is required.");
+        }
+
+        var update =
+            PipeJsonSerializer.Deserialize<
+                ArchiveGuardUpdateAutoScanSettingsIpcRequest>(
+                    request.Payload);
+
+        var current =
+            await _archiveGuardAutoScanSettings.GetAsync(
+                cancellationToken);
+
+        var newSettings =
+            current.Settings with
+            {
+                Enabled =
+                    update.Enabled,
+
+                ScanUserDownloads =
+                    update.ScanUserDownloads,
+
+                AdditionalDirectories =
+                    update.AdditionalDirectories
+            };
+
+        var state =
+            await _archiveGuardAutoScanSettings.UpdateAsync(
+                newSettings,
+                cancellationToken);
+
+        return PipeResponse.Ok(
+            request.Id,
+            PipeJsonSerializer.Serialize(
+                ToArchiveGuardSettingsDto(
+                    state)));
+    }
+
+    private static ArchiveGuardAutoScanSettingsIpcDto ToArchiveGuardSettingsDto(
+        ArchiveGuardAutoScanRuntimeState state)
+    {
+        return new ArchiveGuardAutoScanSettingsIpcDto(
+            state.Settings.Enabled,
+            state.Settings.ScanUserDownloads,
+            state.Settings.AdditionalDirectories,
+            state.WatchedDirectories.ToArray());
     }
 }

@@ -15,5 +15,7 @@ public enum PipeMessageType
     GetScanResults = 10,
     GetScanResult = 11,
     ScanFile = 12,
-    ApplyArchiveDecision = 13
+    ApplyArchiveDecision = 13,
+    GetArchiveGuardSettings = 14,
+    UpdateArchiveGuardSettings = 15
 }

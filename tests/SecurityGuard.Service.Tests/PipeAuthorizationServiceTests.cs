@@ -91,4 +91,32 @@ public sealed class PipeAuthorizationServiceTests
                 PipeMessageType.CreateTransferGuardRule,
                 context));
     }
+
+    [Fact]
+    public void Standard_user_cannot_update_archive_guard_settings()
+    {
+        var context =
+            new PipeClientContext(
+                @"DESKTOP\User",
+                false);
+
+        Assert.False(
+            _service.IsAuthorized(
+                PipeMessageType.UpdateArchiveGuardSettings,
+                context));
+    }
+
+    [Fact]
+    public void Administrator_can_update_archive_guard_settings()
+    {
+        var context =
+            new PipeClientContext(
+                @"DESKTOP\Admin",
+                true);
+
+        Assert.True(
+            _service.IsAuthorized(
+                PipeMessageType.UpdateArchiveGuardSettings,
+                context));
+    }
 }

@@ -363,4 +363,64 @@ public sealed class SecurityGuardClient
             List<ArchiveGuardRecentScanIpcDto>>(
                 response.Payload);
     }
+
+    public async Task<ArchiveGuardAutoScanSettingsIpcDto> GetArchiveGuardAutoScanSettingsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var request =
+            PipeRequest.Create(
+                PipeMessageType.GetArchiveGuardSettings);
+
+        var response =
+            await SendAsync(
+                request,
+                cancellationToken);
+
+        EnsureSuccess(
+            response);
+
+        if (string.IsNullOrWhiteSpace(
+                response.Payload))
+        {
+            throw new InvalidDataException(
+                "ArchiveGuard settings response is empty.");
+        }
+
+        return PipeJsonSerializer.Deserialize<
+            ArchiveGuardAutoScanSettingsIpcDto>(
+                response.Payload);
+    }
+
+    public async Task<ArchiveGuardAutoScanSettingsIpcDto> UpdateArchiveGuardAutoScanSettingsAsync(
+        ArchiveGuardUpdateAutoScanSettingsIpcRequest settings,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(
+            settings);
+
+        var request =
+            PipeRequest.Create(
+                PipeMessageType.UpdateArchiveGuardSettings,
+                PipeJsonSerializer.Serialize(
+                    settings));
+
+        var response =
+            await SendAsync(
+                request,
+                cancellationToken);
+
+        EnsureSuccess(
+            response);
+
+        if (string.IsNullOrWhiteSpace(
+                response.Payload))
+        {
+            throw new InvalidDataException(
+                "ArchiveGuard settings response is empty.");
+        }
+
+        return PipeJsonSerializer.Deserialize<
+            ArchiveGuardAutoScanSettingsIpcDto>(
+                response.Payload);
+    }
 }

@@ -25,6 +25,9 @@ public sealed class PipeAuthorizationService
             PipeMessageType.CreateTransferGuardRule =>
                 context.IsAdministrator,
 
+            PipeMessageType.UpdateArchiveGuardSettings =>
+                context.IsAdministrator,
+
             _ =>
                 true
         };

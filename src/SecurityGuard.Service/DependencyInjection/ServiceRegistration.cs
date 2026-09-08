@@ -421,6 +421,24 @@ public static class ServiceRegistration
         services.AddSingleton<
             IArchiveGuardDecisionExecutor,
             ArchiveGuardDecisionExecutor>();
+
+        services.AddSingleton<
+            ArchiveGuardAutoScanHostedService>();
+
+        services.AddSingleton<
+            IArchiveGuardAutoScanRuntimeController>(
+                provider =>
+                    provider.GetRequiredService<
+                        ArchiveGuardAutoScanHostedService>());
+
+        services.AddSingleton<
+            IArchiveGuardAutoScanSettingsCoordinator,
+            ArchiveGuardAutoScanSettingsCoordinator>();
+
+        services.AddHostedService(
+            provider =>
+                provider.GetRequiredService<
+                    ArchiveGuardAutoScanHostedService>());
     
         services.AddHostedService<
             SecurityRuleExpirationHostedService>();

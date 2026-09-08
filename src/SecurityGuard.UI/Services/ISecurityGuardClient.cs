@@ -49,4 +49,11 @@ public interface ISecurityGuardClient
     Task<IReadOnlyList<ArchiveGuardRecentScanIpcDto>> GetArchiveGuardRecentScansAsync(
         int limit = 50,
         CancellationToken cancellationToken = default);
+    
+    Task<ArchiveGuardAutoScanSettingsIpcDto> GetArchiveGuardAutoScanSettingsAsync(
+        CancellationToken cancellationToken = default);
+
+    Task<ArchiveGuardAutoScanSettingsIpcDto> UpdateArchiveGuardAutoScanSettingsAsync(
+        ArchiveGuardUpdateAutoScanSettingsIpcRequest settings,
+        CancellationToken cancellationToken = default);
 }

@@ -3,6 +3,7 @@ using SecurityGuard.Core.Models;
 using SecurityGuard.UI.ViewModels;
 using SecurityGuard.TransferGuard.Enums;
 using SecurityGuard.TransferGuard.Models;
+using SecurityGuard.Core.Ipc.ArchiveGuard;
 
 namespace SecurityGuard.UI.Tests;
 
@@ -321,5 +322,42 @@ public sealed class MainViewModelTests
         Assert.Equal(
             TransferEnforcementFailurePolicy.FailClosed,
             viewModel.TransferGuardFailurePolicy);
+    }
+
+    [Fact]
+    public async Task Refresh_loads_archive_guard_settings()
+    {
+        var client =
+            new FakeSecurityGuardClient
+            {
+                ArchiveGuardSettings =
+                    new ArchiveGuardAutoScanSettingsIpcDto(
+                        true,
+                        false,
+                        [
+                            @"D:\Incoming"
+                        ],
+                        [
+                            @"D:\Incoming"
+                        ])
+            };
+
+        var viewModel =
+            new MainViewModel(
+                client);
+
+        await viewModel.RefreshAsync();
+
+        Assert.True(
+            viewModel.ArchiveGuardAutoScanEnabled);
+
+        Assert.False(
+            viewModel.ArchiveGuardScanUserDownloads);
+
+        Assert.Single(
+            viewModel.ArchiveGuardAdditionalDirectories);
+
+        Assert.Single(
+            viewModel.ArchiveGuardWatchedDirectories);
     }
 }

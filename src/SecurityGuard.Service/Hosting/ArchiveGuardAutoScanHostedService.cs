@@ -9,7 +9,8 @@ using SecurityGuard.Core.Enums;
 namespace SecurityGuard.Service.Hosting;
 
 public sealed class ArchiveGuardAutoScanHostedService
-    : BackgroundService
+    : BackgroundService,
+    IArchiveGuardAutoScanRuntimeController
 {
     private readonly IArchiveGuardAutoScanSettingsService _settingsService;
     private readonly IArchiveGuardWatchDirectoryProvider _directoryProvider;
@@ -37,6 +38,14 @@ public sealed class ArchiveGuardAutoScanHostedService
     private readonly ConcurrentDictionary<string, byte> _queuedRecoveryDirectories =
         new(
             StringComparer.OrdinalIgnoreCase);
+    
+    private readonly SemaphoreSlim _reconfigureGate =
+        new(
+            1,
+            1);
+
+    private string[] _watchedDirectories =
+        [];
 
     private readonly Channel<WatchWorkItem> _queue =
         Channel.CreateBounded<WatchWorkItem>(
@@ -55,6 +64,12 @@ public sealed class ArchiveGuardAutoScanHostedService
 
     private ArchiveGuardAutoScanSettings _settings =
         ArchiveGuardAutoScanSettings.Default;
+    
+    public ArchiveGuardAutoScanSettings CurrentSettings =>
+        _settings;
+
+    public IReadOnlyList<string> WatchedDirectories =>
+        _watchedDirectories;
 
     private int _processedSinceCleanup;
 
@@ -98,45 +113,9 @@ public sealed class ArchiveGuardAutoScanHostedService
                 await _settingsService.GetAsync(
                     stoppingToken);
 
-            if (!_settings.Enabled)
-            {
-                _moduleRegistry.Set(
-                    SecurityModuleKind.ArchiveGuard,
-                    ModuleOperationalState.Active,
-                    "Manual scanning is active; automatic scanning is disabled");
-
-                await Task.Delay(
-                    Timeout.InfiniteTimeSpan,
-                    stoppingToken);
-
-                return;
-            }
-
-            var directories =
-                _directoryProvider.GetDirectories(
-                    _settings);
-
-            foreach (var directory in
-                     directories)
-            {
-                try
-                {
-                    _watchers.Add(
-                        CreateWatcher(
-                            directory));
-                }
-                catch (Exception exception)
-                {
-                    await _auditService.WriteAsync(
-                        SecurityModuleKind.ArchiveGuard,
-                        SecurityEventType.System,
-                        SecuritySeverity.Medium,
-                        "ArchiveGuard watcher could not start",
-                        $"Directory={directory}; Error={exception.Message}",
-                        cancellationToken:
-                            stoppingToken);
-                }
-            }
+            await ApplyAsync(
+                _settings,
+                stoppingToken);
 
             if (_watchers.Count == 0)
             {
@@ -398,6 +377,45 @@ public sealed class ArchiveGuardAutoScanHostedService
         }
     }
 
+    private bool IsCurrentlyWatched(
+        string filePath)
+    {
+        string? parentDirectory;
+
+        try
+        {
+            parentDirectory =
+                Path.GetDirectoryName(
+                    Path.GetFullPath(
+                        filePath));
+        }
+        catch
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                parentDirectory))
+        {
+            return false;
+        }
+
+        return _watchedDirectories.Any(
+            directory =>
+                string.Equals(
+                    Path.GetFullPath(
+                        directory)
+                        .TrimEnd(
+                            Path.DirectorySeparatorChar,
+                            Path.AltDirectorySeparatorChar),
+                    Path.GetFullPath(
+                        parentDirectory)
+                        .TrimEnd(
+                            Path.DirectorySeparatorChar,
+                            Path.AltDirectorySeparatorChar),
+                    StringComparison.OrdinalIgnoreCase));
+    }
+
     private async Task ProcessQueueAsync(
         CancellationToken cancellationToken)
     {
@@ -426,6 +444,16 @@ public sealed class ArchiveGuardAutoScanHostedService
         string filePath,
         CancellationToken cancellationToken)
     {
+        if (!_settings.Enabled ||
+            !IsCurrentlyWatched(
+                filePath))
+        {
+            _queuedPaths.TryRemove(
+                filePath,
+                out _);
+
+            return;
+        }
         var initialActivity =
             _lastActivity.TryGetValue(
                 filePath,
@@ -465,6 +493,13 @@ public sealed class ArchiveGuardAutoScanHostedService
                     out var current)
                     ? current
                     : DateTimeOffset.UtcNow;
+            
+            if (!_settings.Enabled ||
+                !IsCurrentlyWatched(
+                    filePath))
+            {
+                return;
+            }
 
             await _workflowService.ScanAsync(
                 filePath,
@@ -695,4 +730,134 @@ public sealed class ArchiveGuardAutoScanHostedService
         WatchWorkKind Kind,
         string Path,
         string? Error);
+    
+    public async Task ApplyAsync(
+        ArchiveGuardAutoScanSettings settings,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(
+            settings);
+
+        await _reconfigureGate.WaitAsync(
+            cancellationToken);
+
+        try
+        {
+            StopWatchers();
+
+            _watchedDirectories =
+                [];
+
+            _moduleRegistry.Set(
+                SecurityModuleKind.ArchiveGuard,
+                ModuleOperationalState.Disabled,
+                "ArchiveGuard is stopped");
+
+            _settings =
+                settings;
+
+            if (!settings.Enabled)
+            {
+                _watchedDirectories =
+                    [];
+
+                _moduleRegistry.Set(
+                    SecurityModuleKind.ArchiveGuard,
+                    ModuleOperationalState.Active,
+                    "Manual scanning is active; automatic scanning is disabled");
+
+                return;
+            }
+
+            var directories =
+                _directoryProvider.GetDirectories(
+                    settings);
+
+            var activeDirectories =
+                new List<string>();
+
+            foreach (var directory in
+                    directories)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                try
+                {
+                    var watcher =
+                        CreateWatcher(
+                            directory);
+
+                    _watchers.Add(
+                        watcher);
+
+                    activeDirectories.Add(
+                        watcher.Path);
+                }
+                catch (Exception exception)
+                {
+                    await _auditService.WriteAsync(
+                        SecurityModuleKind.ArchiveGuard,
+                        SecurityEventType.System,
+                        SecuritySeverity.Medium,
+                        "ArchiveGuard watcher could not start",
+                        $"Directory={directory}; Error={exception.Message}",
+                        cancellationToken:
+                            cancellationToken);
+                }
+            }
+
+            _watchedDirectories =
+                activeDirectories.ToArray();
+
+            if (_watchedDirectories.Length == 0)
+            {
+                _moduleRegistry.Set(
+                    SecurityModuleKind.ArchiveGuard,
+                    ModuleOperationalState.Degraded,
+                    "Manual scanning is active; no automatic scan directories are available");
+
+                return;
+            }
+
+            _moduleRegistry.Set(
+                SecurityModuleKind.ArchiveGuard,
+                ModuleOperationalState.Active,
+                $"Automatic scanning is active for {_watchedDirectories.Length} directories");
+
+            await _auditService.WriteAsync(
+                SecurityModuleKind.ArchiveGuard,
+                SecurityEventType.System,
+                SecuritySeverity.Info,
+                "ArchiveGuard automatic scanning configuration applied",
+                string.Join(
+                    Environment.NewLine,
+                    _watchedDirectories),
+                cancellationToken:
+                    cancellationToken);
+        }
+        finally
+        {
+            _reconfigureGate.Release();
+        }
+    }
+
+    private void StopWatchers()
+    {
+        foreach (var watcher in
+                _watchers)
+        {
+            try
+            {
+                watcher.EnableRaisingEvents =
+                    false;
+
+                watcher.Dispose();
+            }
+            catch
+            {
+            }
+        }
+
+        _watchers.Clear();
+    }
 }
