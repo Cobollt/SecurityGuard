@@ -2,7 +2,6 @@ using SecurityGuard.ArchiveGuard.Contracts;
 using SecurityGuard.ArchiveGuard.Models;
 using SecurityGuard.Core.Contracts;
 using SecurityGuard.Core.Enums;
-using SecurityGuard.Core.Models;
 
 namespace SecurityGuard.ArchiveGuard.Services;
 
@@ -10,18 +9,27 @@ public sealed class ArchiveGuardWorkflowService
     : IArchiveGuardWorkflowService
 {
     private readonly IArchiveGuardScanner _scanner;
+    private readonly IScanResultRepository _scanResultRepository;
     private readonly IDecisionRequestRepository _decisionRepository;
     private readonly IArchiveGuardAuditSink _audit;
     private readonly ArchiveGuardDecisionRequestFactory _decisionFactory;
+    private readonly ArchiveGuardScanResultMapper _scanResultMapper;
+    private readonly IArchiveGuardRuleService _ruleService;
 
     public ArchiveGuardWorkflowService(
         IArchiveGuardScanner scanner,
+        IScanResultRepository scanResultRepository,
         IDecisionRequestRepository decisionRepository,
         IArchiveGuardAuditSink audit,
-        ArchiveGuardDecisionRequestFactory decisionFactory)
+        ArchiveGuardDecisionRequestFactory decisionFactory,
+        ArchiveGuardScanResultMapper scanResultMapper,
+        IArchiveGuardRuleService ruleService)
     {
         _scanner =
             scanner;
+
+        _scanResultRepository =
+            scanResultRepository;
 
         _decisionRepository =
             decisionRepository;
@@ -31,6 +39,12 @@ public sealed class ArchiveGuardWorkflowService
 
         _decisionFactory =
             decisionFactory;
+
+        _scanResultMapper =
+            scanResultMapper;
+
+        _ruleService =
+            ruleService;
     }
 
     public async Task<ArchiveGuardWorkflowResult> ScanAsync(
@@ -46,9 +60,35 @@ public sealed class ArchiveGuardWorkflowService
                     filePath),
                 cancellationToken);
 
+        var coreResult =
+            _scanResultMapper.Map(
+                result);
+
+        await _scanResultRepository.UpsertAsync(
+            coreResult,
+            cancellationToken);
+
         await WriteScanAuditAsync(
             result,
             cancellationToken);
+        
+        if (result.Verdict !=
+                ScanVerdict.Clean &&
+            await _ruleService.IsAllowedAsync(
+                result,
+                cancellationToken))
+        {
+            await _audit.WriteAsync(
+                SecurityEventType.ArchiveScan,
+                SecuritySeverity.Info,
+                "ArchiveGuard scan allowed by rule",
+                $"File={result.FilePath}; SHA256={result.Sha256 ?? "Unavailable"}; Verdict={result.Verdict}",
+                cancellationToken);
+
+            return new ArchiveGuardWorkflowResult(
+                result,
+                null);
+        }
 
         if (result.Verdict ==
             ScanVerdict.Clean)

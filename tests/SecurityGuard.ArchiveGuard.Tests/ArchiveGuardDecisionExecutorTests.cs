@@ -126,14 +126,18 @@ public sealed class ArchiveGuardDecisionExecutorTests
             null,
             [
                 SecurityAction.AllowOnce,
+                SecurityAction.Allow,
                 SecurityAction.Quarantine,
                 SecurityAction.Delete
             ],
             DateTimeOffset.UtcNow,
             new RuleMatchContext(
+                FileHash:
+                    new string(
+                        'A',
+                        64),
                 FilePath:
-                    filePath),
-            "ARCHIVE:TEST");
+                    filePath));
     }
 
     private sealed class FakeFileActions
@@ -325,5 +329,112 @@ public sealed class ArchiveGuardDecisionExecutorTests
 
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class FakeExceptionService
+        : IArchiveGuardExceptionService
+    {
+        public string? Sha256 { get; private set; }
+
+        public Task AddSha256ExceptionAsync(
+            string sha256,
+            string fileName,
+            CancellationToken cancellationToken = default)
+        {
+            Sha256 =
+                sha256;
+
+            return Task.CompletedTask;
+        }
+    }
+
+    [Fact]
+    public async Task Allow_action_creates_sha256_exception()
+    {
+        var request =
+            CreateRequest();
+
+        var repository =
+            new FakeDecisionRepository(
+                request);
+
+        var actions =
+            new FakeFileActions();
+
+        var exceptions =
+            new FakeExceptionService();
+
+        var executor =
+            new ArchiveGuardDecisionExecutor(
+                repository,
+                actions,
+                exceptions,
+                new FakeAuditSink());
+
+        var result =
+            await executor.ExecuteAsync(
+                request.Id,
+                SecurityAction.Allow);
+
+        Assert.True(
+            result.Success);
+
+        Assert.Equal(
+            request.RuleContext!.FileHash,
+            exceptions.Sha256);
+
+        Assert.Equal(
+            request.FilePath,
+            actions.KeptFile);
+    }
+
+    [Fact]
+    public async Task Allow_without_sha256_fails()
+    {
+        var filePath =
+            Path.Combine(
+                Path.GetTempPath(),
+                "sample.exe");
+
+        var request =
+            new SecurityDecisionRequest(
+                Guid.NewGuid(),
+                SecurityModuleKind.ArchiveGuard,
+                SecurityEventType.ArchiveScan,
+                "Test",
+                "Test",
+                filePath,
+                null,
+                [
+                    SecurityAction.Allow
+                ],
+                DateTimeOffset.UtcNow,
+                new RuleMatchContext(
+                    FilePath:
+                        filePath),
+                "ARCHIVE:TEST");
+
+        var repository =
+            new FakeDecisionRepository(
+                request);
+
+        var executor =
+            new ArchiveGuardDecisionExecutor(
+                repository,
+                new FakeFileActions(),
+                new FakeExceptionService(),
+                new FakeAuditSink());
+
+        var result =
+            await executor.ExecuteAsync(
+                request.Id,
+                SecurityAction.Allow);
+
+        Assert.False(
+            result.Success);
+
+        Assert.NotNull(
+            await repository.GetByIdAsync(
+                request.Id));
     }
 }

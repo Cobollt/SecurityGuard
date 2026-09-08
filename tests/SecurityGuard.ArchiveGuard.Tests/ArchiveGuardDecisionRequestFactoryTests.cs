@@ -51,6 +51,10 @@ public sealed class ArchiveGuardDecisionRequestFactoryTests
         Assert.False(
             string.IsNullOrWhiteSpace(
                 request.Identity));
+        
+        Assert.Contains(
+            SecurityAction.Allow,
+            request.AvailableActions);
     }
 
     [Fact]

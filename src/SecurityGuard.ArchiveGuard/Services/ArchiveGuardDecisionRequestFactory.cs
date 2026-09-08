@@ -58,6 +58,7 @@ public sealed class ArchiveGuardDecisionRequestFactory
             _ =>
             [
                 SecurityAction.AllowOnce,
+                SecurityAction.Allow,
                 SecurityAction.Quarantine,
                 SecurityAction.Delete
             ]

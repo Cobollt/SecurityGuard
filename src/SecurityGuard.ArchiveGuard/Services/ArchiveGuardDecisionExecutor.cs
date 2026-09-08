@@ -2,6 +2,7 @@ using SecurityGuard.ArchiveGuard.Contracts;
 using SecurityGuard.ArchiveGuard.Models;
 using SecurityGuard.Core.Contracts;
 using SecurityGuard.Core.Enums;
+using SecurityGuard.Core.Models;
 
 namespace SecurityGuard.ArchiveGuard.Services;
 
@@ -10,11 +11,13 @@ public sealed class ArchiveGuardDecisionExecutor
 {
     private readonly IDecisionRequestRepository _decisionRepository;
     private readonly IArchiveGuardFileActionService _fileActions;
+    private readonly IArchiveGuardExceptionService _exceptionService;
     private readonly IArchiveGuardAuditSink _audit;
 
     public ArchiveGuardDecisionExecutor(
         IDecisionRequestRepository decisionRepository,
         IArchiveGuardFileActionService fileActions,
+        IArchiveGuardExceptionService exceptionService,
         IArchiveGuardAuditSink audit)
     {
         _decisionRepository =
@@ -22,6 +25,9 @@ public sealed class ArchiveGuardDecisionExecutor
 
         _fileActions =
             fileActions;
+
+        _exceptionService =
+            exceptionService;
 
         _audit =
             audit;
@@ -75,8 +81,7 @@ public sealed class ArchiveGuardDecisionExecutor
         try
         {
             var message =
-                await ExecuteFileActionAsync(
-                    request.FilePath,
+                await ExecuteActionAsync(
                     request,
                     action,
                     cancellationToken);
@@ -119,9 +124,8 @@ public sealed class ArchiveGuardDecisionExecutor
         }
     }
 
-    private async Task<string> ExecuteFileActionAsync(
-        string filePath,
-        SecurityGuard.Core.Models.SecurityDecisionRequest request,
+    private async Task<string> ExecuteActionAsync(
+        SecurityDecisionRequest request,
         SecurityAction action,
         CancellationToken cancellationToken)
     {
@@ -129,14 +133,25 @@ public sealed class ArchiveGuardDecisionExecutor
         {
             case SecurityAction.AllowOnce:
                 await _fileActions.KeepAsync(
-                    filePath,
+                    request.FilePath!,
                     cancellationToken);
 
                 return "File was kept.";
 
+            case SecurityAction.Allow:
+                await AddExceptionAsync(
+                    request,
+                    cancellationToken);
+
+                await _fileActions.KeepAsync(
+                    request.FilePath!,
+                    cancellationToken);
+
+                return "File was kept and a SHA-256 exception was added.";
+
             case SecurityAction.Quarantine:
                 await _fileActions.QuarantineAsync(
-                    filePath,
+                    request.FilePath!,
                     BuildQuarantineReason(
                         request),
                     cancellationToken);
@@ -145,7 +160,7 @@ public sealed class ArchiveGuardDecisionExecutor
 
             case SecurityAction.Delete:
                 await _fileActions.DeleteAsync(
-                    filePath,
+                    request.FilePath!,
                     cancellationToken);
 
                 return "File was deleted.";
@@ -156,8 +171,29 @@ public sealed class ArchiveGuardDecisionExecutor
         }
     }
 
+    private async Task AddExceptionAsync(
+        SecurityDecisionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var sha256 =
+            request.RuleContext?.FileHash;
+
+        if (string.IsNullOrWhiteSpace(
+                sha256))
+        {
+            throw new InvalidOperationException(
+                "A SHA-256 exception cannot be created because the decision request does not contain a file hash.");
+        }
+
+        await _exceptionService.AddSha256ExceptionAsync(
+            sha256,
+            Path.GetFileName(
+                request.FilePath!),
+            cancellationToken);
+    }
+
     private static string BuildQuarantineReason(
-        SecurityGuard.Core.Models.SecurityDecisionRequest request)
+        SecurityDecisionRequest request)
     {
         return
             $"ArchiveGuard decision {request.Id}: {request.Title}";
@@ -173,6 +209,9 @@ public sealed class ArchiveGuardDecisionExecutor
 
             SecurityAction.Quarantine =>
                 SecuritySeverity.High,
+
+            SecurityAction.Allow =>
+                SecuritySeverity.Medium,
 
             _ =>
                 SecuritySeverity.Info
