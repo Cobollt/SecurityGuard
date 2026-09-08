@@ -1,5 +1,6 @@
-using SecurityGuard.Core.Models;
 using SecurityGuard.AlgorithmGuard.Models;
+using SecurityGuard.Core.Ipc.ArchiveGuard;
+using SecurityGuard.Core.Models;
 using SecurityGuard.TransferGuard.Models;
 
 namespace SecurityGuard.UI.Services;
@@ -13,13 +14,6 @@ public interface ISecurityGuardClient
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<SecurityRule>> GetRulesAsync(
-        CancellationToken cancellationToken = default);
-
-    Task<TransferGuardSettings> GetTransferGuardSettingsAsync(
-        CancellationToken cancellationToken = default);
-
-    Task UpdateTransferGuardSettingsAsync(
-        TransferGuardSettings settings,
         CancellationToken cancellationToken = default);
 
     Task SubmitDecisionAsync(
@@ -37,7 +31,22 @@ public interface ISecurityGuardClient
         AlgorithmGuardSettings settings,
         CancellationToken cancellationToken = default);
 
+    Task<TransferGuardSettings> GetTransferGuardSettingsAsync(
+        CancellationToken cancellationToken = default);
+
+    Task UpdateTransferGuardSettingsAsync(
+        TransferGuardSettings settings,
+        CancellationToken cancellationToken = default);
+
     Task<SecurityRule> CreateTransferGuardRuleAsync(
         TransferManualRuleRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<ArchiveGuardScanIpcDto> ScanArchiveGuardAsync(
+        string filePath,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<ArchiveGuardRecentScanIpcDto>> GetArchiveGuardRecentScansAsync(
+        int limit = 50,
         CancellationToken cancellationToken = default);
 }

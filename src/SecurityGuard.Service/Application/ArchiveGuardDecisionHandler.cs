@@ -22,11 +22,14 @@ public sealed class ArchiveGuardDecisionHandler
 
     public async Task HandleAsync(
         SecurityDecisionRequest request,
-        SecurityAction action,
+        SecurityDecision decision,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(
             request);
+
+        ArgumentNullException.ThrowIfNull(
+            decision);
 
         if (request.Module !=
             SecurityModuleKind.ArchiveGuard)
@@ -38,7 +41,7 @@ public sealed class ArchiveGuardDecisionHandler
         var result =
             await _executor.ExecuteAsync(
                 request.Id,
-                action,
+                decision.Action,
                 cancellationToken);
 
         if (!result.Success)

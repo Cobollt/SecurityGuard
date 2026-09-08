@@ -5,6 +5,7 @@ using SecurityGuard.AlgorithmGuard.Models;
 using System.Security.Principal;
 using SecurityGuard.TransferGuard.Models;
 using System.IO;
+using SecurityGuard.Core.Ipc.ArchiveGuard;
 
 namespace SecurityGuard.UI.Services;
 
@@ -294,29 +295,72 @@ public sealed class SecurityGuardClient
             response.Payload);
     }
 
-    public Task<ArchiveGuardScanIpcDto> ScanArchiveGuardAsync(
+    public async Task<ArchiveGuardScanIpcDto> ScanArchiveGuardAsync(
         string filePath,
         CancellationToken cancellationToken = default)
     {
-        return SendAsync<
-            ArchiveGuardScanIpcRequest,
-            ArchiveGuardScanIpcDto>(
-            PipeRequestType.ScanArchiveGuardFile,
+        ArgumentException.ThrowIfNullOrWhiteSpace(
+            filePath);
+
+        var payload =
             new ArchiveGuardScanIpcRequest(
-                filePath),
-            cancellationToken);
+                filePath);
+
+        var request =
+            PipeRequest.Create(
+                PipeMessageType.ScanFile,
+                PipeJsonSerializer.Serialize(
+                    payload));
+
+        var response =
+            await SendAsync(
+                request,
+                cancellationToken);
+
+        EnsureSuccess(
+            response);
+
+        if (string.IsNullOrWhiteSpace(
+                response.Payload))
+        {
+            throw new InvalidDataException(
+                "ArchiveGuard scan response is empty.");
+        }
+
+        return PipeJsonSerializer.Deserialize<ArchiveGuardScanIpcDto>(
+            response.Payload);
     }
 
-    public Task<IReadOnlyList<ArchiveGuardRecentScanIpcDto>> GetArchiveGuardRecentScansAsync(
-        int limit,
+    public async Task<IReadOnlyList<ArchiveGuardRecentScanIpcDto>> GetArchiveGuardRecentScansAsync(
+        int limit = 50,
         CancellationToken cancellationToken = default)
     {
-        return SendAsync<
-            ArchiveGuardRecentScansIpcRequest,
-            IReadOnlyList<ArchiveGuardRecentScanIpcDto>>(
-            PipeRequestType.GetArchiveGuardRecentScans,
+        var payload =
             new ArchiveGuardRecentScansIpcRequest(
-                limit),
-            cancellationToken);
+                limit);
+
+        var request =
+            PipeRequest.Create(
+                PipeMessageType.GetScanResults,
+                PipeJsonSerializer.Serialize(
+                    payload));
+
+        var response =
+            await SendAsync(
+                request,
+                cancellationToken);
+
+        EnsureSuccess(
+            response);
+
+        if (string.IsNullOrWhiteSpace(
+                response.Payload))
+        {
+            return [];
+        }
+
+        return PipeJsonSerializer.Deserialize<
+            List<ArchiveGuardRecentScanIpcDto>>(
+                response.Payload);
     }
 }

@@ -3,6 +3,7 @@ using SecurityGuard.UI.Services;
 using SecurityGuard.AlgorithmGuard.Models;
 using SecurityGuard.TransferGuard.Models;
 using SecurityGuard.Core.Enums;
+using SecurityGuard.Core.Ipc.ArchiveGuard;
 
 namespace SecurityGuard.UI.Tests;
 
@@ -33,6 +34,43 @@ internal sealed class FakeSecurityGuardClient
 
     public AlgorithmGuardSettings AlgorithmGuardSettings { get; set; } =
         AlgorithmGuardSettings.Default;
+
+    public ArchiveGuardScanIpcDto? ArchiveScanResult { get; set; }
+
+    public IReadOnlyList<ArchiveGuardRecentScanIpcDto> ArchiveScanHistory { get; set; } =
+        [];
+
+    public Task<ArchiveGuardScanIpcDto> ScanArchiveGuardAsync(
+        string filePath,
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfConfigured();
+
+        return Task.FromResult(
+            ArchiveScanResult ??
+            new ArchiveGuardScanIpcDto(
+                Guid.NewGuid(),
+                filePath,
+                null,
+                null,
+                ScanVerdict.Clean,
+                "Unknown",
+                [],
+                null,
+                [],
+                DateTimeOffset.UtcNow,
+                DateTimeOffset.UtcNow));
+    }
+
+    public Task<IReadOnlyList<ArchiveGuardRecentScanIpcDto>> GetArchiveGuardRecentScansAsync(
+        int limit = 50,
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfConfigured();
+
+        return Task.FromResult(
+            ArchiveScanHistory);
+    }
 
     public Task<bool> PingAsync(
         CancellationToken cancellationToken = default)

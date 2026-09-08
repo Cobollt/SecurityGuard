@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using SecurityGuard.Core.Contracts;
 using SecurityGuard.Core.Enums;
@@ -9,13 +10,13 @@ namespace SecurityGuard.Storage.Repositories;
 public sealed class SqliteScanResultRepository
     : IScanResultRepository
 {
-    private readonly DatabaseInitializer _database;
+    private readonly SqliteConnectionFactory _connectionFactory;
 
     public SqliteScanResultRepository(
-        DatabaseInitializer database)
+        SqliteConnectionFactory connectionFactory)
     {
-        _database =
-            database;
+        _connectionFactory =
+            connectionFactory;
     }
 
     public async Task UpsertAsync(
@@ -26,10 +27,10 @@ public sealed class SqliteScanResultRepository
             result);
 
         await using var connection =
-            await OpenAsync(
+            await _connectionFactory.OpenAsync(
                 cancellationToken);
 
-        var command =
+        await using var command =
             connection.CreateCommand();
 
         command.CommandText =
@@ -42,6 +43,8 @@ public sealed class SqliteScanResultRepository
                 file_size,
                 verdict,
                 summary,
+                risk_score,
+                findings_json,
                 started_at_utc,
                 completed_at_utc
             )
@@ -53,6 +56,8 @@ public sealed class SqliteScanResultRepository
                 $fileSize,
                 $verdict,
                 $summary,
+                $riskScore,
+                $findingsJson,
                 $startedAtUtc,
                 $completedAtUtc
             )
@@ -63,6 +68,8 @@ public sealed class SqliteScanResultRepository
                 file_size = excluded.file_size,
                 verdict = excluded.verdict,
                 summary = excluded.summary,
+                risk_score = excluded.risk_score,
+                findings_json = excluded.findings_json,
                 started_at_utc = excluded.started_at_utc,
                 completed_at_utc = excluded.completed_at_utc;
             """;
@@ -99,6 +106,15 @@ public sealed class SqliteScanResultRepository
             result.Summary);
 
         command.Parameters.AddWithValue(
+            "$riskScore",
+            result.RiskScore);
+
+        command.Parameters.AddWithValue(
+            "$findingsJson",
+            JsonSerializer.Serialize(
+                result.Findings));
+
+        command.Parameters.AddWithValue(
             "$startedAtUtc",
             result.StartedAtUtc
                 .ToUniversalTime()
@@ -119,10 +135,10 @@ public sealed class SqliteScanResultRepository
         CancellationToken cancellationToken = default)
     {
         await using var connection =
-            await OpenAsync(
+            await _connectionFactory.OpenAsync(
                 cancellationToken);
 
-        var command =
+        await using var command =
             connection.CreateCommand();
 
         command.CommandText =
@@ -135,6 +151,8 @@ public sealed class SqliteScanResultRepository
                 file_size,
                 verdict,
                 summary,
+                risk_score,
+                findings_json,
                 started_at_utc,
                 completed_at_utc
             FROM scan_results
@@ -164,15 +182,14 @@ public sealed class SqliteScanResultRepository
         string sha256,
         CancellationToken cancellationToken = default)
     {
-        sha256 =
-            NormalizeSha256(
-                sha256);
+        ArgumentException.ThrowIfNullOrWhiteSpace(
+            sha256);
 
         await using var connection =
-            await OpenAsync(
+            await _connectionFactory.OpenAsync(
                 cancellationToken);
 
-        var command =
+        await using var command =
             connection.CreateCommand();
 
         command.CommandText =
@@ -185,17 +202,19 @@ public sealed class SqliteScanResultRepository
                 file_size,
                 verdict,
                 summary,
+                risk_score,
+                findings_json,
                 started_at_utc,
                 completed_at_utc
             FROM scan_results
-            WHERE sha256 = $sha256
+            WHERE UPPER(sha256) = UPPER($sha256)
             ORDER BY completed_at_utc DESC
             LIMIT 1;
             """;
 
         command.Parameters.AddWithValue(
             "$sha256",
-            sha256);
+            sha256.Trim());
 
         await using var reader =
             await command.ExecuteReaderAsync(
@@ -222,10 +241,10 @@ public sealed class SqliteScanResultRepository
         }
 
         await using var connection =
-            await OpenAsync(
+            await _connectionFactory.OpenAsync(
                 cancellationToken);
 
-        var command =
+        await using var command =
             connection.CreateCommand();
 
         command.CommandText =
@@ -238,6 +257,8 @@ public sealed class SqliteScanResultRepository
                 file_size,
                 verdict,
                 summary,
+                risk_score,
+                findings_json,
                 started_at_utc,
                 completed_at_utc
             FROM scan_results
@@ -267,31 +288,15 @@ public sealed class SqliteScanResultRepository
         return results;
     }
 
-    private async Task<SqliteConnection> OpenAsync(
-        CancellationToken cancellationToken)
-    {
-        var connection =
-            new SqliteConnection(
-                _database.ConnectionString);
-
-        await connection.OpenAsync(
-            cancellationToken);
-
-        var pragma =
-            connection.CreateCommand();
-
-        pragma.CommandText =
-            "PRAGMA foreign_keys=ON;";
-
-        await pragma.ExecuteNonQueryAsync(
-            cancellationToken);
-
-        return connection;
-    }
-
     private static ScanResult Read(
         SqliteDataReader reader)
     {
+        var findings =
+            JsonSerializer.Deserialize<List<string>>(
+                reader.GetString(8))
+            ??
+            [];
+
         return new ScanResult(
             Guid.Parse(
                 reader.GetString(0)),
@@ -305,34 +310,11 @@ public sealed class SqliteScanResultRepository
                 : reader.GetInt64(4),
             (ScanVerdict)reader.GetInt32(5),
             reader.GetString(6),
+            reader.GetInt32(7),
+            findings,
             DateTimeOffset.Parse(
-                reader.GetString(7)),
+                reader.GetString(9)),
             DateTimeOffset.Parse(
-                reader.GetString(8)));
-    }
-
-    private static string NormalizeSha256(
-        string sha256)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(
-            sha256);
-
-        sha256 =
-            sha256.Trim()
-                .ToUpperInvariant();
-
-        if (sha256.Length !=
-                64 ||
-            sha256.Any(
-                value =>
-                    !Uri.IsHexDigit(
-                        value)))
-        {
-            throw new ArgumentException(
-                "SHA-256 must contain exactly 64 hexadecimal characters.",
-                nameof(sha256));
-        }
-
-        return sha256;
+                reader.GetString(10)));
     }
 }

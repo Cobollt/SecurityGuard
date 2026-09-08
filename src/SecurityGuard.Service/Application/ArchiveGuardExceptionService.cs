@@ -67,11 +67,11 @@ public sealed class ArchiveGuardExceptionService
                 Guid.NewGuid(),
                 $"ArchiveGuard SHA-256 exception: {fileName}",
                 SecurityModuleKind.ArchiveGuard,
+                RuleDecision.Allow,
                 RuleScope.FileHash,
                 sha256,
-                RuleDecision.Allow,
-                Priority,
                 true,
+                Priority,
                 now,
                 null);
 

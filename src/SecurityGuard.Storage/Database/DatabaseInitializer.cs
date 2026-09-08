@@ -157,11 +157,14 @@ public sealed class DatabaseInitializer
             CREATE TABLE IF NOT EXISTS scan_results
             (
                 id TEXT PRIMARY KEY,
+                module INTEGER NOT NULL DEFAULT 0,
                 file_path TEXT NOT NULL,
-                sha256 TEXT NOT NULL,
+                sha256 TEXT NULL,
+                file_size INTEGER NULL,
                 verdict INTEGER NOT NULL,
-                risk_score INTEGER NOT NULL,
-                findings_json TEXT NOT NULL,
+                summary TEXT NOT NULL DEFAULT '',
+                risk_score INTEGER NOT NULL DEFAULT 0,
+                findings_json TEXT NOT NULL DEFAULT '[]',
                 started_at_utc TEXT NOT NULL,
                 completed_at_utc TEXT NOT NULL
             );

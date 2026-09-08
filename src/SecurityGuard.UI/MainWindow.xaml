@@ -92,7 +92,7 @@
                             CommandParameter="2" />
 
                     <Button Style="{StaticResource NavigationButton}"
-                            Content="Проверка архивов"
+                            Content="Проверка файлов и архивов"
                             Command="{Binding NavigateCommand}"
                             CommandParameter="3" />
 
@@ -503,51 +503,220 @@
                     Converter={StaticResource IndexToVisibilityConverter},
                     ConverterParameter=3}">
 
-                    <DockPanel>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
 
-                        <StackPanel DockPanel.Dock="Top">
+                    <StackPanel Grid.Row="0">
 
-                            <TextBlock Text="Проверка архивов"
-                                       FontSize="28"
-                                       FontWeight="SemiBold" />
+                        <TextBlock Text="Проверка файлов и архивов"
+                                FontSize="28"
+                                FontWeight="SemiBold" />
 
-                            <TextBlock Text="Автоматическая и ручная проверка файлов и архивов."
-                                       Margin="0,6,0,10" />
+                        <TextBlock Text="Ручная проверка файлов, архивов и их вложенного содержимого."
+                                Margin="0,6,0,14" />
+
+                    </StackPanel>
+
+                    <Grid Grid.Row="1"
+                        Margin="0,0,0,12">
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBox Grid.Column="0"
+                                Text="{Binding ArchiveFilePath,
+                                    UpdateSourceTrigger=PropertyChanged}"
+                                Height="32"
+                                VerticalContentAlignment="Center" />
+
+                        <Button Grid.Column="1"
+                                Content="Выбрать файл"
+                                Command="{Binding SelectArchiveFileCommand}"
+                                Margin="8,0,0,0"
+                                Padding="14,5" />
+
+                        <Button Grid.Column="2"
+                                Content="Проверить"
+                                Command="{Binding ScanArchiveFileCommand}"
+                                Margin="8,0,0,0"
+                                Padding="18,5" />
+
+                    </Grid>
+
+                    <Border Grid.Row="2"
+                            Style="{StaticResource Card}"
+                            Margin="0,0,0,12">
+
+                        <StackPanel>
+
+                            <TextBlock Text="{Binding ArchiveStatusText}"
+                                    FontSize="16"
+                                    FontWeight="SemiBold"
+                                    Margin="0,0,0,10" />
+
+                            <Grid>
+
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0"
+                                            Width="180">
+
+                                    <TextBlock Text="Verdict"
+                                            FontWeight="SemiBold" />
+
+                                    <TextBlock Text="{Binding ArchiveScanResult.Verdict}"
+                                            Margin="0,3,0,10" />
+
+                                    <TextBlock Text="Тип"
+                                            FontWeight="SemiBold" />
+
+                                    <TextBlock Text="{Binding ArchiveScanResult.FileType}"
+                                            Margin="0,3,0,10" />
+
+                                    <TextBlock Text="Размер"
+                                            FontWeight="SemiBold" />
+
+                                    <TextBlock Text="{Binding ArchiveScanResult.FileSize}" />
+
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1">
+
+                                    <TextBlock Text="SHA-256"
+                                            FontWeight="SemiBold" />
+
+                                    <TextBox Text="{Binding ArchiveScanResult.Sha256}"
+                                            IsReadOnly="True"
+                                            Margin="0,3,0,12" />
+
+                                    <WrapPanel>
+
+                                        <Button Content="Оставить"
+                                                Command="{Binding ArchiveKeepCommand}"
+                                                Margin="0,0,8,0"
+                                                Padding="12,5" />
+
+                                        <Button Content="Добавить исключение"
+                                                Command="{Binding ArchiveAddExceptionCommand}"
+                                                Margin="0,0,8,0"
+                                                Padding="12,5" />
+
+                                        <Button Content="Карантин"
+                                                Command="{Binding ArchiveQuarantineCommand}"
+                                                Margin="0,0,8,0"
+                                                Padding="12,5" />
+
+                                        <Button Content="Удалить"
+                                                Command="{Binding ArchiveDeleteCommand}"
+                                                Padding="12,5" />
+
+                                    </WrapPanel>
+
+                                </StackPanel>
+
+                            </Grid>
 
                         </StackPanel>
 
-                        <ListView ItemsSource="{Binding ArchiveEvents}">
+                    </Border>
 
-                            <ListView.View>
+                    <GroupBox Grid.Row="3"
+                            Header="Обнаруженные признаки"
+                            Margin="0,0,0,12">
 
-                                <GridView>
+                        <DataGrid ItemsSource="{Binding ArchiveFindings}"
+                                AutoGenerateColumns="False"
+                                IsReadOnly="True"
+                                CanUserAddRows="False">
 
-                                    <GridViewColumn Header="Время"
-                                                    Width="170"
-                                                    DisplayMemberBinding="{Binding CreatedAtUtc}" />
+                            <DataGrid.Columns>
 
-                                    <GridViewColumn Header="Событие"
-                                                    Width="240"
-                                                    DisplayMemberBinding="{Binding Title}" />
+                                <DataGridTextColumn Header="Severity"
+                                                    Binding="{Binding Severity}"
+                                                    Width="90" />
 
-                                    <GridViewColumn Header="Подробности"
-                                                    Width="420"
-                                                    DisplayMemberBinding="{Binding Details}" />
+                                <DataGridTextColumn Header="Verdict"
+                                                    Binding="{Binding Verdict}"
+                                                    Width="100" />
 
-                                    <GridViewColumn Header="Действие"
-                                                    Width="120"
-                                                    DisplayMemberBinding="{Binding Action}" />
+                                <DataGridTextColumn Header="Тип"
+                                                    Binding="{Binding Kind}"
+                                                    Width="180" />
 
-                                </GridView>
+                                <DataGridTextColumn Header="Описание"
+                                                    Binding="{Binding Title}"
+                                                    Width="220" />
 
-                            </ListView.View>
+                                <DataGridTextColumn Header="Файл внутри архива"
+                                                    Binding="{Binding EntryPath}"
+                                                    Width="2*" />
 
-                        </ListView>
+                                <DataGridTextColumn Header="Детали"
+                                                    Binding="{Binding Details}"
+                                                    Width="3*" />
 
-                    </DockPanel>
+                            </DataGrid.Columns>
+
+                        </DataGrid>
+
+                    </GroupBox>
+
+                    <GroupBox Grid.Row="4"
+                            Header="История проверок">
+
+                        <DockPanel>
+
+                            <Button DockPanel.Dock="Top"
+                                    Content="Обновить историю"
+                                    Command="{Binding RefreshArchiveHistoryCommand}"
+                                    HorizontalAlignment="Left"
+                                    Margin="4"
+                                    Padding="12,5" />
+
+                            <DataGrid ItemsSource="{Binding ArchiveScanHistory}"
+                                    AutoGenerateColumns="False"
+                                    IsReadOnly="True"
+                                    CanUserAddRows="False">
+
+                                <DataGrid.Columns>
+
+                                    <DataGridTextColumn Header="Время"
+                                                        Binding="{Binding CompletedAtUtc}"
+                                                        Width="160" />
+
+                                    <DataGridTextColumn Header="Verdict"
+                                                        Binding="{Binding Verdict}"
+                                                        Width="100" />
+
+                                    <DataGridTextColumn Header="Файл"
+                                                        Binding="{Binding FilePath}"
+                                                        Width="3*" />
+
+                                    <DataGridTextColumn Header="SHA-256"
+                                                        Binding="{Binding Sha256}"
+                                                        Width="2*" />
+
+                                </DataGrid.Columns>
+
+                            </DataGrid>
+
+                        </DockPanel>
+
+                    </GroupBox>
 
                 </Grid>
-
+                
                 <Grid Visibility="{Binding SelectedPageIndex,
                     Converter={StaticResource IndexToVisibilityConverter},
                     ConverterParameter=4}">

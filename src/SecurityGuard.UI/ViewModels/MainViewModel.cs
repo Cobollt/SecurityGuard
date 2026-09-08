@@ -7,6 +7,8 @@ using SecurityGuard.Core.Models;
 using SecurityGuard.TransferGuard.Enums;
 using SecurityGuard.TransferGuard.Models;
 using SecurityGuard.UI.Services;
+using Microsoft.Win32;
+using SecurityGuard.Core.Ipc.ArchiveGuard;
 
 namespace SecurityGuard.UI.ViewModels;
 
@@ -37,6 +39,15 @@ public sealed class MainViewModel
 
     private TransferEnforcementFailurePolicy _transferGuardFailurePolicy =
         TransferEnforcementFailurePolicy.FailOpen;
+    
+    private string? _archiveFilePath;
+
+    private ArchiveGuardScanIpcDto? _archiveScanResult;
+
+    private string _archiveStatusText =
+        "Выберите файл для проверки.";
+
+    private bool _archiveDecisionResolved;
 
     public ObservableCollection<ModuleStatus> Modules { get; } =
         [];
@@ -51,6 +62,12 @@ public sealed class MainViewModel
         [];
 
     public ObservableCollection<SecurityEvent> ArchiveEvents { get; } =
+        [];
+    
+    public ObservableCollection<ArchiveGuardFindingIpcDto> ArchiveFindings { get; } =
+        [];
+
+    public ObservableCollection<ArchiveGuardRecentScanIpcDto> ArchiveScanHistory { get; } =
         [];
 
     public ObservableCollection<DecisionRequestViewModel> PendingRequests { get; } =
@@ -72,6 +89,20 @@ public sealed class MainViewModel
     public ICommand SaveAlgorithmGuardSettingsCommand { get; }
 
     public ICommand SaveTransferGuardSettingsCommand { get; }
+
+    public ICommand SelectArchiveFileCommand { get; }
+
+    public ICommand ScanArchiveFileCommand { get; }
+
+    public ICommand RefreshArchiveHistoryCommand { get; }
+
+    public ICommand ArchiveKeepCommand { get; }
+
+    public ICommand ArchiveAddExceptionCommand { get; }
+
+    public ICommand ArchiveQuarantineCommand { get; }
+
+    public ICommand ArchiveDeleteCommand { get; }
 
     public IReadOnlyList<AlgorithmGuardMode> AlgorithmGuardModes { get; } =
         Enum.GetValues<AlgorithmGuardMode>();
@@ -260,6 +291,62 @@ public sealed class MainViewModel
         SaveTransferGuardSettingsCommand =
             new AsyncRelayCommand(
                 SaveTransferGuardSettingsAsync);
+        
+        SelectArchiveFileCommand =
+            new RelayCommand(
+                SelectArchiveFile,
+                _ =>
+                    !IsBusy);
+
+        ScanArchiveFileCommand =
+            new AsyncRelayCommand(
+                ScanArchiveFileAsync,
+                () =>
+                    !IsBusy &&
+                    !string.IsNullOrWhiteSpace(
+                        ArchiveFilePath));
+
+        RefreshArchiveHistoryCommand =
+            new AsyncRelayCommand(
+                RefreshArchiveHistoryAsync,
+                () =>
+                    !IsBusy);
+
+        ArchiveKeepCommand =
+            new AsyncRelayCommand(
+                () =>
+                    SubmitArchiveDecisionAsync(
+                        SecurityAction.AllowOnce),
+                () =>
+                    CanApplyArchiveAction(
+                        SecurityAction.AllowOnce));
+
+        ArchiveAddExceptionCommand =
+            new AsyncRelayCommand(
+                () =>
+                    SubmitArchiveDecisionAsync(
+                        SecurityAction.Allow),
+                () =>
+                    CanApplyArchiveAction(
+                        SecurityAction.Allow));
+
+        ArchiveQuarantineCommand =
+            new AsyncRelayCommand(
+                () =>
+                    SubmitArchiveDecisionAsync(
+                        SecurityAction.Quarantine),
+                () =>
+                    CanApplyArchiveAction(
+                        SecurityAction.Quarantine));
+
+        ArchiveDeleteCommand =
+            new AsyncRelayCommand(
+                () =>
+                    SubmitArchiveDecisionAsync(
+                        SecurityAction.Delete),
+                () =>
+                    CanApplyArchiveAction(
+                        SecurityAction.Delete));
     }
 
     public async Task RefreshAsync()
@@ -580,6 +667,285 @@ public sealed class MainViewModel
         }
     }
 
+    private void SelectArchiveFile(
+        object? parameter)
+    {
+        var dialog =
+            new OpenFileDialog
+            {
+                Title =
+                    "Выберите файл для проверки",
+
+                Filter =
+                    "Все файлы|*.*",
+
+                CheckFileExists =
+                    true,
+
+                CheckPathExists =
+                    true,
+
+                Multiselect =
+                    false
+            };
+
+        if (dialog.ShowDialog() !=
+            true)
+        {
+            return;
+        }
+
+        ArchiveFilePath =
+            dialog.FileName;
+
+        ArchiveStatusText =
+            "Файл выбран.";
+    }
+
+    private async Task ScanArchiveFileAsync()
+    {
+        if (string.IsNullOrWhiteSpace(
+                ArchiveFilePath))
+        {
+            return;
+        }
+
+        IsBusy =
+            true;
+
+        _archiveDecisionResolved =
+            false;
+
+        OnPropertyChanged(
+            nameof(ArchiveHasPendingDecision));
+
+        ArchiveStatusText =
+            "Проверка файла...";
+
+        try
+        {
+            var result =
+                await _client.ScanArchiveGuardAsync(
+                    ArchiveFilePath);
+
+            ArchiveScanResult =
+                result;
+
+            Replace(
+                ArchiveFindings,
+                result.Findings);
+
+            ArchiveStatusText =
+                GetArchiveStatusText(
+                    result.Verdict);
+
+            var history =
+                await _client.GetArchiveGuardRecentScansAsync(
+                    50);
+
+            Replace(
+                ArchiveScanHistory,
+                history);
+
+            LastError =
+                null;
+        }
+        catch (Exception exception)
+        {
+            LastError =
+                exception.Message;
+
+            ArchiveStatusText =
+                "Проверка не выполнена.";
+        }
+        finally
+        {
+            IsBusy =
+                false;
+
+            RaiseArchiveCommandStates();
+        }
+    }
+
+    private async Task RefreshArchiveHistoryAsync()
+    {
+        try
+        {
+            var history =
+                await _client.GetArchiveGuardRecentScansAsync(
+                    50);
+
+            Replace(
+                ArchiveScanHistory,
+                history);
+
+            LastError =
+                null;
+        }
+        catch (Exception exception)
+        {
+            LastError =
+                exception.Message;
+        }
+    }
+
+    private async Task SubmitArchiveDecisionAsync(
+        SecurityAction action)
+    {
+        var requestId =
+            ArchiveScanResult?.DecisionRequestId;
+
+        if (requestId is null ||
+            _archiveDecisionResolved)
+        {
+            return;
+        }
+
+        IsBusy =
+            true;
+
+        try
+        {
+            var decision =
+                new SecurityDecision(
+                    requestId.Value,
+                    action,
+                    action ==
+                    SecurityAction.Allow,
+                    DateTimeOffset.UtcNow);
+
+            await _client.SubmitDecisionAsync(
+                decision);
+
+            _archiveDecisionResolved =
+                true;
+
+            OnPropertyChanged(
+                nameof(ArchiveHasPendingDecision));
+
+            ArchiveStatusText =
+                GetArchiveActionStatus(
+                    action);
+
+            LastError =
+                null;
+        }
+        catch (Exception exception)
+        {
+            LastError =
+                exception.Message;
+        }
+        finally
+        {
+            IsBusy =
+                false;
+
+            RaiseArchiveCommandStates();
+        }
+
+        await RefreshAsync();
+    }
+
+    private bool CanApplyArchiveAction(
+        SecurityAction action)
+    {
+        return !IsBusy &&
+            ArchiveHasPendingDecision &&
+            ArchiveScanResult is not null &&
+            ArchiveScanResult.AvailableActions.Contains(
+                action);
+    }
+
+    private void RaiseArchiveCommandStates()
+    {
+        if (SelectArchiveFileCommand is
+            RelayCommand selectCommand)
+        {
+            selectCommand.RaiseCanExecuteChanged();
+        }
+
+        if (ScanArchiveFileCommand is
+            AsyncRelayCommand scanCommand)
+        {
+            scanCommand.RaiseCanExecuteChanged();
+        }
+
+        if (RefreshArchiveHistoryCommand is
+            AsyncRelayCommand historyCommand)
+        {
+            historyCommand.RaiseCanExecuteChanged();
+        }
+
+        RaiseArchiveActionCommand(
+            ArchiveKeepCommand);
+
+        RaiseArchiveActionCommand(
+            ArchiveAddExceptionCommand);
+
+        RaiseArchiveActionCommand(
+            ArchiveQuarantineCommand);
+
+        RaiseArchiveActionCommand(
+            ArchiveDeleteCommand);
+    }
+
+    private static void RaiseArchiveActionCommand(
+        ICommand command)
+    {
+        if (command is
+            AsyncRelayCommand asyncCommand)
+        {
+            asyncCommand.RaiseCanExecuteChanged();
+        }
+    }
+
+    private static string GetArchiveStatusText(
+        ScanVerdict verdict)
+    {
+        return verdict switch
+        {
+            ScanVerdict.Clean =>
+                "Угроз не обнаружено.",
+
+            ScanVerdict.Suspicious =>
+                "Обнаружены подозрительные признаки.",
+
+            ScanVerdict.Malicious =>
+                "Обнаружен вредоносный файл.",
+
+            ScanVerdict.Unknown =>
+                "Файл не удалось проверить полностью.",
+
+            ScanVerdict.Error =>
+                "Проверка завершилась с ошибкой.",
+
+            _ =>
+                "Проверка завершена."
+        };
+    }
+
+    private static string GetArchiveActionStatus(
+        SecurityAction action)
+    {
+        return action switch
+        {
+            SecurityAction.AllowOnce =>
+                "Файл оставлен.",
+
+            SecurityAction.Allow =>
+                "Добавлено исключение по SHA-256.",
+
+            SecurityAction.Quarantine =>
+                "Файл перемещён в карантин.",
+
+            SecurityAction.Delete =>
+                "Файл удалён.",
+
+            _ =>
+                "Действие выполнено."
+        };
+    }
+
     private static void Replace<T>(
         ObservableCollection<T> collection,
         IEnumerable<T> values)
@@ -593,4 +959,54 @@ public sealed class MainViewModel
                 value);
         }
     }
+
+    public string? ArchiveFilePath
+    {
+        get =>
+            _archiveFilePath;
+
+        set
+        {
+            if (SetProperty(
+                    ref _archiveFilePath,
+                    value))
+            {
+                RaiseArchiveCommandStates();
+            }
+        }
+    }
+
+    public ArchiveGuardScanIpcDto? ArchiveScanResult
+    {
+        get =>
+            _archiveScanResult;
+
+        private set
+        {
+            if (SetProperty(
+                    ref _archiveScanResult,
+                    value))
+            {
+                OnPropertyChanged(
+                    nameof(ArchiveHasPendingDecision));
+
+                RaiseArchiveCommandStates();
+            }
+        }
+    }
+
+    public string ArchiveStatusText
+    {
+        get =>
+            _archiveStatusText;
+
+        private set =>
+            SetProperty(
+                ref _archiveStatusText,
+                value);
+    }
+
+    public bool ArchiveHasPendingDecision =>
+        ArchiveScanResult?.DecisionRequestId is not null &&
+        !_archiveDecisionResolved;
 }

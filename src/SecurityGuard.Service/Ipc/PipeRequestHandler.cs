@@ -1,11 +1,12 @@
-using SecurityGuard.Core.Contracts;
-using SecurityGuard.Core.Ipc;
-using SecurityGuard.Core.Models;
 using SecurityGuard.AlgorithmGuard.Contracts;
 using SecurityGuard.AlgorithmGuard.Models;
+using SecurityGuard.Core.Contracts;
+using SecurityGuard.Core.Ipc;
+using SecurityGuard.Core.Ipc.ArchiveGuard;
+using SecurityGuard.Core.Models;
+using SecurityGuard.Service.Application;
 using SecurityGuard.TransferGuard.Contracts;
 using SecurityGuard.TransferGuard.Models;
-using SecurityGuard.Service.Application;
 
 namespace SecurityGuard.Service.Ipc;
 
@@ -17,7 +18,7 @@ public sealed class PipeRequestHandler
     private readonly IAlgorithmGuardSettingsCoordinator _algorithmGuardSettings;
     private readonly ITransferGuardSettingsCoordinator _transferGuardSettings;
     private readonly ITransferManualRuleService _transferManualRuleService;
-    private readonly IArchiveGuardIpcService _archiveGuardIpcService;
+    private readonly IArchiveGuardIpcService? _archiveGuardIpcService;
 
     public PipeRequestHandler(
         ISecuritySnapshotService snapshotService,
@@ -26,7 +27,7 @@ public sealed class PipeRequestHandler
         IAlgorithmGuardSettingsCoordinator algorithmGuardSettings,
         ITransferGuardSettingsCoordinator transferGuardSettings,
         ITransferManualRuleService transferManualRuleService,
-        IArchiveGuardIpcService archiveGuardIpcService)
+        IArchiveGuardIpcService? archiveGuardIpcService = null)
     {
         _snapshotService =
             snapshotService;
@@ -48,7 +49,7 @@ public sealed class PipeRequestHandler
 
         _archiveGuardIpcService =
             archiveGuardIpcService;
-    }   
+    }
 
     public async Task<PipeResponse> HandleAsync(
         PipeRequest request,
@@ -102,9 +103,19 @@ public sealed class PipeRequestHandler
                     await UpdateTransferGuardSettingsAsync(
                         request,
                         cancellationToken),
-                    
+
                 PipeMessageType.CreateTransferGuardRule =>
                     await CreateTransferGuardRuleAsync(
+                        request,
+                        cancellationToken),
+
+                PipeMessageType.ScanFile =>
+                    await ScanArchiveGuardFileAsync(
+                        request,
+                        cancellationToken),
+
+                PipeMessageType.GetScanResults =>
+                    await GetArchiveGuardScanResultsAsync(
                         request,
                         cancellationToken),
 
@@ -198,7 +209,7 @@ public sealed class PipeRequestHandler
             request.Id);
     }
 
-        private async Task<PipeResponse> GetAlgorithmGuardSettingsAsync(
+    private async Task<PipeResponse> GetAlgorithmGuardSettingsAsync(
         PipeRequest request,
         CancellationToken cancellationToken)
     {
@@ -301,39 +312,67 @@ public sealed class PipeRequestHandler
                 rule));
     }
 
-    private async Task<PipeResponse> HandleArchiveGuardScanAsync(
+    private async Task<PipeResponse> ScanArchiveGuardFileAsync(
         PipeRequest request,
         CancellationToken cancellationToken)
     {
-        var payload =
-            request.DeserializePayload<
-                ArchiveGuardScanIpcRequest>();
+        if (_archiveGuardIpcService is null)
+        {
+            return PipeResponse.Fail(
+                request.Id,
+                "ArchiveGuard IPC service is unavailable.");
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                request.Payload))
+        {
+            return PipeResponse.Fail(
+                request.Id,
+                "ArchiveGuard scan payload is required.");
+        }
+
+        var model =
+            PipeJsonSerializer.Deserialize<ArchiveGuardScanIpcRequest>(
+                request.Payload);
 
         var result =
             await _archiveGuardIpcService.ScanAsync(
-                payload,
+                model,
                 cancellationToken);
 
-        return PipeResponse.Success(
+        return PipeResponse.Ok(
             request.Id,
-            result);
+            PipeJsonSerializer.Serialize(
+                result));
     }
 
-    private async Task<PipeResponse> HandleArchiveGuardRecentAsync(
+    private async Task<PipeResponse> GetArchiveGuardScanResultsAsync(
         PipeRequest request,
         CancellationToken cancellationToken)
     {
-        var payload =
-            request.DeserializePayload<
-                ArchiveGuardRecentScansIpcRequest>();
+        if (_archiveGuardIpcService is null)
+        {
+            return PipeResponse.Fail(
+                request.Id,
+                "ArchiveGuard IPC service is unavailable.");
+        }
+
+        var model =
+            string.IsNullOrWhiteSpace(
+                request.Payload)
+                ? new ArchiveGuardRecentScansIpcRequest()
+                : PipeJsonSerializer.Deserialize<
+                    ArchiveGuardRecentScansIpcRequest>(
+                        request.Payload);
 
         var result =
             await _archiveGuardIpcService.GetRecentAsync(
-                payload,
+                model,
                 cancellationToken);
 
-        return PipeResponse.Success(
+        return PipeResponse.Ok(
             request.Id,
-            result);
+            PipeJsonSerializer.Serialize(
+                result));
     }
 }
