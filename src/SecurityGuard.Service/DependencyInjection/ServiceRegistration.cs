@@ -346,6 +346,22 @@ public static class ServiceRegistration
 
         services.AddSingleton(
             new ArchiveGuardOptions());
+        
+        services.AddSingleton<
+            IArchiveGuardAutoScanSettingsService,
+            ArchiveGuardAutoScanSettingsService>();
+
+        services.AddSingleton<
+            IArchiveGuardFileCandidatePolicy,
+            ArchiveGuardFileCandidatePolicy>();
+
+        services.AddSingleton<
+            IArchiveGuardFileReadinessService,
+            ArchiveGuardFileReadinessService>();
+
+        services.AddSingleton<
+            IArchiveGuardWatchDirectoryProvider,
+            WindowsArchiveGuardWatchDirectoryProvider>();
 
         services.AddSingleton<
             IArchiveTemporarySpoolService,
@@ -415,8 +431,8 @@ public static class ServiceRegistration
         services.AddHostedService<
             TransferTelemetryHealthHostedService>();
 
-        services.AddHostedService<SecurityGuardPipeServer>();
         services.AddHostedService<SecurityGuardStartupService>();
+        services.AddHostedService<SecurityGuardPipeServer>();
         services.AddHostedService<SecurityGuardWorker>();
 
         services.AddHostedService<TransferTemporaryEnforcementMaintenanceHostedService>();

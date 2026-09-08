@@ -28,8 +28,8 @@ public sealed class ModuleRegistry : IModuleRegistry
 
         Set(
             SecurityModuleKind.ArchiveGuard,
-            ModuleOperationalState.Disabled,
-            "ArchiveGuard is not implemented");
+            ModuleOperationalState.Starting,
+            "ArchiveGuard is starting");
     }
 
     public IReadOnlyList<ModuleStatus> GetAll()
