@@ -1,4 +1,5 @@
 using SecurityGuard.Core.Models;
+using SecurityGuard.Core.Enums;
 
 namespace SecurityGuard.Core.Contracts;
 
@@ -18,5 +19,11 @@ public interface IScanResultRepository
 
     Task<IReadOnlyList<ScanResult>> GetRecentAsync(
         int limit,
+        CancellationToken cancellationToken = default);
+
+    Task PruneAsync(
+        SecurityModuleKind module,
+        DateTimeOffset olderThanUtc,
+        int maxEntries,
         CancellationToken cancellationToken = default);
 }

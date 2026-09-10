@@ -1,5 +1,6 @@
 using SecurityGuard.ArchiveGuard.Contracts;
 using SecurityGuard.ArchiveGuard.Enums;
+using SecurityGuard.ArchiveGuard.Exceptions;
 using SecurityGuard.ArchiveGuard.Models;
 using SecurityGuard.Core.Enums;
 
@@ -10,14 +11,18 @@ public sealed class ArchiveGuardScanner
 {
     private readonly IArchiveFileMetadataService _metadataService;
     private readonly IReadOnlyList<IArchiveFileAnalyzer> _analyzers;
-    private readonly IArchiveRecursiveScanner _recursiveScanner;
     private readonly IReadOnlyList<IArchiveSeekableContentAnalyzer> _seekableAnalyzers;
+    private readonly IArchiveRecursiveScanner _recursiveScanner;
+    private readonly IArchiveGuardFileConsistencyService _consistencyService;
+    private readonly IArchiveGuardScanCache _scanCache;
 
     public ArchiveGuardScanner(
         IArchiveFileMetadataService metadataService,
         IEnumerable<IArchiveFileAnalyzer> analyzers,
         IEnumerable<IArchiveSeekableContentAnalyzer> seekableAnalyzers,
-        IArchiveRecursiveScanner recursiveScanner)
+        IArchiveRecursiveScanner recursiveScanner,
+        IArchiveGuardFileConsistencyService consistencyService,
+        IArchiveGuardScanCache scanCache)
     {
         _metadataService =
             metadataService;
@@ -30,6 +35,12 @@ public sealed class ArchiveGuardScanner
 
         _recursiveScanner =
             recursiveScanner;
+
+        _consistencyService =
+            consistencyService;
+
+        _scanCache =
+            scanCache;
     }
 
     public async Task<ArchiveGuardScanResult> ScanAsync(
@@ -56,6 +67,12 @@ public sealed class ArchiveGuardScanner
         {
             throw;
         }
+        catch (ArchiveFileChangedException exception)
+        {
+            return CreateChangedResult(
+                exception.FilePath,
+                startedAt);
+        }
         catch (Exception exception)
         {
             return new ArchiveGuardScanResult(
@@ -75,6 +92,44 @@ public sealed class ArchiveGuardScanner
                 startedAt,
                 DateTimeOffset.UtcNow,
                 DetectedFileType.Unknown);
+        }
+
+        if (_scanCache.TryGet(
+                metadata,
+                out var cached))
+        {
+            if (!await _consistencyService.IsConsistentAsync(
+                    metadata,
+                    cancellationToken))
+            {
+                return CreateChangedResult(
+                    metadata.FilePath,
+                    startedAt);
+            }
+
+            return cached with
+            {
+                Id =
+                    Guid.NewGuid(),
+
+                FilePath =
+                    metadata.FilePath,
+
+                Sha256 =
+                    metadata.Sha256,
+
+                FileSize =
+                    metadata.Length,
+
+                Findings =
+                    cached.Findings.ToArray(),
+
+                StartedAtUtc =
+                    startedAt,
+
+                CompletedAtUtc =
+                    DateTimeOffset.UtcNow
+            };
         }
 
         var findings =
@@ -199,22 +254,61 @@ public sealed class ArchiveGuardScanner
             }
         }
 
+        if (!await _consistencyService.IsConsistentAsync(
+                metadata,
+                cancellationToken))
+        {
+            return CreateChangedResult(
+                metadata.FilePath,
+                startedAt);
+        }
+
         var verdict =
             SelectHigherVerdict(
                 CalculateVerdict(
                     findings),
                 recursiveVerdict);
 
+        var result =
+            new ArchiveGuardScanResult(
+                Guid.NewGuid(),
+                metadata.FilePath,
+                metadata.Sha256,
+                metadata.Length,
+                verdict,
+                findings,
+                startedAt,
+                DateTimeOffset.UtcNow,
+                metadata.FileType);
+
+        _scanCache.Store(
+            metadata,
+            result);
+
+        return result;
+    }
+
+    private static ArchiveGuardScanResult CreateChangedResult(
+        string filePath,
+        DateTimeOffset startedAt)
+    {
         return new ArchiveGuardScanResult(
             Guid.NewGuid(),
-            metadata.FilePath,
-            metadata.Sha256,
-            metadata.Length,
-            verdict,
-            findings,
+            filePath,
+            null,
+            null,
+            ScanVerdict.Unknown,
+            [
+                new ArchiveScanFinding(
+                    ArchiveFindingKind.FileChangedDuringScan,
+                    ScanVerdict.Unknown,
+                    SecuritySeverity.High,
+                    "File changed during scan",
+                    "ArchiveGuard discarded the scan because the file contents changed while analysis was in progress.")
+            ],
             startedAt,
             DateTimeOffset.UtcNow,
-            metadata.FileType);
+            DetectedFileType.Unknown);
     }
 
     private static ScanVerdict CalculateVerdict(
@@ -260,9 +354,9 @@ public sealed class ArchiveGuardScanner
         ScanVerdict second)
     {
         return GetVerdictRank(
-                second) >
-            GetVerdictRank(
-                first)
+                   second) >
+               GetVerdictRank(
+                   first)
             ? second
             : first;
     }

@@ -52,5 +52,6 @@ public enum ArchiveFindingKind
     AuthenticodeInvalid = 47,
     AuthenticodeUntrusted = 48,
     AuthenticodeRevoked = 49,
-    AuthenticodeVerificationUnavailable = 50
+    AuthenticodeVerificationUnavailable = 50,
+    FileChangedDuringScan = 51
 }

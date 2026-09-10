@@ -53,8 +53,7 @@ public sealed class ArchiveTemporarySpoolService
                         path,
                         FileMode.CreateNew,
                         FileAccess.ReadWrite,
-                        FileShare.Read |
-                        FileShare.Delete,
+                        FileShare.Read,
                         bufferSize:
                             64 * 1024,
                         FileOptions.Asynchronous |

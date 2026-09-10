@@ -1,5 +1,6 @@
 using SecurityGuard.ArchiveGuard.Configuration;
 using SecurityGuard.ArchiveGuard.Contracts;
+using SecurityGuard.ArchiveGuard.Exceptions;
 using SecurityGuard.ArchiveGuard.Models;
 using SecurityGuard.Core.Contracts;
 
@@ -46,36 +47,115 @@ public sealed class ArchiveFileMetadataService
                 fullPath);
         }
 
-        var info =
+        ArchiveFileChangedException? lastMutation =
+            null;
+
+        for (var attempt = 0;
+             attempt <=
+             _options.MaxFileMutationRetries;
+             attempt++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            try
+            {
+                return await LoadStableAsync(
+                    fullPath,
+                    cancellationToken);
+            }
+            catch (ArchiveFileChangedException exception)
+            {
+                lastMutation =
+                    exception;
+
+                if (attempt >=
+                    _options.MaxFileMutationRetries)
+                {
+                    throw;
+                }
+
+                await Task.Delay(
+                    _options.FileMutationRetryDelayMilliseconds,
+                    cancellationToken);
+            }
+        }
+
+        throw lastMutation ??
+              new ArchiveFileChangedException(
+                  fullPath);
+    }
+
+    private async Task<ArchiveFileMetadata> LoadStableAsync(
+        string fullPath,
+        CancellationToken cancellationToken)
+    {
+        var before =
             new FileInfo(
                 fullPath);
 
-        var header =
+        before.Refresh();
+
+        if (!before.Exists)
+        {
+            throw new FileNotFoundException(
+                "File was not found.",
+                fullPath);
+        }
+
+        var lengthBefore =
+            before.Length;
+
+        var writeBefore =
+            before.LastWriteTimeUtc;
+
+        var headerBefore =
             await ReadHeaderAsync(
                 fullPath,
                 cancellationToken);
-
-        var fileType =
-            _fileTypeDetector.Detect(
-                header);
 
         var sha256 =
             await _fileHashService.ComputeSha256Async(
                 fullPath,
                 cancellationToken);
 
-        info.Refresh();
+        var headerAfter =
+            await ReadHeaderAsync(
+                fullPath,
+                cancellationToken);
+
+        var after =
+            new FileInfo(
+                fullPath);
+
+        after.Refresh();
+
+        if (!after.Exists ||
+            lengthBefore !=
+                after.Length ||
+            writeBefore !=
+                after.LastWriteTimeUtc ||
+            !headerBefore.AsSpan()
+                .SequenceEqual(
+                    headerAfter))
+        {
+            throw new ArchiveFileChangedException(
+                fullPath);
+        }
+
+        var fileType =
+            _fileTypeDetector.Detect(
+                headerAfter);
 
         return new ArchiveFileMetadata(
-            info.FullName,
-            info.Name,
-            info.Extension,
-            info.Length,
+            after.FullName,
+            after.Name,
+            after.Extension,
+            after.Length,
             new DateTimeOffset(
-                info.LastWriteTimeUtc,
+                after.LastWriteTimeUtc,
                 TimeSpan.Zero),
             sha256.ToUpperInvariant(),
-            header,
+            headerAfter,
             fileType);
     }
 
@@ -121,12 +201,9 @@ public sealed class ArchiveFileMetadataService
                 read;
         }
 
-        if (totalRead ==
-            buffer.Length)
-        {
-            return buffer;
-        }
-
-        return buffer[..totalRead];
+        return totalRead ==
+               buffer.Length
+            ? buffer
+            : buffer[..totalRead];
     }
 }

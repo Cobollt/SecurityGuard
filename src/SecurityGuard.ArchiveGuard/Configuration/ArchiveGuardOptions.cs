@@ -78,4 +78,28 @@ public sealed class ArchiveGuardOptions
 
     public bool AuthenticodeOnlineRevocationCheck { get; init; } =
         false;
+    
+    public int MaxFileMutationRetries { get; init; } =
+        1;
+
+    public int FileMutationRetryDelayMilliseconds { get; init; } =
+        150;
+
+    public int ScanCacheTtlSeconds { get; init; } =
+        30;
+
+    public int MaxScanCacheEntries { get; init; } =
+        256;
+
+    public int ScanHistoryRetentionDays { get; init; } =
+        30;
+
+    public int MaxStoredScanResults { get; init; } =
+        5000;
+
+    public int SpoolFileRetentionMinutes { get; init; } =
+        60;
+
+    public int MaintenanceIntervalMinutes { get; init; } =
+        30;
 }

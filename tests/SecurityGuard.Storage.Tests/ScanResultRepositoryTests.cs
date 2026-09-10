@@ -239,4 +239,61 @@ public sealed class ScanResultRepositoryTests
             "HASH1",
             results[1].Sha256);
     }
+
+    [Fact]
+    public async Task ArchiveGuard_history_is_pruned_by_limit()
+    {
+        await using var database =
+            await TestDatabase.CreateAsync();
+
+        var repository =
+            new SqliteScanResultRepository(
+                database.ConnectionFactory);
+
+        var now =
+            DateTimeOffset.UtcNow;
+
+        for (var index = 0;
+            index < 5;
+            index++)
+        {
+            await repository.UpsertAsync(
+                new ScanResult(
+                    Guid.NewGuid(),
+                    SecurityModuleKind.ArchiveGuard,
+                    $@"C:\Temp\file{index}.zip",
+                    new string(
+                        (char)('A' + index),
+                        64),
+                    100,
+                    ScanVerdict.Clean,
+                    "Clean",
+                    now.AddMinutes(
+                        index),
+                    now.AddMinutes(
+                        index)));
+        }
+
+        await repository.PruneAsync(
+            SecurityModuleKind.ArchiveGuard,
+            now.AddDays(
+                -30),
+            2);
+
+        var results =
+            await repository.GetRecentAsync(
+                10);
+
+        var archiveResults =
+            results
+                .Where(
+                    result =>
+                        result.Module ==
+                        SecurityModuleKind.ArchiveGuard)
+                .ToArray();
+
+        Assert.Equal(
+            2,
+            archiveResults.Length);
+    }
 }

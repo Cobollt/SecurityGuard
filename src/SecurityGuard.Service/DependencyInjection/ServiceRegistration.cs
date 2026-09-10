@@ -345,7 +345,26 @@ public static class ServiceRegistration
             RarArchiveFormatHandler>();
 
         services.AddSingleton(
-            new ArchiveGuardOptions());
+            new ArchiveGuardOptions
+            {
+                SpoolDirectory =
+                    Path.Combine(
+                        paths.TempDirectory,
+                        "ArchiveGuard",
+                        "Spool")
+            });
+        
+        services.AddSingleton<
+            IArchiveGuardFileConsistencyService,
+            ArchiveGuardFileConsistencyService>();
+
+        services.AddSingleton<
+            IArchiveGuardScanCache,
+            ArchiveGuardScanCache>();
+
+        services.AddSingleton<
+            IArchiveGuardSpoolCleanupService,
+            ArchiveGuardSpoolCleanupService>();
         
         services.AddSingleton<
             IArchiveGuardAutoScanSettingsService,
@@ -468,6 +487,9 @@ public static class ServiceRegistration
                     
         services.AddHostedService<
             AlgorithmDecisionMaintenanceHostedService>();
+        
+        services.AddHostedService<
+            ArchiveGuardMaintenanceHostedService>();
 
         return services;
     }

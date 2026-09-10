@@ -288,6 +288,78 @@ public sealed class SqliteScanResultRepository
         return results;
     }
 
+    public async Task PruneAsync(
+        SecurityModuleKind module,
+        DateTimeOffset olderThanUtc,
+        int maxEntries,
+        CancellationToken cancellationToken = default)
+    {
+        if (maxEntries <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(maxEntries));
+        }
+
+        await using var connection =
+            await OpenAsync(
+                cancellationToken);
+
+        await using (
+            var ageCommand =
+                connection.CreateCommand())
+        {
+            ageCommand.CommandText =
+                """
+                DELETE FROM scan_results
+                WHERE module = $module
+                AND completed_at_utc < $olderThanUtc;
+                """;
+
+            ageCommand.Parameters.AddWithValue(
+                "$module",
+                (int)module);
+
+            ageCommand.Parameters.AddWithValue(
+                "$olderThanUtc",
+                olderThanUtc
+                    .ToUniversalTime()
+                    .ToString("O"));
+
+            await ageCommand.ExecuteNonQueryAsync(
+                cancellationToken);
+        }
+
+        await using (
+            var limitCommand =
+                connection.CreateCommand())
+        {
+            limitCommand.CommandText =
+                """
+                DELETE FROM scan_results
+                WHERE module = $module
+                AND id NOT IN
+                (
+                    SELECT id
+                    FROM scan_results
+                    WHERE module = $module
+                    ORDER BY completed_at_utc DESC
+                    LIMIT $maxEntries
+                );
+                """;
+
+            limitCommand.Parameters.AddWithValue(
+                "$module",
+                (int)module);
+
+            limitCommand.Parameters.AddWithValue(
+                "$maxEntries",
+                maxEntries);
+
+            await limitCommand.ExecuteNonQueryAsync(
+                cancellationToken);
+        }
+    }
+
     private static ScanResult Read(
         SqliteDataReader reader)
     {

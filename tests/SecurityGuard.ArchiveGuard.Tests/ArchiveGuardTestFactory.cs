@@ -21,7 +21,9 @@ internal static class ArchiveGuardTestFactory
             metadataService,
             analyzers,
             [],
-            new NullArchiveRecursiveScanner());
+            new NullArchiveRecursiveScanner(),
+            new AlwaysConsistentService(),
+            new NullScanCache());
     }
 
     public static ArchiveGuardScanner CreateScanner(
@@ -90,12 +92,22 @@ internal static class ArchiveGuardTestFactory
                 new TestFileHashService(),
                 fileTypeDetector,
                 options);
+        
+        var consistencyService =
+            new ArchiveGuardFileConsistencyService(
+                new TestFileHashService());
+
+        var cache =
+            new ArchiveGuardScanCache(
+                options);
 
         return new ArchiveGuardScanner(
             metadataService,
             analyzers,
             seekableAnalyzers,
-            recursiveScanner);
+            recursiveScanner,
+            consistencyService,
+            cache);
     }
 
     public static string CreateTemporaryDirectory()
@@ -206,5 +218,43 @@ internal sealed class MaliciousHashStore
         return Task.FromResult(
             _hashes.Contains(
                 sha256));
+    }
+
+    private sealed class AlwaysConsistentService
+        : IArchiveGuardFileConsistencyService
+    {
+        public Task<bool> IsConsistentAsync(
+            ArchiveFileMetadata metadata,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return Task.FromResult(
+                true);
+        }
+    }
+
+    private sealed class NullScanCache
+        : IArchiveGuardScanCache
+    {
+        public bool TryGet(
+            ArchiveFileMetadata metadata,
+            out ArchiveGuardScanResult result)
+        {
+            result =
+                null!;
+
+            return false;
+        }
+
+        public void Store(
+            ArchiveFileMetadata metadata,
+            ArchiveGuardScanResult result)
+        {
+        }
+
+        public void Clear()
+        {
+        }
     }
 }
