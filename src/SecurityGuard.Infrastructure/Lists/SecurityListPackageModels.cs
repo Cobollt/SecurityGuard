@@ -21,6 +21,35 @@ public static class SecurityListPackageFormat
 
     public const string ThreatHashesEntryName =
         "threat_hashes.json";
+
+    public const long MaxPackageBytes =
+        64L * 1024L * 1024L;
+
+    public const long MaxManifestBytes =
+        1024L * 1024L;
+
+    public const long MaxRulesBytes =
+        32L * 1024L * 1024L;
+
+    public const long MaxRuleConditionsBytes =
+        32L * 1024L * 1024L;
+
+    public const long MaxThreatHashesBytes =
+        32L * 1024L * 1024L;
+
+    public const int MaxRuleCount =
+        50_000;
+
+    public const int MaxRuleConditionCount =
+        250_000;
+
+    public const int MaxThreatHashCount =
+        250_000;
+}
+
+public enum SecurityListImportMode
+{
+    Merge = 0
 }
 
 public sealed record SecurityListPackageManifest(
@@ -66,3 +95,23 @@ public sealed record SecurityListExportResult(
     int RuleCount,
     int RuleConditionCount,
     int ThreatHashCount);
+
+public sealed record SecurityListPackageValidationResult(
+    bool IsValid,
+    string? Error,
+    SecurityListPackageManifest? Manifest);
+
+public sealed record SecurityListStoreImportResult(
+    int RulesUpserted,
+    int ThreatHashesUpserted);
+
+public sealed record SecurityListImportResult(
+    string PackagePath,
+    SecurityListImportMode Mode,
+    DateTimeOffset ImportedAtUtc,
+    int RuleCount,
+    int RuleConditionCount,
+    int ThreatHashCount,
+    bool AlgorithmEnforcementSynchronized,
+    bool TransferEnforcementSynchronized,
+    IReadOnlyList<string> Warnings);

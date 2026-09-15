@@ -12,4 +12,13 @@ public interface ISecurityListTransferService
 
     Task<SecurityListExportResult> ExportAsync(
         CancellationToken cancellationToken = default);
+
+    Task<SecurityListPackageValidationResult> ValidateAsync(
+        string packagePath,
+        CancellationToken cancellationToken = default);
+
+    Task<SecurityListImportResult> ImportAsync(
+        string packagePath,
+        SecurityListImportMode mode = SecurityListImportMode.Merge,
+        CancellationToken cancellationToken = default);
 }

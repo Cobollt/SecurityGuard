@@ -48,6 +48,7 @@ public static class ServiceRegistration
         services.AddSingleton<DatabaseInitializer>();
 
         services.AddSingleton<IRuleRepository, SqliteRuleRepository>();
+        services.AddSingleton<ISecurityListImportStore, SqliteSecurityListImportStore>();
         services.AddSingleton<ISecurityEventRepository, SqliteSecurityEventRepository>();
         services.AddSingleton<IQuarantineRepository, SqliteQuarantineRepository>();
         services.AddSingleton<IProtectedObjectRepository, SqliteProtectedObjectRepository>();
@@ -272,6 +273,10 @@ public static class ServiceRegistration
         services.AddSingleton<
             ITransferEnforcementSynchronizer,
             TransferEnforcementSynchronizer>();
+
+        services.AddSingleton<
+            ISecurityListTransferService,
+            SecurityListTransferService>();
 
         services.AddSingleton<
             ISecurityRuleLifecycleHandler,
