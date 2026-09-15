@@ -11,8 +11,11 @@ public sealed class DirectoryBootstrapper
         SecurityGuardPaths paths,
         IFileAccessProtectionService protectionService)
     {
-        _paths = paths;
-        _protectionService = protectionService;
+        _paths =
+            paths;
+
+        _protectionService =
+            protectionService;
     }
 
     public void Initialize()
@@ -31,6 +34,15 @@ public sealed class DirectoryBootstrapper
 
         Directory.CreateDirectory(
             _paths.TempDirectory);
+
+        Directory.CreateDirectory(
+            _paths.ListsDirectory);
+
+        Directory.CreateDirectory(
+            _paths.ListExportsDirectory);
+
+        Directory.CreateDirectory(
+            _paths.ListImportsDirectory);
 
         _protectionService.ProtectDirectory(
             _paths.QuarantineDirectory);

@@ -12,14 +12,23 @@ public sealed record SecurityGuardPaths
 
     public string TempDirectory { get; }
 
+    public string ListsDirectory { get; }
+
+    public string ListExportsDirectory { get; }
+
+    public string ListImportsDirectory { get; }
+
     public string DatabasePath { get; }
 
-    public SecurityGuardPaths(string rootDirectory)
+    public SecurityGuardPaths(
+        string rootDirectory)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(rootDirectory);
+        ArgumentException.ThrowIfNullOrWhiteSpace(
+            rootDirectory);
 
         RootDirectory =
-            Path.GetFullPath(rootDirectory);
+            Path.GetFullPath(
+                rootDirectory);
 
         DataDirectory =
             Path.Combine(
@@ -40,6 +49,21 @@ public sealed record SecurityGuardPaths
             Path.Combine(
                 RootDirectory,
                 "Temp");
+
+        ListsDirectory =
+            Path.Combine(
+                RootDirectory,
+                "Lists");
+
+        ListExportsDirectory =
+            Path.Combine(
+                ListsDirectory,
+                "Exports");
+
+        ListImportsDirectory =
+            Path.Combine(
+                ListsDirectory,
+                "Imports");
 
         DatabasePath =
             Path.Combine(
