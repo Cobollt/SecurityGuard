@@ -1,16 +1,15 @@
 {
   "version": 2,
-  "dgSpecHash": "CTbHn/jcXRw=",
+  "dgSpecHash": "fhHf0b+0ci8=",
   "success": true,
-  "projectFilePath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Storage/SecurityGuard.Storage.csproj",
+  "projectFilePath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Storage\\SecurityGuard.Storage.csproj",
   "expectedPackageFiles": [
-    "/Users/designyousupova/.nuget/packages/microsoft.data.sqlite/10.0.11/microsoft.data.sqlite.10.0.11.nupkg.sha512",
-    "/Users/designyousupova/.nuget/packages/microsoft.data.sqlite.core/10.0.11/microsoft.data.sqlite.core.10.0.11.nupkg.sha512",
-    "/Users/designyousupova/.nuget/packages/sqlitepclraw.bundle_e_sqlite3/2.1.12/sqlitepclraw.bundle_e_sqlite3.2.1.12.nupkg.sha512",
-    "/Users/designyousupova/.nuget/packages/sqlitepclraw.core/2.1.12/sqlitepclraw.core.2.1.12.nupkg.sha512",
-    "/Users/designyousupova/.nuget/packages/sqlitepclraw.lib.e_sqlite3/2.1.12/sqlitepclraw.lib.e_sqlite3.2.1.12.nupkg.sha512",
-    "/Users/designyousupova/.nuget/packages/sqlitepclraw.provider.e_sqlite3/2.1.12/sqlitepclraw.provider.e_sqlite3.2.1.12.nupkg.sha512",
-    "/Users/designyousupova/.nuget/packages/microsoft.windowsdesktop.app.ref/10.0.10/microsoft.windowsdesktop.app.ref.10.0.10.nupkg.sha512"
+    "C:\\Users\\yusup\\.nuget\\packages\\microsoft.data.sqlite\\10.0.11\\microsoft.data.sqlite.10.0.11.nupkg.sha512",
+    "C:\\Users\\yusup\\.nuget\\packages\\microsoft.data.sqlite.core\\10.0.11\\microsoft.data.sqlite.core.10.0.11.nupkg.sha512",
+    "C:\\Users\\yusup\\.nuget\\packages\\sqlitepclraw.bundle_e_sqlite3\\2.1.12\\sqlitepclraw.bundle_e_sqlite3.2.1.12.nupkg.sha512",
+    "C:\\Users\\yusup\\.nuget\\packages\\sqlitepclraw.core\\2.1.12\\sqlitepclraw.core.2.1.12.nupkg.sha512",
+    "C:\\Users\\yusup\\.nuget\\packages\\sqlitepclraw.lib.e_sqlite3\\2.1.12\\sqlitepclraw.lib.e_sqlite3.2.1.12.nupkg.sha512",
+    "C:\\Users\\yusup\\.nuget\\packages\\sqlitepclraw.provider.e_sqlite3\\2.1.12\\sqlitepclraw.provider.e_sqlite3.2.1.12.nupkg.sha512"
   ],
   "logs": []
 }

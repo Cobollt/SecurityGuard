@@ -9,6 +9,7 @@ using SecurityGuard.TransferGuard.Models;
 using SecurityGuard.UI.Services;
 using Microsoft.Win32;
 using SecurityGuard.Core.Ipc.ArchiveGuard;
+using System.IO;
 
 namespace SecurityGuard.UI.ViewModels;
 

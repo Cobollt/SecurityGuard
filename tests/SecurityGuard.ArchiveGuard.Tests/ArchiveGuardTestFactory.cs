@@ -36,6 +36,9 @@ internal static class ArchiveGuardTestFactory
         var fileTypeDetector =
             new FileTypeDetector();
 
+        var hashService =
+            new TestFileHashService();
+
         var analyzers =
             new IArchiveFileAnalyzer[]
             {
@@ -89,13 +92,13 @@ internal static class ArchiveGuardTestFactory
 
         var metadataService =
             new ArchiveFileMetadataService(
-                new TestFileHashService(),
+                hashService,
                 fileTypeDetector,
                 options);
-        
+
         var consistencyService =
             new ArchiveGuardFileConsistencyService(
-                new TestFileHashService());
+                hashService);
 
         var cache =
             new ArchiveGuardScanCache(
@@ -167,6 +170,44 @@ internal static class ArchiveGuardTestFactory
         }
     }
 
+    private sealed class AlwaysConsistentService
+        : IArchiveGuardFileConsistencyService
+    {
+        public Task<bool> IsConsistentAsync(
+            ArchiveFileMetadata metadata,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return Task.FromResult(
+                true);
+        }
+    }
+
+    private sealed class NullScanCache
+        : IArchiveGuardScanCache
+    {
+        public bool TryGet(
+            ArchiveFileMetadata metadata,
+            out ArchiveGuardScanResult result)
+        {
+            result =
+                null!;
+
+            return false;
+        }
+
+        public void Store(
+            ArchiveFileMetadata metadata,
+            ArchiveGuardScanResult result)
+        {
+        }
+
+        public void Clear()
+        {
+        }
+    }
+
     private sealed class NullArchiveRecursiveScanner
         : IArchiveRecursiveScanner
     {
@@ -218,43 +259,5 @@ internal sealed class MaliciousHashStore
         return Task.FromResult(
             _hashes.Contains(
                 sha256));
-    }
-
-    private sealed class AlwaysConsistentService
-        : IArchiveGuardFileConsistencyService
-    {
-        public Task<bool> IsConsistentAsync(
-            ArchiveFileMetadata metadata,
-            CancellationToken cancellationToken = default)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            return Task.FromResult(
-                true);
-        }
-    }
-
-    private sealed class NullScanCache
-        : IArchiveGuardScanCache
-    {
-        public bool TryGet(
-            ArchiveFileMetadata metadata,
-            out ArchiveGuardScanResult result)
-        {
-            result =
-                null!;
-
-            return false;
-        }
-
-        public void Store(
-            ArchiveFileMetadata metadata,
-            ArchiveGuardScanResult result)
-        {
-        }
-
-        public void Clear()
-        {
-        }
     }
 }

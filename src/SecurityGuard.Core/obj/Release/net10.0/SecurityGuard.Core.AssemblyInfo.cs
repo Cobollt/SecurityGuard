@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SecurityGuard.Core")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+08f9ac7ee9a9cc27084d57b6f06984147864bc9e")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+561924e1949b0be71539662598e8d39009d4c491")]
 [assembly: System.Reflection.AssemblyProductAttribute("SecurityGuard.Core")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SecurityGuard.Core")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

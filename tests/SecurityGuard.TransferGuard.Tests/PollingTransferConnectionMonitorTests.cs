@@ -99,7 +99,7 @@ public sealed class PollingTransferConnectionMonitorTests
 
         using var cancellation =
             new CancellationTokenSource(
-                TimeSpan.FromMilliseconds(50));
+                TimeSpan.FromSeconds(1));
 
         var received =
             new List<TcpConnectionSnapshot>();
@@ -113,6 +113,11 @@ public sealed class PollingTransferConnectionMonitorTests
             {
                 received.Add(
                     item);
+
+                if (received.Count == 2)
+                {
+                    break;
+                }
             }
         }
         catch (OperationCanceledException)

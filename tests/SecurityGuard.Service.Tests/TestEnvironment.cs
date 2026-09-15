@@ -1,6 +1,7 @@
 using SecurityGuard.Infrastructure.Configuration;
 using SecurityGuard.Storage.Configuration;
 using SecurityGuard.Storage.Database;
+using Microsoft.Data.Sqlite;
 
 namespace SecurityGuard.Service.Tests;
 
@@ -50,11 +51,11 @@ internal sealed class TestEnvironment
 
     public ValueTask DisposeAsync()
     {
+        SqliteConnection.ClearAllPools();
+
         if (Directory.Exists(RootDirectory))
         {
-            Directory.Delete(
-                RootDirectory,
-                true);
+            Directory.Delete(RootDirectory, true);
         }
 
         return ValueTask.CompletedTask;

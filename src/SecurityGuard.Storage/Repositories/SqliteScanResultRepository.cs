@@ -301,7 +301,7 @@ public sealed class SqliteScanResultRepository
         }
 
         await using var connection =
-            await OpenAsync(
+            await _connectionFactory.OpenAsync(
                 cancellationToken);
 
         await using (

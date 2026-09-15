@@ -8,6 +8,7 @@ using SecurityGuard.Storage.Repositories;
 using SecurityGuard.AlgorithmGuard.Models;
 using SecurityGuard.AlgorithmGuard.Configuration;
 using SecurityGuard.AlgorithmGuard.Enums;
+using Microsoft.Data.Sqlite;
 
 namespace SecurityGuard.AlgorithmGuard.Tests;
 
@@ -92,7 +93,7 @@ public sealed class AlgorithmDecisionHandlerTests
                             @"DESKTOP\User",
                         ProcessPublisher:
                             "Microsoft"));
-            
+
             await handler.HandleAsync(
                 request,
                 new SecurityDecision(
@@ -106,27 +107,27 @@ public sealed class AlgorithmDecisionHandlerTests
 
             var rule =
                 Assert.Single(rules);
-                
-                Assert.NotNull(
-                    rule.Conditions);
 
-                Assert.Contains(
-                    rule.Conditions,
-                    condition =>
-                        condition.Scope ==
-                        RuleScope.UserName);
+            Assert.NotNull(
+                rule.Conditions);
 
-                Assert.Contains(
-                    rule.Conditions,
-                    condition =>
-                        condition.Scope ==
-                        RuleScope.ParentProcessPath);
+            Assert.Contains(
+                rule.Conditions,
+                condition =>
+                    condition.Scope ==
+                    RuleScope.UserName);
 
-                Assert.Contains(
-                    rule.Conditions,
-                    condition =>
-                        condition.Scope ==
-                        RuleScope.ProcessPublisher);
+            Assert.Contains(
+                rule.Conditions,
+                condition =>
+                    condition.Scope ==
+                    RuleScope.ParentProcessPath);
+
+            Assert.Contains(
+                rule.Conditions,
+                condition =>
+                    condition.Scope ==
+                    RuleScope.ProcessPublisher);
 
             Assert.Equal(
                 RuleScope.FileHash,
@@ -142,9 +143,12 @@ public sealed class AlgorithmDecisionHandlerTests
         }
         finally
         {
-            Directory.Delete(
-                root,
-                true);
+            SqliteConnection.ClearAllPools();
+
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, true);
+            }
         }
     }
 
@@ -248,9 +252,12 @@ public sealed class AlgorithmDecisionHandlerTests
         }
         finally
         {
-            Directory.Delete(
-                root,
-                true);
+            SqliteConnection.ClearAllPools();
+
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, true);
+            }
         }
     }
 
@@ -506,9 +513,12 @@ public sealed class AlgorithmDecisionHandlerTests
         }
         finally
         {
-            Directory.Delete(
-                root,
-                true);
+            SqliteConnection.ClearAllPools();
+
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, true);
+            }
         }
     }
 }

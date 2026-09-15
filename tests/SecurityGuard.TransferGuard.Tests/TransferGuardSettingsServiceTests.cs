@@ -4,6 +4,7 @@ using SecurityGuard.Storage.Repositories;
 using SecurityGuard.TransferGuard.Enums;
 using SecurityGuard.TransferGuard.Models;
 using SecurityGuard.TransferGuard.Services;
+using Microsoft.Data.Sqlite;
 
 namespace SecurityGuard.TransferGuard.Tests;
 
@@ -54,6 +55,7 @@ public sealed class TransferGuardSettingsServiceTests
         }
         finally
         {
+            SqliteConnection.ClearAllPools();
             Directory.Delete(
                 root,
                 true);
@@ -107,6 +109,7 @@ public sealed class TransferGuardSettingsServiceTests
         }
         finally
         {
+            SqliteConnection.ClearAllPools();
             Directory.Delete(
                 root,
                 true);

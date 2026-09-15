@@ -26,6 +26,7 @@ public sealed class ArchiveGuardDecisionExecutorTests
             new ArchiveGuardDecisionExecutor(
                 repository,
                 actions,
+                new FakeExceptionService(),
                 new FakeAuditSink());
 
         var result =
@@ -62,6 +63,7 @@ public sealed class ArchiveGuardDecisionExecutorTests
             new ArchiveGuardDecisionExecutor(
                 repository,
                 actions,
+                new FakeExceptionService(),
                 new FakeAuditSink());
 
         var result =
@@ -94,6 +96,7 @@ public sealed class ArchiveGuardDecisionExecutorTests
             new ArchiveGuardDecisionExecutor(
                 repository,
                 actions,
+                new FakeExceptionService(),
                 new FakeAuditSink());
 
         var result =

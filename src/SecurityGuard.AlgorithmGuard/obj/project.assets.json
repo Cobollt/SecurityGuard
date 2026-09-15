@@ -1,7 +1,7 @@
 {
   "version": 4,
   "targets": {
-    "net10.0": {
+    "net10.0-windows": {
       "System.CodeDom/10.0.11": {
         "type": "package",
         "compile": {
@@ -124,39 +124,41 @@
     }
   },
   "projectFileDependencyGroups": {
-    "net10.0": [
+    "net10.0-windows": [
       "SecurityGuard.Core >= 1.0.0",
       "System.Management >= 10.0.11"
     ]
   },
   "packageFolders": {
-    "/Users/designyousupova/.nuget/packages/": {}
+    "C:\\Users\\yusup\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.AlgorithmGuard/SecurityGuard.AlgorithmGuard.csproj",
+      "projectUniqueName": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.AlgorithmGuard\\SecurityGuard.AlgorithmGuard.csproj",
       "projectName": "SecurityGuard.AlgorithmGuard",
-      "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.AlgorithmGuard/SecurityGuard.AlgorithmGuard.csproj",
-      "packagesPath": "/Users/designyousupova/.nuget/packages/",
-      "outputPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.AlgorithmGuard/obj/",
+      "projectPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.AlgorithmGuard\\SecurityGuard.AlgorithmGuard.csproj",
+      "packagesPath": "C:\\Users\\yusup\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.AlgorithmGuard\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "/Users/designyousupova/.nuget/NuGet/NuGet.Config"
+        "C:\\Users\\yusup\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
-        "net10.0"
+        "net10.0-windows"
       ],
       "sources": {
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
-        "net10.0": {
-          "framework": "net10.0",
-          "targetAlias": "net10.0",
+        "net10.0-windows": {
+          "framework": "net10.0-windows7.0",
+          "targetAlias": "net10.0-windows",
           "projectReferences": {
-            "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj": {
-              "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj"
+            "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Core\\SecurityGuard.Core.csproj": {
+              "projectPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Core\\SecurityGuard.Core.csproj"
             }
           }
         }
@@ -172,12 +174,12 @@
         "auditLevel": "low",
         "auditMode": "all"
       },
-      "SdkAnalysisLevel": "10.0.300"
+      "SdkAnalysisLevel": "10.0.400"
     },
     "frameworks": {
-      "net10.0": {
-        "framework": "net10.0",
-        "targetAlias": "net10.0",
+      "net10.0-windows": {
+        "framework": "net10.0-windows7.0",
+        "targetAlias": "net10.0-windows",
         "dependencies": {
           "System.Management": {
             "target": "Package",
@@ -195,18 +197,12 @@
         ],
         "assetTargetFallback": true,
         "warn": true,
-        "downloadDependencies": [
-          {
-            "name": "Microsoft.WindowsDesktop.App.Ref",
-            "version": "[10.0.10, 10.0.10]"
-          }
-        ],
         "frameworkReferences": {
           "Microsoft.NETCore.App": {
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/10.0.302/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.401/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.CSharp": "(,4.7.32767]",
           "Microsoft.VisualBasic": "(,10.4.32767]",

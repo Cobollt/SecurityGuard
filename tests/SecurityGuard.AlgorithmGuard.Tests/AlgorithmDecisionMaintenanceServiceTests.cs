@@ -6,6 +6,7 @@ using SecurityGuard.Infrastructure.Audit;
 using SecurityGuard.Storage.Configuration;
 using SecurityGuard.Storage.Database;
 using SecurityGuard.Storage.Repositories;
+using Microsoft.Data.Sqlite;
 
 namespace SecurityGuard.AlgorithmGuard.Tests;
 
@@ -89,9 +90,12 @@ public sealed class AlgorithmDecisionMaintenanceServiceTests
         }
         finally
         {
-            Directory.Delete(
-                root,
-                true);
+            SqliteConnection.ClearAllPools();
+
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, true);
+            }
         }
     }
 }

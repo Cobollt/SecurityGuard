@@ -1,25 +1,27 @@
 {
   "format": 1,
   "restore": {
-    "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.ArchiveGuard/SecurityGuard.ArchiveGuard.csproj": {}
+    "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.ArchiveGuard\\SecurityGuard.ArchiveGuard.csproj": {}
   },
   "projects": {
-    "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.ArchiveGuard/SecurityGuard.ArchiveGuard.csproj": {
+    "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.ArchiveGuard\\SecurityGuard.ArchiveGuard.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.ArchiveGuard/SecurityGuard.ArchiveGuard.csproj",
+        "projectUniqueName": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.ArchiveGuard\\SecurityGuard.ArchiveGuard.csproj",
         "projectName": "SecurityGuard.ArchiveGuard",
-        "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.ArchiveGuard/SecurityGuard.ArchiveGuard.csproj",
-        "packagesPath": "/Users/designyousupova/.nuget/packages/",
-        "outputPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.ArchiveGuard/obj/",
+        "projectPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.ArchiveGuard\\SecurityGuard.ArchiveGuard.csproj",
+        "packagesPath": "C:\\Users\\yusup\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.ArchiveGuard\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/Users/designyousupova/.nuget/NuGet/NuGet.Config"
+          "C:\\Users\\yusup\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
         ],
         "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -27,8 +29,8 @@
             "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {
-              "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj": {
-                "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj"
+              "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Core\\SecurityGuard.Core.csproj": {
+                "projectPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Core\\SecurityGuard.Core.csproj"
               }
             }
           }
@@ -44,7 +46,7 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.300"
+        "SdkAnalysisLevel": "10.0.400"
       },
       "frameworks": {
         "net10.0": {
@@ -71,18 +73,12 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
-          "downloadDependencies": [
-            {
-              "name": "Microsoft.WindowsDesktop.App.Ref",
-              "version": "[10.0.10, 10.0.10]"
-            }
-          ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/10.0.302/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.401/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -360,22 +356,24 @@
         }
       }
     },
-    "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj": {
+    "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Core\\SecurityGuard.Core.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj",
+        "projectUniqueName": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Core\\SecurityGuard.Core.csproj",
         "projectName": "SecurityGuard.Core",
-        "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj",
-        "packagesPath": "/Users/designyousupova/.nuget/packages/",
-        "outputPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/obj/",
+        "projectPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Core\\SecurityGuard.Core.csproj",
+        "packagesPath": "C:\\Users\\yusup\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Core\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/Users/designyousupova/.nuget/NuGet/NuGet.Config"
+          "C:\\Users\\yusup\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
         ],
         "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -396,7 +394,7 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.300"
+        "SdkAnalysisLevel": "10.0.400"
       },
       "frameworks": {
         "net10.0": {
@@ -413,18 +411,12 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
-          "downloadDependencies": [
-            {
-              "name": "Microsoft.WindowsDesktop.App.Ref",
-              "version": "[10.0.10, 10.0.10]"
-            }
-          ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/10.0.302/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.401/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",

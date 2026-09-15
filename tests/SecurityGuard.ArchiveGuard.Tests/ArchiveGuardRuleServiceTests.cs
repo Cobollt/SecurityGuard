@@ -47,7 +47,8 @@ public sealed class ArchiveGuardRuleServiceTests
                 new RuleEvaluationResult(
                     true,
                     RuleDecision.Allow,
-                    Guid.NewGuid()));
+                    Guid.NewGuid(),
+                    "Allowed by ArchiveGuard test rule"));
         }
     }
 }
