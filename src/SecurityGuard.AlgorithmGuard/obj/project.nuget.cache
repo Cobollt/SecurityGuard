@@ -1,11 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "rt/5Yp725Xg=",
+  "dgSpecHash": "vb7bemKxDk4=",
   "success": true,
-  "projectFilePath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.AlgorithmGuard\\SecurityGuard.AlgorithmGuard.csproj",
+  "projectFilePath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.AlgorithmGuard/SecurityGuard.AlgorithmGuard.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\yusup\\.nuget\\packages\\system.codedom\\10.0.11\\system.codedom.10.0.11.nupkg.sha512",
-    "C:\\Users\\yusup\\.nuget\\packages\\system.management\\10.0.11\\system.management.10.0.11.nupkg.sha512"
+    "/Users/designyousupova/.nuget/packages/system.codedom/10.0.11/system.codedom.10.0.11.nupkg.sha512",
+    "/Users/designyousupova/.nuget/packages/system.management/10.0.11/system.management.10.0.11.nupkg.sha512",
+    "/Users/designyousupova/.nuget/packages/microsoft.windowsdesktop.app.ref/10.0.10/microsoft.windowsdesktop.app.ref.10.0.10.nupkg.sha512"
   ],
   "logs": []
 }

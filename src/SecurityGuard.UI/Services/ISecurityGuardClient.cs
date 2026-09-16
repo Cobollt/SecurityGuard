@@ -2,6 +2,8 @@ using SecurityGuard.AlgorithmGuard.Models;
 using SecurityGuard.Core.Ipc.ArchiveGuard;
 using SecurityGuard.Core.Models;
 using SecurityGuard.TransferGuard.Models;
+using SecurityGuard.Core.Ipc.SecurityLists;
+using SecurityGuard.Core.Lists;
 
 namespace SecurityGuard.UI.Services;
 
@@ -55,5 +57,20 @@ public interface ISecurityGuardClient
 
     Task<ArchiveGuardAutoScanSettingsIpcDto> UpdateArchiveGuardAutoScanSettingsAsync(
         ArchiveGuardUpdateAutoScanSettingsIpcRequest settings,
+        CancellationToken cancellationToken = default);
+    
+    Task<SecurityListExportIpcDto> ExportSecurityListsAsync(
+        CancellationToken cancellationToken = default);
+
+    Task<SecurityListValidationIpcDto> ValidateSecurityListsAsync(
+        string packagePath,
+        CancellationToken cancellationToken = default);
+
+    Task<SecurityListImportIpcDto> ImportSecurityListsAsync(
+        string packagePath,
+        SecurityListImportMode mode = SecurityListImportMode.Merge,
+        CancellationToken cancellationToken = default);
+
+    Task<SecurityListFoldersIpcDto> GetSecurityListsFoldersAsync(
         CancellationToken cancellationToken = default);
 }

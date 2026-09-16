@@ -6,6 +6,8 @@ using System.Security.Principal;
 using SecurityGuard.TransferGuard.Models;
 using System.IO;
 using SecurityGuard.Core.Ipc.ArchiveGuard;
+using SecurityGuard.Core.Ipc.SecurityLists;
+using SecurityGuard.Core.Lists;
 
 namespace SecurityGuard.UI.Services;
 
@@ -421,6 +423,136 @@ public sealed class SecurityGuardClient
 
         return PipeJsonSerializer.Deserialize<
             ArchiveGuardAutoScanSettingsIpcDto>(
+                response.Payload);
+    }
+
+    public async Task<SecurityListExportIpcDto> ExportSecurityListsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var request =
+            PipeRequest.Create(
+                PipeMessageType.ExportSecurityLists);
+
+        var response =
+            await SendAsync(
+                request,
+                cancellationToken);
+
+        EnsureSuccess(
+            response);
+
+        if (string.IsNullOrWhiteSpace(
+                response.Payload))
+        {
+            throw new InvalidDataException(
+                "Security list export response is empty.");
+        }
+
+        return PipeJsonSerializer.Deserialize<
+            SecurityListExportIpcDto>(
+                response.Payload);
+    }
+
+    public async Task<SecurityListValidationIpcDto> ValidateSecurityListsAsync(
+        string packagePath,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(
+            packagePath);
+
+        var payload =
+            new SecurityListValidateIpcRequest(
+                packagePath);
+
+        var request =
+            PipeRequest.Create(
+                PipeMessageType.ValidateSecurityLists,
+                PipeJsonSerializer.Serialize(
+                    payload));
+
+        var response =
+            await SendAsync(
+                request,
+                cancellationToken);
+
+        EnsureSuccess(
+            response);
+
+        if (string.IsNullOrWhiteSpace(
+                response.Payload))
+        {
+            throw new InvalidDataException(
+                "Security list validation response is empty.");
+        }
+
+        return PipeJsonSerializer.Deserialize<
+            SecurityListValidationIpcDto>(
+                response.Payload);
+    }
+
+    public async Task<SecurityListImportIpcDto> ImportSecurityListsAsync(
+        string packagePath,
+        SecurityListImportMode mode = SecurityListImportMode.Merge,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(
+            packagePath);
+
+        var payload =
+            new SecurityListImportIpcRequest(
+                packagePath,
+                mode);
+
+        var request =
+            PipeRequest.Create(
+                PipeMessageType.ImportSecurityLists,
+                PipeJsonSerializer.Serialize(
+                    payload));
+
+        var response =
+            await SendAsync(
+                request,
+                cancellationToken);
+
+        EnsureSuccess(
+            response);
+
+        if (string.IsNullOrWhiteSpace(
+                response.Payload))
+        {
+            throw new InvalidDataException(
+                "Security list import response is empty.");
+        }
+
+        return PipeJsonSerializer.Deserialize<
+            SecurityListImportIpcDto>(
+                response.Payload);
+    }
+
+    public async Task<SecurityListFoldersIpcDto> GetSecurityListsFoldersAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var request =
+            PipeRequest.Create(
+                PipeMessageType.GetSecurityListsFolder);
+
+        var response =
+            await SendAsync(
+                request,
+                cancellationToken);
+
+        EnsureSuccess(
+            response);
+
+        if (string.IsNullOrWhiteSpace(
+                response.Payload))
+        {
+            throw new InvalidDataException(
+                "Security lists folder response is empty.");
+        }
+
+        return PipeJsonSerializer.Deserialize<
+            SecurityListFoldersIpcDto>(
                 response.Payload);
     }
 }

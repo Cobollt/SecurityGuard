@@ -31,4 +31,24 @@ public sealed class PipeMessageTypeContractTests
             15,
             (int)PipeMessageType.UpdateArchiveGuardSettings);
     }
+
+    [Fact]
+    public void Security_list_transfer_message_ids_are_stable()
+    {
+        Assert.Equal(
+            16,
+            (int)PipeMessageType.ExportSecurityLists);
+
+        Assert.Equal(
+            17,
+            (int)PipeMessageType.ValidateSecurityLists);
+
+        Assert.Equal(
+            18,
+            (int)PipeMessageType.ImportSecurityLists);
+
+        Assert.Equal(
+            19,
+            (int)PipeMessageType.GetSecurityListsFolder);
+    }
 }

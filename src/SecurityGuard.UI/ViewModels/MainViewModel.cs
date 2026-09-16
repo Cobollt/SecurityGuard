@@ -10,6 +10,10 @@ using SecurityGuard.UI.Services;
 using Microsoft.Win32;
 using SecurityGuard.Core.Ipc.ArchiveGuard;
 using System.IO;
+using System.Diagnostics;
+using Microsoft.Win32;
+using SecurityGuard.Core.Ipc.SecurityLists;
+using SecurityGuard.Core.Lists;
 
 namespace SecurityGuard.UI.ViewModels;
 
@@ -24,7 +28,10 @@ public sealed class MainViewModel
     private string? _lastError;
     private int _quarantineCount;
     private DateTimeOffset? _lastRefreshUtc;
-
+    private string? _selectedSecurityListPackagePath;
+    private string? _lastSecurityListExportPath;
+    private string _securityListsStatusText = "Пакет списков не выбран.";
+    private bool _securityListPackageValid;
     private bool _algorithmGuardEnabled;
 
     private AlgorithmGuardMode _algorithmGuardMode =
@@ -135,6 +142,8 @@ public sealed class MainViewModel
 
     public IReadOnlyList<TransferEnforcementFailurePolicy> TransferGuardFailurePolicies { get; } =
         Enum.GetValues<TransferEnforcementFailurePolicy>();
+    
+    public ObservableCollection<string> SecurityListImportWarnings { get; } = [];
 
     public int SelectedPageIndex
     {
@@ -195,6 +204,56 @@ public sealed class MainViewModel
                     nameof(HasError));
             }
         }
+    }
+
+    public string? SelectedSecurityListPackagePath
+    {
+        get =>
+            _selectedSecurityListPackagePath;
+
+        set
+        {
+            if (SetProperty(
+                    ref _selectedSecurityListPackagePath,
+                    value))
+            {
+                SecurityListPackageValid =
+                    false;
+            }
+        }
+    }
+
+    public string? LastSecurityListExportPath
+    {
+        get =>
+            _lastSecurityListExportPath;
+
+        private set =>
+            SetProperty(
+                ref _lastSecurityListExportPath,
+                value);
+    }
+
+    public string SecurityListsStatusText
+    {
+        get =>
+            _securityListsStatusText;
+
+        private set =>
+            SetProperty(
+                ref _securityListsStatusText,
+                value);
+    }
+
+    public bool SecurityListPackageValid
+    {
+        get =>
+            _securityListPackageValid;
+
+        private set =>
+            SetProperty(
+                ref _securityListPackageValid,
+                value);
     }
 
     public bool HasError =>
@@ -1200,6 +1259,213 @@ public sealed class MainViewModel
             {
                 command.RaiseCanExecuteChanged();
             }
+        }
+    }
+
+    private async Task ExportSecurityListsAsync()
+    {
+        try
+        {
+            SecurityListsStatusText =
+                "Экспорт списков...";
+
+            SecurityListImportWarnings.Clear();
+
+            var result =
+                await _client.ExportSecurityListsAsync();
+
+            LastSecurityListExportPath =
+                result.PackagePath;
+
+            SecurityListsStatusText =
+                $"Экспорт завершён. Правил: {result.RuleCount}, условий: {result.RuleConditionCount}, SHA-256: {result.ThreatHashCount}.";
+
+            LastError =
+                null;
+        }
+        catch (Exception exception)
+        {
+            SecurityListsStatusText =
+                "Не удалось экспортировать списки.";
+
+            LastError =
+                exception.Message;
+        }
+    }
+
+    private void SelectSecurityListPackage()
+    {
+        var dialog =
+            new OpenFileDialog
+            {
+                Title =
+                    "Выберите пакет списков SecurityGuard",
+
+                Filter =
+                    "SecurityGuard lists (*.zip)|*.zip|ZIP archives (*.zip)|*.zip",
+
+                CheckFileExists =
+                    true,
+
+                Multiselect =
+                    false
+            };
+
+        if (dialog.ShowDialog() !=
+            true)
+        {
+            return;
+        }
+
+        SelectedSecurityListPackagePath =
+            dialog.FileName;
+
+        SecurityListImportWarnings.Clear();
+
+        SecurityListsStatusText =
+            "Пакет выбран. Выполните проверку перед импортом.";
+    }
+
+    private async Task ValidateSecurityListPackageAsync()
+    {
+        if (string.IsNullOrWhiteSpace(
+                SelectedSecurityListPackagePath))
+        {
+            SecurityListPackageValid =
+                false;
+
+            SecurityListsStatusText =
+                "Сначала выберите ZIP-пакет.";
+
+            return;
+        }
+
+        try
+        {
+            SecurityListsStatusText =
+                "Проверка пакета...";
+
+            SecurityListImportWarnings.Clear();
+
+            var result =
+                await _client.ValidateSecurityListsAsync(
+                    SelectedSecurityListPackagePath);
+
+            SecurityListPackageValid =
+                result.IsValid;
+
+            if (!result.IsValid)
+            {
+                SecurityListsStatusText =
+                    $"Пакет отклонён: {result.Error}";
+
+                return;
+            }
+
+            SecurityListsStatusText =
+                $"Пакет корректен. Версия: {result.FormatVersion}. Правил: {result.RuleCount}, условий: {result.RuleConditionCount}, SHA-256: {result.ThreatHashCount}.";
+
+            LastError =
+                null;
+        }
+        catch (Exception exception)
+        {
+            SecurityListPackageValid =
+                false;
+
+            SecurityListsStatusText =
+                "Ошибка проверки пакета.";
+
+            LastError =
+                exception.Message;
+        }
+    }
+
+    private async Task ImportSecurityListsAsync()
+    {
+        if (!SecurityListPackageValid ||
+            string.IsNullOrWhiteSpace(
+                SelectedSecurityListPackagePath))
+        {
+            SecurityListsStatusText =
+                "Перед импортом пакет необходимо успешно проверить.";
+
+            return;
+        }
+
+        try
+        {
+            SecurityListsStatusText =
+                "Импорт списков...";
+
+            SecurityListImportWarnings.Clear();
+
+            var result =
+                await _client.ImportSecurityListsAsync(
+                    SelectedSecurityListPackagePath,
+                    SecurityListImportMode.Merge);
+
+            foreach (var warning in
+                    result.Warnings)
+            {
+                SecurityListImportWarnings.Add(
+                    warning);
+            }
+
+            SecurityListsStatusText =
+                result.Warnings.Length == 0
+                    ? $"Импорт завершён. Правил: {result.RuleCount}, условий: {result.RuleConditionCount}, SHA-256: {result.ThreatHashCount}."
+                    : $"Импорт завершён с предупреждениями. Правил: {result.RuleCount}, условий: {result.RuleConditionCount}, SHA-256: {result.ThreatHashCount}.";
+
+            LastError =
+                null;
+
+            await RefreshAsync();
+        }
+        catch (Exception exception)
+        {
+            SecurityListsStatusText =
+                "Не удалось импортировать списки.";
+
+            LastError =
+                exception.Message;
+        }
+    }
+
+    private async Task OpenSecurityListsFolderAsync()
+    {
+        try
+        {
+            var folders =
+                await _client.GetSecurityListsFoldersAsync();
+
+            if (!Directory.Exists(
+                    folders.ListsDirectory))
+            {
+                Directory.CreateDirectory(
+                    folders.ListsDirectory);
+            }
+
+            Process.Start(
+                new ProcessStartInfo
+                {
+                    FileName =
+                        "explorer.exe",
+
+                    Arguments =
+                        $"\"{folders.ListsDirectory}\"",
+
+                    UseShellExecute =
+                        true
+                });
+
+            LastError =
+                null;
+        }
+        catch (Exception exception)
+        {
+            LastError =
+                exception.Message;
         }
     }
 }

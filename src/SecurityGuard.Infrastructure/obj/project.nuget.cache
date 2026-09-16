@@ -1,8 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "oWknnPcuY4g=",
+  "dgSpecHash": "+ovVenyg7gQ=",
   "success": true,
-  "projectFilePath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Infrastructure\\SecurityGuard.Infrastructure.csproj",
-  "expectedPackageFiles": [],
+  "projectFilePath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Infrastructure/SecurityGuard.Infrastructure.csproj",
+  "expectedPackageFiles": [
+    "/Users/designyousupova/.nuget/packages/microsoft.windowsdesktop.app.ref/10.0.10/microsoft.windowsdesktop.app.ref.10.0.10.nupkg.sha512"
+  ],
   "logs": []
 }

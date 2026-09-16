@@ -4,6 +4,8 @@ using SecurityGuard.AlgorithmGuard.Models;
 using SecurityGuard.TransferGuard.Models;
 using SecurityGuard.Core.Enums;
 using SecurityGuard.Core.Ipc.ArchiveGuard;
+using SecurityGuard.Core.Ipc.SecurityLists;
+using SecurityGuard.Core.Lists;
 
 namespace SecurityGuard.UI.Tests;
 
@@ -46,6 +48,40 @@ internal sealed class FakeSecurityGuardClient
             true,
             [],
             []);
+    public SecurityListExportIpcDto SecurityListExportResult { get; set; } =
+        new(
+            @"C:\ProgramData\SecurityGuard\Lists\Exports\test.zip",
+            DateTimeOffset.UtcNow,
+            0,
+            0,
+            0);
+
+    public SecurityListValidationIpcDto SecurityListValidationResult { get; set; } =
+        new(
+            true,
+            null,
+            1,
+            0,
+            0,
+            0);
+
+    public SecurityListImportIpcDto SecurityListImportResult { get; set; } =
+        new(
+            @"C:\Temp\test.zip",
+            SecurityListImportMode.Merge,
+            DateTimeOffset.UtcNow,
+            0,
+            0,
+            0,
+            true,
+            true,
+            []);
+
+    public SecurityListFoldersIpcDto SecurityListFolders { get; set; } =
+        new(
+            @"C:\ProgramData\SecurityGuard\Lists",
+            @"C:\ProgramData\SecurityGuard\Lists\Exports",
+            @"C:\ProgramData\SecurityGuard\Lists\Imports");
 
     public Task<ArchiveGuardScanIpcDto> ScanArchiveGuardAsync(
         string filePath,
@@ -251,5 +287,44 @@ internal sealed class FakeSecurityGuardClient
 
         return Task.FromResult(
             ArchiveGuardSettings);
+    }
+
+    public Task<SecurityListExportIpcDto> ExportSecurityListsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfConfigured();
+
+        return Task.FromResult(
+            SecurityListExportResult);
+    }
+
+    public Task<SecurityListValidationIpcDto> ValidateSecurityListsAsync(
+        string packagePath,
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfConfigured();
+
+        return Task.FromResult(
+            SecurityListValidationResult);
+    }
+
+    public Task<SecurityListImportIpcDto> ImportSecurityListsAsync(
+        string packagePath,
+        SecurityListImportMode mode = SecurityListImportMode.Merge,
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfConfigured();
+
+        return Task.FromResult(
+            SecurityListImportResult);
+    }
+
+    public Task<SecurityListFoldersIpcDto> GetSecurityListsFoldersAsync(
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfConfigured();
+
+        return Task.FromResult(
+            SecurityListFolders);
     }
 }

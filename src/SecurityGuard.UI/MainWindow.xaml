@@ -1173,6 +1173,99 @@
                                     FontSize="20"
                                     FontWeight="SemiBold"
                                     Margin="0,0,0,12" />
+                                    
+                            <TextBlock Text="Перенос списков"
+                                    FontSize="20"
+                                    FontWeight="SemiBold"
+                                    Margin="0,0,0,12" />
+
+                            <TextBlock Text="Экспорт и импорт правил AlgorithmGuard, TransferGuard, ArchiveGuard и списка известных SHA-256."
+                                    TextWrapping="Wrap"
+                                    MaxWidth="760"
+                                    HorizontalAlignment="Left"
+                                    Margin="0,0,0,16" />
+
+                            <StackPanel Orientation="Horizontal">
+
+                                <Button Content="Экспортировать списки"
+                                        Width="180"
+                                        Command="{Binding ExportSecurityListsCommand}" />
+
+                                <Button Content="Открыть папку списков"
+                                        Width="190"
+                                        Margin="8,0,0,0"
+                                        Command="{Binding OpenSecurityListsFolderCommand}" />
+
+                            </StackPanel>
+
+                            <TextBlock Text="Последний экспорт"
+                                    FontWeight="SemiBold"
+                                    Margin="0,18,0,6" />
+
+                            <TextBox Text="{Binding LastSecurityListExportPath}"
+                                    IsReadOnly="True"
+                                    Width="760"
+                                    HorizontalAlignment="Left" />
+
+                            <Separator Margin="0,24,0,24" />
+
+                            <TextBlock Text="Импорт списков"
+                                    FontSize="18"
+                                    FontWeight="SemiBold"
+                                    Margin="0,0,0,10" />
+
+                            <Grid Width="760"
+                                HorizontalAlignment="Left">
+
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBox Grid.Column="0"
+                                        Text="{Binding SelectedSecurityListPackagePath}"
+                                        IsReadOnly="True"
+                                        Margin="0,0,8,0" />
+
+                                <Button Grid.Column="1"
+                                        Content="Выбрать ZIP"
+                                        Width="120"
+                                        Command="{Binding SelectSecurityListPackageCommand}" />
+
+                            </Grid>
+
+                            <StackPanel Orientation="Horizontal"
+                                        Margin="0,10,0,0">
+
+                                <Button Content="Проверить пакет"
+                                        Width="150"
+                                        Command="{Binding ValidateSecurityListPackageCommand}" />
+
+                                <Button Content="Импортировать"
+                                        Width="150"
+                                        Margin="8,0,0,0"
+                                        IsEnabled="{Binding SecurityListPackageValid}"
+                                        Command="{Binding ImportSecurityListsCommand}" />
+
+                            </StackPanel>
+
+                            <TextBlock Text="{Binding SecurityListsStatusText}"
+                                    TextWrapping="Wrap"
+                                    MaxWidth="760"
+                                    HorizontalAlignment="Left"
+                                    Margin="0,14,0,0" />
+
+                            <TextBlock Text="Предупреждения после импорта"
+                                    FontWeight="SemiBold"
+                                    Margin="0,16,0,6" />
+
+                            <ListBox ItemsSource="{Binding SecurityListImportWarnings}"
+                                    Width="760"
+                                    MinHeight="60"
+                                    MaxHeight="150"
+                                    HorizontalAlignment="Left" />
+
+                            <Separator Margin="0,30,0,24" />
 
                             <CheckBox Content="Включить автоматическую проверку новых файлов"
                                     IsChecked="{Binding ArchiveGuardAutoScanEnabled}"

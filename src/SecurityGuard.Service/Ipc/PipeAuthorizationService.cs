@@ -27,6 +27,12 @@ public sealed class PipeAuthorizationService
 
             PipeMessageType.UpdateArchiveGuardSettings =>
                 context.IsAdministrator,
+            
+            PipeMessageType.ExportSecurityLists =>
+                context.IsAdministrator,
+
+            PipeMessageType.ImportSecurityLists =>
+                context.IsAdministrator,
 
             _ =>
                 true

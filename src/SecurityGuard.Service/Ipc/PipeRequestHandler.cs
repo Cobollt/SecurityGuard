@@ -9,6 +9,8 @@ using SecurityGuard.TransferGuard.Contracts;
 using SecurityGuard.TransferGuard.Models;
 using SecurityGuard.ArchiveGuard.Contracts;
 using SecurityGuard.ArchiveGuard.Models;
+using SecurityGuard.Core.Ipc.SecurityLists;
+using SecurityGuard.Core.Lists;
 
 namespace SecurityGuard.Service.Ipc;
 
@@ -22,6 +24,7 @@ public sealed class PipeRequestHandler
     private readonly ITransferManualRuleService _transferManualRuleService;
     private readonly IArchiveGuardIpcService? _archiveGuardIpcService;
     private readonly IArchiveGuardAutoScanSettingsCoordinator? _archiveGuardAutoScanSettings;
+    private readonly ISecurityListTransferService? _securityListTransferService;
 
     public PipeRequestHandler(
         ISecuritySnapshotService snapshotService,
@@ -31,7 +34,8 @@ public sealed class PipeRequestHandler
         ITransferGuardSettingsCoordinator transferGuardSettings,
         ITransferManualRuleService transferManualRuleService,
         IArchiveGuardIpcService? archiveGuardIpcService = null,
-        IArchiveGuardAutoScanSettingsCoordinator? archiveGuardAutoScanSettings = null)
+        IArchiveGuardAutoScanSettingsCoordinator? archiveGuardAutoScanSettings = null,
+        ISecurityListTransferService? securityListTransferService = null)
     {
         _snapshotService =
             snapshotService;
@@ -56,6 +60,9 @@ public sealed class PipeRequestHandler
 
         _archiveGuardAutoScanSettings =
             archiveGuardAutoScanSettings;
+        
+        _securityListTransferService =
+            securityListTransferService;
     }
 
     public async Task<PipeResponse> HandleAsync(
@@ -135,6 +142,25 @@ public sealed class PipeRequestHandler
                     await UpdateArchiveGuardSettingsAsync(
                         request,
                         cancellationToken),
+                
+                PipeMessageType.ExportSecurityLists =>
+                    await ExportSecurityListsAsync(
+                        request,
+                        cancellationToken),
+
+                PipeMessageType.ValidateSecurityLists =>
+                    await ValidateSecurityListsAsync(
+                        request,
+                        cancellationToken),
+
+                PipeMessageType.ImportSecurityLists =>
+                    await ImportSecurityListsAsync(
+                        request,
+                        cancellationToken),
+
+                PipeMessageType.GetSecurityListsFolder =>
+                    GetSecurityListsFolder(
+                        request),
 
                 _ =>
                     PipeResponse.Fail(
@@ -476,5 +502,151 @@ public sealed class PipeRequestHandler
             state.Settings.ScanUserDownloads,
             state.Settings.AdditionalDirectories,
             state.WatchedDirectories.ToArray());
+    }
+
+    private async Task<PipeResponse> ExportSecurityListsAsync(
+        PipeRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (_securityListTransferService is null)
+        {
+            return PipeResponse.Fail(
+                request.Id,
+                "Security list transfer service is unavailable.");
+        }
+
+        var result =
+            await _securityListTransferService.ExportAsync(
+                cancellationToken);
+
+        var response =
+            new SecurityListExportIpcDto(
+                result.PackagePath,
+                result.ExportedAtUtc,
+                result.RuleCount,
+                result.RuleConditionCount,
+                result.ThreatHashCount);
+
+        return PipeResponse.Ok(
+            request.Id,
+            PipeJsonSerializer.Serialize(
+                response));
+    }
+
+    private async Task<PipeResponse> ValidateSecurityListsAsync(
+        PipeRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (_securityListTransferService is null)
+        {
+            return PipeResponse.Fail(
+                request.Id,
+                "Security list transfer service is unavailable.");
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                request.Payload))
+        {
+            return PipeResponse.Fail(
+                request.Id,
+                "Security list validation payload is required.");
+        }
+
+        var model =
+            PipeJsonSerializer.Deserialize<
+                SecurityListValidateIpcRequest>(
+                    request.Payload);
+
+        var result =
+            await _securityListTransferService.ValidateAsync(
+                model.PackagePath,
+                cancellationToken);
+
+        var manifest =
+            result.Manifest;
+
+        var response =
+            new SecurityListValidationIpcDto(
+                result.IsValid,
+                result.Error,
+                manifest?.FormatVersion,
+                manifest?.RuleCount ?? 0,
+                manifest?.RuleConditionCount ?? 0,
+                manifest?.ThreatHashCount ?? 0);
+
+        return PipeResponse.Ok(
+            request.Id,
+            PipeJsonSerializer.Serialize(
+                response));
+    }
+
+    private async Task<PipeResponse> ImportSecurityListsAsync(
+        PipeRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (_securityListTransferService is null)
+        {
+            return PipeResponse.Fail(
+                request.Id,
+                "Security list transfer service is unavailable.");
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                request.Payload))
+        {
+            return PipeResponse.Fail(
+                request.Id,
+                "Security list import payload is required.");
+        }
+
+        var model =
+            PipeJsonSerializer.Deserialize<
+                SecurityListImportIpcRequest>(
+                    request.Payload);
+
+        var result =
+            await _securityListTransferService.ImportAsync(
+                model.PackagePath,
+                model.Mode,
+                cancellationToken);
+
+        var response =
+            new SecurityListImportIpcDto(
+                result.PackagePath,
+                result.Mode,
+                result.ImportedAtUtc,
+                result.RuleCount,
+                result.RuleConditionCount,
+                result.ThreatHashCount,
+                result.AlgorithmEnforcementSynchronized,
+                result.TransferEnforcementSynchronized,
+                result.Warnings.ToArray());
+
+        return PipeResponse.Ok(
+            request.Id,
+            PipeJsonSerializer.Serialize(
+                response));
+    }
+
+    private PipeResponse GetSecurityListsFolder(
+        PipeRequest request)
+    {
+        if (_securityListTransferService is null)
+        {
+            return PipeResponse.Fail(
+                request.Id,
+                "Security list transfer service is unavailable.");
+        }
+
+        var response =
+            new SecurityListFoldersIpcDto(
+                _securityListTransferService.ListsDirectory,
+                _securityListTransferService.ExportsDirectory,
+                _securityListTransferService.ImportsDirectory);
+
+        return PipeResponse.Ok(
+            request.Id,
+            PipeJsonSerializer.Serialize(
+                response));
     }
 }

@@ -1601,26 +1601,24 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\yusup\\.nuget\\packages\\": {}
+    "/Users/designyousupova/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\tests\\SecurityGuard.UI.Tests\\SecurityGuard.UI.Tests.csproj",
+      "projectUniqueName": "/Users/designyousupova/Project/SecurityGuard/tests/SecurityGuard.UI.Tests/SecurityGuard.UI.Tests.csproj",
       "projectName": "SecurityGuard.UI.Tests",
-      "projectPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\tests\\SecurityGuard.UI.Tests\\SecurityGuard.UI.Tests.csproj",
-      "packagesPath": "C:\\Users\\yusup\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\tests\\SecurityGuard.UI.Tests\\obj\\",
+      "projectPath": "/Users/designyousupova/Project/SecurityGuard/tests/SecurityGuard.UI.Tests/SecurityGuard.UI.Tests.csproj",
+      "packagesPath": "/Users/designyousupova/.nuget/packages/",
+      "outputPath": "/Users/designyousupova/Project/SecurityGuard/tests/SecurityGuard.UI.Tests/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\yusup\\AppData\\Roaming\\NuGet\\NuGet.Config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        "/Users/designyousupova/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net10.0-windows"
       ],
       "sources": {
-        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -1628,17 +1626,17 @@
           "framework": "net10.0-windows7.0",
           "targetAlias": "net10.0-windows",
           "projectReferences": {
-            "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.AlgorithmGuard\\SecurityGuard.AlgorithmGuard.csproj": {
-              "projectPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.AlgorithmGuard\\SecurityGuard.AlgorithmGuard.csproj"
+            "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.AlgorithmGuard/SecurityGuard.AlgorithmGuard.csproj": {
+              "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.AlgorithmGuard/SecurityGuard.AlgorithmGuard.csproj"
             },
-            "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Core\\SecurityGuard.Core.csproj": {
-              "projectPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Core\\SecurityGuard.Core.csproj"
+            "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj": {
+              "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj"
             },
-            "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.TransferGuard\\SecurityGuard.TransferGuard.csproj": {
-              "projectPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.TransferGuard\\SecurityGuard.TransferGuard.csproj"
+            "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/SecurityGuard.TransferGuard.csproj": {
+              "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/SecurityGuard.TransferGuard.csproj"
             },
-            "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.UI\\SecurityGuard.UI.csproj": {
-              "projectPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.UI\\SecurityGuard.UI.csproj"
+            "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.UI/SecurityGuard.UI.csproj": {
+              "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.UI/SecurityGuard.UI.csproj"
             }
           }
         }
@@ -1654,7 +1652,7 @@
         "auditLevel": "low",
         "auditMode": "all"
       },
-      "SdkAnalysisLevel": "10.0.400"
+      "SdkAnalysisLevel": "10.0.300"
     },
     "frameworks": {
       "net10.0-windows": {
@@ -1689,12 +1687,18 @@
         ],
         "assetTargetFallback": true,
         "warn": true,
+        "downloadDependencies": [
+          {
+            "name": "Microsoft.WindowsDesktop.App.Ref",
+            "version": "[10.0.10, 10.0.10]"
+          }
+        ],
         "frameworkReferences": {
           "Microsoft.NETCore.App": {
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.401/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/10.0.302/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.CSharp": "(,4.7.32767]",
           "Microsoft.VisualBasic": "(,10.4.32767]",

@@ -17,5 +17,9 @@ public enum PipeMessageType
     ScanFile = 12,
     ApplyArchiveDecision = 13,
     GetArchiveGuardSettings = 14,
-    UpdateArchiveGuardSettings = 15
+    UpdateArchiveGuardSettings = 15,
+    ExportSecurityLists = 16,
+    ValidateSecurityLists = 17,
+    ImportSecurityLists = 18,
+    GetSecurityListsFolder = 19
 }
