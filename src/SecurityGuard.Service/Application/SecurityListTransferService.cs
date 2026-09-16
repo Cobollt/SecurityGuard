@@ -25,13 +25,21 @@ public sealed class SecurityListTransferService
     private readonly ITransferEnforcementSynchronizer _transferSynchronizer;
     private readonly SecurityGuardPaths _paths;
     private readonly IAuditService _auditService;
+    private readonly ISecurityListImportHistoryRepository _importHistoryRepository;
+    private readonly IFileHashService _fileHashService;
+    private readonly SemaphoreSlim _importGate =
+        new(
+            1,
+            1);
 
     public SecurityListTransferService(
         IRuleRepository ruleRepository,
         IThreatHashRepository threatHashRepository,
         ISecurityListImportStore importStore,
+        ISecurityListImportHistoryRepository importHistoryRepository,
         IAlgorithmEnforcementSynchronizer algorithmSynchronizer,
         ITransferEnforcementSynchronizer transferSynchronizer,
+        IFileHashService fileHashService,
         SecurityGuardPaths paths,
         IAuditService auditService)
     {
@@ -44,11 +52,17 @@ public sealed class SecurityListTransferService
         _importStore =
             importStore;
 
+        _importHistoryRepository =
+            importHistoryRepository;
+
         _algorithmSynchronizer =
             algorithmSynchronizer;
 
         _transferSynchronizer =
             transferSynchronizer;
+
+        _fileHashService =
+            fileHashService;
 
         _paths =
             paths;
@@ -263,8 +277,14 @@ public sealed class SecurityListTransferService
         {
         }
 
+        var packageSha256 =
+            await _fileHashService.ComputeSha256Async(
+                destinationPath,
+                cancellationToken);
+
         return new SecurityListExportResult(
             destinationPath,
+            packageSha256,
             exportedAtUtc,
             ruleEntries.Length,
             conditionEntries.Length,
@@ -275,16 +295,33 @@ public sealed class SecurityListTransferService
         string packagePath,
         CancellationToken cancellationToken = default)
     {
+        string? stagedPath =
+            null;
+
         try
         {
+            EnsureDirectories();
+
+            stagedPath =
+                await StagePackageAsync(
+                    packagePath,
+                    cancellationToken);
+
+            var packageSha256 =
+                NormalizeSha256(
+                    await _fileHashService.ComputeSha256Async(
+                        stagedPath,
+                        cancellationToken));
+
             var package =
                 await ReadPackageAsync(
-                    packagePath,
+                    stagedPath,
                     cancellationToken);
 
             return new SecurityListPackageValidationResult(
                 true,
                 null,
+                packageSha256,
                 package.Manifest);
         }
         catch (OperationCanceledException)
@@ -297,7 +334,17 @@ public sealed class SecurityListTransferService
             return new SecurityListPackageValidationResult(
                 false,
                 exception.Message,
+                null,
                 null);
+        }
+        finally
+        {
+            if (!string.IsNullOrWhiteSpace(
+                    stagedPath))
+            {
+                TryDelete(
+                    stagedPath);
+            }
         }
     }
 
@@ -313,117 +360,186 @@ public sealed class SecurityListTransferService
                 $"Import mode is not supported: {mode}");
         }
 
-        var package =
-            await ReadPackageAsync(
-                packagePath,
-                cancellationToken);
-
-        var conditionsByRule =
-            package.Conditions
-                .GroupBy(
-                    condition =>
-                        condition.RuleId)
-                .ToDictionary(
-                    group =>
-                        group.Key,
-                    group =>
-                        (IReadOnlyList<SecurityRuleCondition>)group
-                            .OrderBy(
-                                condition =>
-                                    condition.Position)
-                            .Select(
-                                condition =>
-                                    new SecurityRuleCondition(
-                                        condition.Scope,
-                                        condition.Value))
-                            .ToArray());
-
-        var rules =
-            package.Rules
-                .Select(
-                    rule =>
-                        new SecurityRule(
-                            rule.Id,
-                            rule.Name,
-                            rule.Module,
-                            rule.Decision,
-                            rule.Scope,
-                            rule.Value,
-                            rule.Enabled,
-                            rule.Priority,
-                            rule.CreatedAtUtc,
-                            rule.ExpiresAtUtc,
-                            conditionsByRule.TryGetValue(
-                                rule.Id,
-                                out var conditions)
-                                ? conditions
-                                : []))
-                .ToArray();
-
-        var threatHashes =
-            package.ThreatHashes
-                .Select(
-                    entry =>
-                        new ThreatHashEntry(
-                            NormalizeSha256(
-                                entry.Sha256),
-                            entry.Source,
-                            entry.Description,
-                            entry.Enabled,
-                            entry.CreatedAtUtc,
-                            entry.UpdatedAtUtc))
-                .ToArray();
-
-        await _importStore.ImportAsync(
-            rules,
-            threatHashes,
-            mode,
+        await _importGate.WaitAsync(
             cancellationToken);
 
-        var warnings =
-            new List<string>();
+        string? stagedPath =
+            null;
 
-        var algorithmHealthy =
-            await SynchronizeAlgorithmGuardAsync(
-                warnings,
-                cancellationToken);
-
-        var transferHealthy =
-            await SynchronizeTransferGuardAsync(
-                warnings,
-                cancellationToken);
-
-        var importedAtUtc =
-            DateTimeOffset.UtcNow;
+        ArchivedPackageResult? archived =
+            null;
 
         try
         {
-            await _auditService.WriteAsync(
-                SecurityModuleKind.Core,
-                SecurityEventType.Audit,
-                warnings.Count == 0
-                    ? SecuritySeverity.Info
-                    : SecuritySeverity.Medium,
-                "Security lists imported",
-                $"Package={Path.GetFileName(packagePath)}; Rules={rules.Length}; Conditions={package.Conditions.Length}; ThreatHashes={threatHashes.Length}; AlgorithmSync={algorithmHealthy}; TransferSync={transferHealthy}",
-                cancellationToken:
-                    cancellationToken);
-        }
-        catch
-        {
-        }
+            EnsureDirectories();
 
-        return new SecurityListImportResult(
-            Path.GetFullPath(
-                packagePath),
-            mode,
-            importedAtUtc,
-            rules.Length,
-            package.Conditions.Length,
-            threatHashes.Length,
-            algorithmHealthy,
-            transferHealthy,
-            warnings);
+            var originalPath =
+                Path.GetFullPath(
+                    packagePath);
+
+            stagedPath =
+                await StagePackageAsync(
+                    originalPath,
+                    cancellationToken);
+
+            var packageSha256 =
+                NormalizeSha256(
+                    await _fileHashService.ComputeSha256Async(
+                        stagedPath,
+                        cancellationToken));
+
+            var existing =
+                await _importHistoryRepository.GetByPackageSha256Async(
+                    packageSha256,
+                    cancellationToken);
+
+            if (existing is not null)
+            {
+                var warnings =
+                    new List<string>
+                    {
+                        "Этот пакет уже был импортирован ранее."
+                    };
+
+                if (!File.Exists(
+                        existing.ArchivedPackagePath))
+                {
+                    warnings.Add(
+                        "Архивированная копия ранее импортированного пакета отсутствует.");
+                }
+
+                return new SecurityListImportResult(
+                    originalPath,
+                    packageSha256,
+                    existing.ArchivedPackagePath,
+                    existing.Mode,
+                    existing.ImportedAtUtc,
+                    existing.RuleCount,
+                    existing.RuleConditionCount,
+                    existing.ThreatHashCount,
+                    true,
+                    false,
+                    false,
+                    warnings);
+            }
+
+            var package =
+                await ReadPackageAsync(
+                    stagedPath,
+                    cancellationToken);
+
+            var rules =
+                BuildRules(
+                    package);
+
+            var threatHashes =
+                BuildThreatHashes(
+                    package);
+
+            archived =
+                await ArchiveStagedPackageAsync(
+                    stagedPath,
+                    packageSha256,
+                    cancellationToken);
+
+            stagedPath =
+                null;
+
+            var importedAtUtc =
+                DateTimeOffset.UtcNow;
+
+            var importRecord =
+                new SecurityListImportRecord(
+                    Guid.NewGuid(),
+                    packageSha256,
+                    Path.GetFileName(
+                        originalPath),
+                    archived.Path,
+                    package.Manifest.PackageType,
+                    package.Manifest.FormatVersion,
+                    package.Manifest.ExportedAtUtc,
+                    importedAtUtc,
+                    mode,
+                    rules.Length,
+                    package.Conditions.Length,
+                    threatHashes.Length);
+
+            try
+            {
+                await _importStore.ImportAsync(
+                    rules,
+                    threatHashes,
+                    mode,
+                    importRecord,
+                    cancellationToken);
+            }
+            catch
+            {
+                if (archived.Created)
+                {
+                    TryDelete(
+                        archived.Path);
+                }
+
+                throw;
+            }
+
+            var warnings =
+                new List<string>();
+
+            var algorithmHealthy =
+                await SynchronizeAlgorithmGuardAsync(
+                    warnings,
+                    cancellationToken);
+
+            var transferHealthy =
+                await SynchronizeTransferGuardAsync(
+                    warnings,
+                    cancellationToken);
+
+            try
+            {
+                await _auditService.WriteAsync(
+                    SecurityModuleKind.Core,
+                    SecurityEventType.Audit,
+                    warnings.Count ==
+                    0
+                        ? SecuritySeverity.Info
+                        : SecuritySeverity.Medium,
+                    "Security lists imported",
+                    $"Package={Path.GetFileName(originalPath)}; PackageSha256={packageSha256}; Rules={rules.Length}; Conditions={package.Conditions.Length}; ThreatHashes={threatHashes.Length}; AlgorithmSync={algorithmHealthy}; TransferSync={transferHealthy}",
+                    cancellationToken:
+                        cancellationToken);
+            }
+            catch
+            {
+            }
+
+            return new SecurityListImportResult(
+                originalPath,
+                packageSha256,
+                archived.Path,
+                mode,
+                importedAtUtc,
+                rules.Length,
+                package.Conditions.Length,
+                threatHashes.Length,
+                false,
+                algorithmHealthy,
+                transferHealthy,
+                warnings);
+        }
+        finally
+        {
+            if (!string.IsNullOrWhiteSpace(
+                    stagedPath))
+            {
+                TryDelete(
+                    stagedPath);
+            }
+
+            _importGate.Release();
+        }
     }
 
     private async Task<bool> SynchronizeAlgorithmGuardAsync(
@@ -656,11 +772,18 @@ public sealed class SecurityListTransferService
                 "Package type is not supported.");
         }
 
-        if (manifest.FormatVersion !=
+        if (manifest.FormatVersion <
             SecurityListPackageFormat.CurrentVersion)
         {
             throw new InvalidDataException(
-                $"Package format version is not supported: {manifest.FormatVersion}");
+                $"Older package format is not accepted: {manifest.FormatVersion}");
+        }
+
+        if (manifest.FormatVersion >
+            SecurityListPackageFormat.CurrentVersion)
+        {
+            throw new InvalidDataException(
+                $"Newer package format is not supported: {manifest.FormatVersion}");
         }
 
         if (manifest.RuleCount <
@@ -1134,4 +1257,222 @@ public sealed class SecurityListTransferService
         SecurityListRuleEntry[] Rules,
         SecurityListRuleConditionEntry[] Conditions,
         SecurityListThreatHashEntry[] ThreatHashes);
+
+    private async Task<string> StagePackageAsync(
+        string packagePath,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(
+            packagePath);
+
+        var sourcePath =
+            Path.GetFullPath(
+                packagePath);
+
+        if (!File.Exists(
+                sourcePath))
+        {
+            throw new FileNotFoundException(
+                "Security list package was not found.",
+                sourcePath);
+        }
+
+        var info =
+            new FileInfo(
+                sourcePath);
+
+        if (info.Length <=
+                0 ||
+            info.Length >
+                SecurityListPackageFormat.MaxPackageBytes)
+        {
+            throw new InvalidDataException(
+                "Security list package size is invalid.");
+        }
+
+        var stagedPath =
+            Path.Combine(
+                _paths.TempDirectory,
+                $"SecurityGuardLists_Import_{Guid.NewGuid():N}.tmp");
+
+        await using var source =
+            new FileStream(
+                sourcePath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read,
+                bufferSize:
+                    64 * 1024,
+                FileOptions.Asynchronous |
+                FileOptions.SequentialScan);
+
+        await using var destination =
+            new FileStream(
+                stagedPath,
+                FileMode.CreateNew,
+                FileAccess.Write,
+                FileShare.None,
+                bufferSize:
+                    64 * 1024,
+                FileOptions.Asynchronous |
+                FileOptions.SequentialScan);
+
+        var buffer =
+            new byte[
+                64 * 1024];
+
+        long total =
+            0;
+
+        while (true)
+        {
+            var read =
+                await source.ReadAsync(
+                    buffer,
+                    cancellationToken);
+
+            if (read ==
+                0)
+            {
+                break;
+            }
+
+            total +=
+                read;
+
+            if (total >
+                SecurityListPackageFormat.MaxPackageBytes)
+            {
+                throw new InvalidDataException(
+                    "Security list package exceeds the allowed size.");
+            }
+
+            await destination.WriteAsync(
+                buffer.AsMemory(
+                    0,
+                    read),
+                cancellationToken);
+        }
+
+        await destination.FlushAsync(
+            cancellationToken);
+
+        return stagedPath;
+    }
+
+    private async Task<ArchivedPackageResult> ArchiveStagedPackageAsync(
+        string stagedPath,
+        string packageSha256,
+        CancellationToken cancellationToken)
+    {
+        packageSha256 =
+            NormalizeSha256(
+                packageSha256);
+
+        var archivedPath =
+            Path.Combine(
+                _paths.ListImportsDirectory,
+                $"SecurityGuardLists_Imported_{packageSha256}.zip");
+
+        if (File.Exists(
+                archivedPath))
+        {
+            var existingHash =
+                NormalizeSha256(
+                    await _fileHashService.ComputeSha256Async(
+                        archivedPath,
+                        cancellationToken));
+
+            if (!string.Equals(
+                    existingHash,
+                    packageSha256,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidDataException(
+                    "Existing archived package has an unexpected fingerprint.");
+            }
+
+            TryDelete(
+                stagedPath);
+
+            return new ArchivedPackageResult(
+                archivedPath,
+                false);
+        }
+
+        File.Move(
+            stagedPath,
+            archivedPath,
+            false);
+
+        return new ArchivedPackageResult(
+            archivedPath,
+            true);
+    }
+
+    private sealed record ArchivedPackageResult(
+        string Path,
+        bool Created);
+    
+    private static SecurityRule[] BuildRules(
+        ParsedPackage package)
+    {
+        var conditionsByRule =
+            package.Conditions
+                .GroupBy(
+                    condition =>
+                        condition.RuleId)
+                .ToDictionary(
+                    group =>
+                        group.Key,
+                    group =>
+                        (IReadOnlyList<SecurityRuleCondition>)group
+                            .OrderBy(
+                                condition =>
+                                    condition.Position)
+                            .Select(
+                                condition =>
+                                    new SecurityRuleCondition(
+                                        condition.Scope,
+                                        condition.Value))
+                            .ToArray());
+
+        return package.Rules
+            .Select(
+                rule =>
+                    new SecurityRule(
+                        rule.Id,
+                        rule.Name,
+                        rule.Module,
+                        rule.Decision,
+                        rule.Scope,
+                        rule.Value,
+                        rule.Enabled,
+                        rule.Priority,
+                        rule.CreatedAtUtc,
+                        rule.ExpiresAtUtc,
+                        conditionsByRule.TryGetValue(
+                            rule.Id,
+                            out var conditions)
+                            ? conditions
+                            : []))
+            .ToArray();
+    }
+
+    private static ThreatHashEntry[] BuildThreatHashes(
+        ParsedPackage package)
+    {
+        return package.ThreatHashes
+            .Select(
+                entry =>
+                    new ThreatHashEntry(
+                        NormalizeSha256(
+                            entry.Sha256),
+                        entry.Source,
+                        entry.Description,
+                        entry.Enabled,
+                        entry.CreatedAtUtc,
+                        entry.UpdatedAtUtc))
+            .ToArray();
+    }
 }

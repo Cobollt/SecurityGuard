@@ -197,6 +197,30 @@ public sealed class DatabaseInitializer
                 value TEXT NOT NULL,
                 updated_at_utc TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS security_list_imports
+            (
+                id TEXT PRIMARY KEY,
+                package_sha256 TEXT NOT NULL UNIQUE,
+                original_file_name TEXT NOT NULL,
+                archived_package_path TEXT NOT NULL,
+                package_type TEXT NOT NULL,
+                format_version INTEGER NOT NULL,
+                exported_at_utc TEXT NOT NULL,
+                imported_at_utc TEXT NOT NULL,
+                mode INTEGER NOT NULL,
+                rule_count INTEGER NOT NULL,
+                rule_condition_count INTEGER NOT NULL,
+                threat_hash_count INTEGER NOT NULL
+            );
+
+            CREATE UNIQUE INDEX IF NOT EXISTS
+            idx_security_list_imports_sha256
+            ON security_list_imports(package_sha256);
+
+            CREATE INDEX IF NOT EXISTS
+            idx_security_list_imports_imported
+            ON security_list_imports(imported_at_utc DESC);
             """;
 
         await command.ExecuteNonQueryAsync(cancellationToken);

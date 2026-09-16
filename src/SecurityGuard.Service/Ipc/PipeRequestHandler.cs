@@ -522,6 +522,7 @@ public sealed class PipeRequestHandler
         var response =
             new SecurityListExportIpcDto(
                 result.PackagePath,
+                result.PackageSha256,
                 result.ExportedAtUtc,
                 result.RuleCount,
                 result.RuleConditionCount,
@@ -569,6 +570,7 @@ public sealed class PipeRequestHandler
             new SecurityListValidationIpcDto(
                 result.IsValid,
                 result.Error,
+                result.PackageSha256,
                 manifest?.FormatVersion,
                 manifest?.RuleCount ?? 0,
                 manifest?.RuleConditionCount ?? 0,
@@ -613,11 +615,14 @@ public sealed class PipeRequestHandler
         var response =
             new SecurityListImportIpcDto(
                 result.PackagePath,
+                result.PackageSha256,
+                result.ArchivedPackagePath,
                 result.Mode,
                 result.ImportedAtUtc,
                 result.RuleCount,
                 result.RuleConditionCount,
                 result.ThreatHashCount,
+                result.AlreadyImported,
                 result.AlgorithmEnforcementSynchronized,
                 result.TransferEnforcementSynchronized,
                 result.Warnings.ToArray());

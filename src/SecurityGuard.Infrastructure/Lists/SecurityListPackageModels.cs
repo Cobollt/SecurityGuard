@@ -91,6 +91,7 @@ public sealed record SecurityListThreatHashEntry(
 
 public sealed record SecurityListExportResult(
     string PackagePath,
+    string PackageSha256,
     DateTimeOffset ExportedAtUtc,
     int RuleCount,
     int RuleConditionCount,
@@ -99,19 +100,37 @@ public sealed record SecurityListExportResult(
 public sealed record SecurityListPackageValidationResult(
     bool IsValid,
     string? Error,
+    string? PackageSha256,
     SecurityListPackageManifest? Manifest);
 
 public sealed record SecurityListStoreImportResult(
     int RulesUpserted,
     int ThreatHashesUpserted);
 
+public sealed record SecurityListImportRecord(
+    Guid Id,
+    string PackageSha256,
+    string OriginalFileName,
+    string ArchivedPackagePath,
+    string PackageType,
+    int FormatVersion,
+    DateTimeOffset ExportedAtUtc,
+    DateTimeOffset ImportedAtUtc,
+    SecurityListImportMode Mode,
+    int RuleCount,
+    int RuleConditionCount,
+    int ThreatHashCount);
+
 public sealed record SecurityListImportResult(
     string PackagePath,
+    string PackageSha256,
+    string ArchivedPackagePath,
     SecurityListImportMode Mode,
     DateTimeOffset ImportedAtUtc,
     int RuleCount,
     int RuleConditionCount,
     int ThreatHashCount,
+    bool AlreadyImported,
     bool AlgorithmEnforcementSynchronized,
     bool TransferEnforcementSynchronized,
     IReadOnlyList<string> Warnings);

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SecurityGuard.Storage")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f52f517cb785ce33e1b1930d512e8a792a2ef196")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+acdd3be1a94857ca43ac3be82295e76cc3809958")]
 [assembly: System.Reflection.AssemblyProductAttribute("SecurityGuard.Storage")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SecurityGuard.Storage")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

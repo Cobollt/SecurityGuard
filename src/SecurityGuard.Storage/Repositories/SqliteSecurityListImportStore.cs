@@ -23,6 +23,7 @@ public sealed class SqliteSecurityListImportStore
         IReadOnlyList<SecurityRule> rules,
         IReadOnlyList<ThreatHashEntry> threatHashes,
         SecurityListImportMode mode,
+        SecurityListImportRecord importRecord,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(
@@ -30,6 +31,9 @@ public sealed class SqliteSecurityListImportStore
 
         ArgumentNullException.ThrowIfNull(
             threatHashes);
+
+        ArgumentNullException.ThrowIfNull(
+            importRecord);
 
         if (mode !=
             SecurityListImportMode.Merge)
@@ -67,6 +71,12 @@ public sealed class SqliteSecurityListImportStore
                     threatHash,
                     cancellationToken);
             }
+
+            await InsertImportRecordAsync(
+                connection,
+                (SqliteTransaction)transaction,
+                importRecord,
+                cancellationToken);
 
             await transaction.CommitAsync(
                 cancellationToken);
@@ -347,6 +357,112 @@ public sealed class SqliteSecurityListImportStore
                 .ToString(
                     "O",
                     CultureInfo.InvariantCulture));
+
+        await command.ExecuteNonQueryAsync(
+            cancellationToken);
+    }
+
+    private static async Task InsertImportRecordAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        SecurityListImportRecord record,
+        CancellationToken cancellationToken)
+    {
+        await using var command =
+            connection.CreateCommand();
+
+        command.Transaction =
+            transaction;
+
+        command.CommandText =
+            """
+            INSERT INTO security_list_imports
+            (
+                id,
+                package_sha256,
+                original_file_name,
+                archived_package_path,
+                package_type,
+                format_version,
+                exported_at_utc,
+                imported_at_utc,
+                mode,
+                rule_count,
+                rule_condition_count,
+                threat_hash_count
+            )
+            VALUES
+            (
+                $id,
+                $packageSha256,
+                $originalFileName,
+                $archivedPackagePath,
+                $packageType,
+                $formatVersion,
+                $exportedAtUtc,
+                $importedAtUtc,
+                $mode,
+                $ruleCount,
+                $ruleConditionCount,
+                $threatHashCount
+            );
+            """;
+
+        command.Parameters.AddWithValue(
+            "$id",
+            record.Id.ToString());
+
+        command.Parameters.AddWithValue(
+            "$packageSha256",
+            record.PackageSha256);
+
+        command.Parameters.AddWithValue(
+            "$originalFileName",
+            record.OriginalFileName);
+
+        command.Parameters.AddWithValue(
+            "$archivedPackagePath",
+            record.ArchivedPackagePath);
+
+        command.Parameters.AddWithValue(
+            "$packageType",
+            record.PackageType);
+
+        command.Parameters.AddWithValue(
+            "$formatVersion",
+            record.FormatVersion);
+
+        command.Parameters.AddWithValue(
+            "$exportedAtUtc",
+            record.ExportedAtUtc
+                .ToUniversalTime()
+                .ToString(
+                    "O",
+                    CultureInfo.InvariantCulture));
+
+        command.Parameters.AddWithValue(
+            "$importedAtUtc",
+            record.ImportedAtUtc
+                .ToUniversalTime()
+                .ToString(
+                    "O",
+                    CultureInfo.InvariantCulture));
+
+        command.Parameters.AddWithValue(
+            "$mode",
+            (int)record.Mode);
+
+        command.Parameters.AddWithValue(
+            "$ruleCount",
+            record.RuleCount);
+
+        command.Parameters.AddWithValue(
+            "$ruleConditionCount",
+            record.RuleConditionCount);
+
+        command.Parameters.AddWithValue(
+            "$threatHashCount",
+            record.ThreatHashCount);
 
         await command.ExecuteNonQueryAsync(
             cancellationToken);

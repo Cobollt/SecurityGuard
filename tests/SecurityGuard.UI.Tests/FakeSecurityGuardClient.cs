@@ -42,15 +42,12 @@ internal sealed class FakeSecurityGuardClient
     public IReadOnlyList<ArchiveGuardRecentScanIpcDto> ArchiveScanHistory { get; set; } =
         [];
     
-    public ArchiveGuardAutoScanSettingsIpcDto ArchiveGuardSettings { get; set; } =
-        new(
-            true,
-            true,
-            [],
-            []);
     public SecurityListExportIpcDto SecurityListExportResult { get; set; } =
         new(
             @"C:\ProgramData\SecurityGuard\Lists\Exports\test.zip",
+            new string(
+                'A',
+                64),
             DateTimeOffset.UtcNow,
             0,
             0,
@@ -60,21 +57,35 @@ internal sealed class FakeSecurityGuardClient
         new(
             true,
             null,
+            new string(
+                'A',
+                64),
             1,
             0,
             0,
             0);
-
     public SecurityListImportIpcDto SecurityListImportResult { get; set; } =
         new(
             @"C:\Temp\test.zip",
+            new string(
+                'A',
+                64),
+            @"C:\ProgramData\SecurityGuard\Lists\Imports\SecurityGuardLists_Imported_test.zip",
             SecurityListImportMode.Merge,
             DateTimeOffset.UtcNow,
             0,
             0,
             0,
+            false,
             true,
             true,
+            []);
+        
+    public ArchiveGuardAutoScanSettingsIpcDto ArchiveGuardSettings { get; set; } =
+        new(
+            true,
+            true,
+            [],
             []);
 
     public SecurityListFoldersIpcDto SecurityListFolders { get; set; } =

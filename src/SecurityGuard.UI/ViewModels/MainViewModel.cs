@@ -33,6 +33,8 @@ public sealed class MainViewModel
     private string _securityListsStatusText = "Пакет списков не выбран.";
     private bool _securityListPackageValid;
     private bool _algorithmGuardEnabled;
+    private string? _lastSecurityListExportSha256;
+    private string? _lastSecurityListImportArchivePath;
 
     private AlgorithmGuardMode _algorithmGuardMode =
         AlgorithmGuardMode.Monitor;
@@ -345,6 +347,28 @@ public sealed class MainViewModel
         set =>
             SetProperty(
                 ref _transferGuardFailurePolicy,
+                value);
+    }
+
+    public string? LastSecurityListExportSha256
+    {
+        get =>
+            _lastSecurityListExportSha256;
+
+        private set =>
+            SetProperty(
+                ref _lastSecurityListExportSha256,
+                value);
+    }
+
+    public string? LastSecurityListImportArchivePath
+    {
+        get =>
+            _lastSecurityListImportArchivePath;
+
+        private set =>
+            SetProperty(
+                ref _lastSecurityListImportArchivePath,
                 value);
     }
 
@@ -1276,10 +1300,12 @@ public sealed class MainViewModel
 
             LastSecurityListExportPath =
                 result.PackagePath;
+            
+            LastSecurityListExportSha256 =
+                result.PackageSha256;
 
             SecurityListsStatusText =
-                $"Экспорт завершён. Правил: {result.RuleCount}, условий: {result.RuleConditionCount}, SHA-256: {result.ThreatHashCount}.";
-
+                $"Экспорт завершён. Правил: {result.RuleCount}, условий: {result.RuleConditionCount}, SHA-256 записей: {result.ThreatHashCount}.";
             LastError =
                 null;
         }
@@ -1363,8 +1389,7 @@ public sealed class MainViewModel
             }
 
             SecurityListsStatusText =
-                $"Пакет корректен. Версия: {result.FormatVersion}. Правил: {result.RuleCount}, условий: {result.RuleConditionCount}, SHA-256: {result.ThreatHashCount}.";
-
+                $"Пакет корректен. Версия: {result.FormatVersion}. Fingerprint: {result.PackageSha256}. Правил: {result.RuleCount}, условий: {result.RuleConditionCount}, SHA-256 записей: {result.ThreatHashCount}.";
             LastError =
                 null;
         }
@@ -1412,15 +1437,32 @@ public sealed class MainViewModel
                     warning);
             }
 
-            SecurityListsStatusText =
-                result.Warnings.Length == 0
-                    ? $"Импорт завершён. Правил: {result.RuleCount}, условий: {result.RuleConditionCount}, SHA-256: {result.ThreatHashCount}."
-                    : $"Импорт завершён с предупреждениями. Правил: {result.RuleCount}, условий: {result.RuleConditionCount}, SHA-256: {result.ThreatHashCount}.";
+            LastSecurityListImportArchivePath =
+                result.ArchivedPackagePath;
 
+                    if (result.AlreadyImported)
+                    {
+                        SecurityListsStatusText =
+                            $"Этот пакет уже импортировался ранее. Fingerprint: {result.PackageSha256}.";
+                    }
+                    else if (result.Warnings.Length ==
+                            0)
+                    {
+                        SecurityListsStatusText =
+                            $"Импорт завершён. Правил: {result.RuleCount}, условий: {result.RuleConditionCount}, SHA-256 записей: {result.ThreatHashCount}.";
+                    }
+                    else
+                    {
+                        SecurityListsStatusText =
+                            $"Импорт завершён с предупреждениями. Правил: {result.RuleCount}, условий: {result.RuleConditionCount}, SHA-256 записей: {result.ThreatHashCount}.";
+                    }
             LastError =
                 null;
 
-            await RefreshAsync();
+            if (!result.AlreadyImported)
+            {
+                await RefreshAsync();
+            }
         }
         catch (Exception exception)
         {

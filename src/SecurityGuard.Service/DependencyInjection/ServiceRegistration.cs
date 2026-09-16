@@ -458,6 +458,10 @@ public static class ServiceRegistration
         services.AddSingleton<
             IArchiveGuardAutoScanSettingsCoordinator,
             ArchiveGuardAutoScanSettingsCoordinator>();
+        
+        services.AddSingleton<
+            ISecurityListImportHistoryRepository,
+            SqliteSecurityListImportHistoryRepository>();
 
         services.AddHostedService(
             provider =>

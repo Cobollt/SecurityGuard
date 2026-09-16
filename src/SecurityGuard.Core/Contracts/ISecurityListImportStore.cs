@@ -9,5 +9,6 @@ public interface ISecurityListImportStore
         IReadOnlyList<SecurityRule> rules,
         IReadOnlyList<ThreatHashEntry> threatHashes,
         SecurityListImportMode mode,
+        SecurityListImportRecord importRecord,
         CancellationToken cancellationToken = default);
 }

@@ -60,7 +60,14 @@ public sealed class SecurityListImportStoreTests
             await store.ImportAsync(
                 rules,
                 hashes,
-                SecurityListImportMode.Merge);
+                SecurityListImportMode.Merge,
+                CreateImportRecord(
+                    rules.Length,
+                    rules.Sum(
+                        rule =>
+                            rule.Conditions?.Count ??
+                            0),
+                    hashes.Length));
 
         Assert.Equal(
             1,
@@ -246,5 +253,31 @@ public sealed class SecurityListImportStoreTests
         Assert.Single(
             result.Conditions ??
             []);
+    }
+
+    private static SecurityListImportRecord CreateImportRecord(
+        int ruleCount,
+        int conditionCount,
+        int hashCount)
+    {
+        return new SecurityListImportRecord(
+            Guid.NewGuid(),
+            Convert.ToHexString(
+                Guid.NewGuid()
+                    .ToByteArray()
+                    .Concat(
+                        Guid.NewGuid()
+                            .ToByteArray())
+                    .ToArray()),
+            "test.zip",
+            @"C:\ProgramData\SecurityGuard\Lists\Imports\test.zip",
+            SecurityListPackageFormat.PackageType,
+            SecurityListPackageFormat.CurrentVersion,
+            DateTimeOffset.UtcNow,
+            DateTimeOffset.UtcNow,
+            SecurityListImportMode.Merge,
+            ruleCount,
+            conditionCount,
+            hashCount);
     }
 }

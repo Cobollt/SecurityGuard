@@ -1206,6 +1206,15 @@
                                     IsReadOnly="True"
                                     Width="760"
                                     HorizontalAlignment="Left" />
+                            
+                            <TextBlock Text="Fingerprint экспортированного пакета"
+                                    FontWeight="SemiBold"
+                                    Margin="0,10,0,6" />
+
+                            <TextBox Text="{Binding LastSecurityListExportSha256}"
+                                    IsReadOnly="True"
+                                    Width="760"
+                                    HorizontalAlignment="Left" />
 
                             <Separator Margin="0,24,0,24" />
 
@@ -1213,6 +1222,15 @@
                                     FontSize="18"
                                     FontWeight="SemiBold"
                                     Margin="0,0,0,10" />
+                            
+                            <TextBlock Text="Архивированная копия последнего импорта"
+                                    FontWeight="SemiBold"
+                                    Margin="0,16,0,6" />
+
+                            <TextBox Text="{Binding LastSecurityListImportArchivePath}"
+                                    IsReadOnly="True"
+                                    Width="760"
+                                    HorizontalAlignment="Left" />
 
                             <Grid Width="760"
                                 HorizontalAlignment="Left">
