@@ -6,6 +6,7 @@
     <DefineConstants>ProductVersion=$(ProductVersion)</DefineConstants>
     <OutputName>SecurityGuard-$(ProductVersion)-win-x64</OutputName>
     <OutputPath>$(MSBuildThisFileDirectory)..\..\artifacts\installer\</OutputPath>
+	 <AcceptEula>wix7</AcceptEula>
   </PropertyGroup>
 
   <ItemGroup>

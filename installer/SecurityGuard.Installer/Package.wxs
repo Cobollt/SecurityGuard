@@ -1,11 +1,12 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
      xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
 
-  <Package Id="Cobollt.SecurityGuard"
-           Name="SecurityGuard"
-           Manufacturer="Cobollt"
-           Version="$(var.ProductVersion)"
-           Scope="perMachine">
+	<Package Id="Cobollt.SecurityGuard"
+		   Name="SecurityGuard"
+		   Manufacturer="Cobollt"
+		   Version="$(var.ProductVersion)"
+		   Scope="perMachine"
+		   Codepage="1251">
 
     <MajorUpgrade DowngradeErrorMessage="На компьютере уже установлена более новая версия SecurityGuard." />
 
@@ -55,13 +56,25 @@
 
           </Component>
 
-          <Files Include="!(bindpath.ServicePublish)\**">
+			<Files Include="!(bindpath.ServicePublish)\**">
 
-            <Exclude Files="!(bindpath.ServicePublish)\SecurityGuard.Service.exe" />
+				<Exclude Files="!(bindpath.ServicePublish)\SecurityGuard.Service.exe" />
 
-            <Exclude Files="!(bindpath.ServicePublish)\**\*.pdb" />
+				<Exclude Files="**\hostfxr.dll" />
 
-          </Files>
+				<Exclude Files="!(bindpath.ServicePublish)\**\*.pdb" />
+
+			</Files>
+
+			<Component Id="SecurityGuardServiceHostFxrComponent"
+					   Guid="*">
+
+				<File Id="SecurityGuardServiceHostFxr"
+					  Source="!(bindpath.ServicePublish)\hostfxr.dll"
+					  DefaultLanguage="0"
+					  KeyPath="yes" />
+
+			</Component>
 
         </Directory>
 
@@ -80,7 +93,7 @@
                         Name="SecurityGuard"
                         Description="SecurityGuard"
                         WorkingDirectory="UIFOLDER"
-                        Advertise="no" />
+                        Advertise="yes" />
 
             </File>
 

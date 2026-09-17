@@ -1,0 +1,9 @@
+C:\Users\yusup\source\repos\Cobollt\SecurityGuard\src\SecurityGuard.Core\bin\Release\net10.0\SecurityGuard.Core.deps.json
+C:\Users\yusup\source\repos\Cobollt\SecurityGuard\src\SecurityGuard.Core\bin\Release\net10.0\SecurityGuard.Core.dll
+C:\Users\yusup\source\repos\Cobollt\SecurityGuard\src\SecurityGuard.Core\obj\Release\net10.0\SecurityGuard.Core.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\yusup\source\repos\Cobollt\SecurityGuard\src\SecurityGuard.Core\obj\Release\net10.0\SecurityGuard.Core.AssemblyInfoInputs.cache
+C:\Users\yusup\source\repos\Cobollt\SecurityGuard\src\SecurityGuard.Core\obj\Release\net10.0\SecurityGuard.Core.AssemblyInfo.cs
+C:\Users\yusup\source\repos\Cobollt\SecurityGuard\src\SecurityGuard.Core\obj\Release\net10.0\SecurityGuard.Core.csproj.CoreCompileInputs.cache
+C:\Users\yusup\source\repos\Cobollt\SecurityGuard\src\SecurityGuard.Core\obj\Release\net10.0\SecurityGuard.Core.dll
+C:\Users\yusup\source\repos\Cobollt\SecurityGuard\src\SecurityGuard.Core\obj\Release\net10.0\refint\SecurityGuard.Core.dll
+C:\Users\yusup\source\repos\Cobollt\SecurityGuard\src\SecurityGuard.Core\obj\Release\net10.0\ref\SecurityGuard.Core.dll

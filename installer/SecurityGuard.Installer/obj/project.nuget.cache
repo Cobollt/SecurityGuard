@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "vdPYzX2GSr8=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\installer\\SecurityGuard.Installer\\SecurityGuard.Installer.wixproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\yusup\\.nuget\\packages\\wixtoolset.util.wixext\\7.0.0\\wixtoolset.util.wixext.7.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}

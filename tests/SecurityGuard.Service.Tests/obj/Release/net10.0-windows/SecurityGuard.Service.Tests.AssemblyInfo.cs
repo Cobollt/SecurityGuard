@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SecurityGuard.Service.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+08205011553ff048560b8bb8be79660c07dc734a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ef637ef65ec0207b84ad8ac68771427dd34f440d")]
 [assembly: System.Reflection.AssemblyProductAttribute("SecurityGuard.Service.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SecurityGuard.Service.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

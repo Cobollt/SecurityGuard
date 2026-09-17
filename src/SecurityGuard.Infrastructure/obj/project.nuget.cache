@@ -1,10 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "+ovVenyg7gQ=",
+  "dgSpecHash": "V3dDowQG9FI=",
   "success": true,
-  "projectFilePath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Infrastructure/SecurityGuard.Infrastructure.csproj",
+  "projectFilePath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Infrastructure\\SecurityGuard.Infrastructure.csproj",
   "expectedPackageFiles": [
-    "/Users/designyousupova/.nuget/packages/microsoft.windowsdesktop.app.ref/10.0.10/microsoft.windowsdesktop.app.ref.10.0.10.nupkg.sha512"
+    "C:\\Users\\yusup\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\10.0.12\\microsoft.netcore.app.runtime.win-x64.10.0.12.nupkg.sha512",
+    "C:\\Users\\yusup\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x64\\10.0.12\\microsoft.windowsdesktop.app.runtime.win-x64.10.0.12.nupkg.sha512",
+    "C:\\Users\\yusup\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x64\\10.0.12\\microsoft.aspnetcore.app.runtime.win-x64.10.0.12.nupkg.sha512"
   ],
   "logs": []
 }

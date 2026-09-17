@@ -178,6 +178,97 @@
           "bin/placeholder/SecurityGuard.Core.dll": {}
         }
       }
+    },
+    "net10.0/win-x64": {
+      "Microsoft.Data.Sqlite/10.0.11": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.Data.Sqlite.Core": "10.0.11",
+          "SQLitePCLRaw.bundle_e_sqlite3": "2.1.12",
+          "SQLitePCLRaw.core": "2.1.12"
+        },
+        "compile": {
+          "lib/netstandard2.0/_._": {}
+        },
+        "runtime": {
+          "lib/netstandard2.0/_._": {}
+        }
+      },
+      "Microsoft.Data.Sqlite.Core/10.0.11": {
+        "type": "package",
+        "dependencies": {
+          "SQLitePCLRaw.core": "2.1.12"
+        },
+        "compile": {
+          "lib/net8.0/Microsoft.Data.Sqlite.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net8.0/Microsoft.Data.Sqlite.dll": {
+            "related": ".xml"
+          }
+        }
+      },
+      "SQLitePCLRaw.bundle_e_sqlite3/2.1.12": {
+        "type": "package",
+        "dependencies": {
+          "SQLitePCLRaw.lib.e_sqlite3": "2.1.12",
+          "SQLitePCLRaw.provider.e_sqlite3": "2.1.12"
+        },
+        "compile": {
+          "lib/netstandard2.0/SQLitePCLRaw.batteries_v2.dll": {}
+        },
+        "runtime": {
+          "lib/netstandard2.0/SQLitePCLRaw.batteries_v2.dll": {}
+        }
+      },
+      "SQLitePCLRaw.core/2.1.12": {
+        "type": "package",
+        "compile": {
+          "lib/netstandard2.0/SQLitePCLRaw.core.dll": {}
+        },
+        "runtime": {
+          "lib/netstandard2.0/SQLitePCLRaw.core.dll": {}
+        }
+      },
+      "SQLitePCLRaw.lib.e_sqlite3/2.1.12": {
+        "type": "package",
+        "compile": {
+          "lib/netstandard2.0/_._": {}
+        },
+        "runtime": {
+          "lib/netstandard2.0/_._": {}
+        },
+        "native": {
+          "runtimes/win-x64/native/e_sqlite3.dll": {}
+        },
+        "build": {
+          "buildTransitive/net9.0/SQLitePCLRaw.lib.e_sqlite3.targets": {}
+        }
+      },
+      "SQLitePCLRaw.provider.e_sqlite3/2.1.12": {
+        "type": "package",
+        "dependencies": {
+          "SQLitePCLRaw.core": "2.1.12"
+        },
+        "compile": {
+          "lib/net6.0/SQLitePCLRaw.provider.e_sqlite3.dll": {}
+        },
+        "runtime": {
+          "lib/net6.0/SQLitePCLRaw.provider.e_sqlite3.dll": {}
+        }
+      },
+      "SecurityGuard.Core/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "compile": {
+          "bin/placeholder/SecurityGuard.Core.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/SecurityGuard.Core.dll": {}
+        }
+      }
     }
   },
   "libraries": {
@@ -312,24 +403,26 @@
     ]
   },
   "packageFolders": {
-    "/Users/designyousupova/.nuget/packages/": {}
+    "C:\\Users\\yusup\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Storage/SecurityGuard.Storage.csproj",
+      "projectUniqueName": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Storage\\SecurityGuard.Storage.csproj",
       "projectName": "SecurityGuard.Storage",
-      "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Storage/SecurityGuard.Storage.csproj",
-      "packagesPath": "/Users/designyousupova/.nuget/packages/",
-      "outputPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Storage/obj/",
+      "projectPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Storage\\SecurityGuard.Storage.csproj",
+      "packagesPath": "C:\\Users\\yusup\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Storage\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "/Users/designyousupova/.nuget/NuGet/NuGet.Config"
+        "C:\\Users\\yusup\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
         "net10.0"
       ],
       "sources": {
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -337,8 +430,8 @@
           "framework": "net10.0",
           "targetAlias": "net10.0",
           "projectReferences": {
-            "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj": {
-              "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj"
+            "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Core\\SecurityGuard.Core.csproj": {
+              "projectPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Core\\SecurityGuard.Core.csproj"
             }
           }
         }
@@ -354,7 +447,7 @@
         "auditLevel": "low",
         "auditMode": "all"
       },
-      "SdkAnalysisLevel": "10.0.300"
+      "SdkAnalysisLevel": "10.0.400"
     },
     "frameworks": {
       "net10.0": {
@@ -379,8 +472,16 @@
         "warn": true,
         "downloadDependencies": [
           {
-            "name": "Microsoft.WindowsDesktop.App.Ref",
-            "version": "[10.0.10, 10.0.10]"
+            "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
+            "version": "[10.0.12, 10.0.12]"
+          },
+          {
+            "name": "Microsoft.NETCore.App.Runtime.win-x64",
+            "version": "[10.0.12, 10.0.12]"
+          },
+          {
+            "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
+            "version": "[10.0.12, 10.0.12]"
           }
         ],
         "frameworkReferences": {
@@ -388,7 +489,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/10.0.302/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.401/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.CSharp": "(,4.7.32767]",
           "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -663,6 +764,11 @@
           "System.Xml.XPath": "(,4.3.32767]",
           "System.Xml.XPath.XDocument": "(,5.0.32767]"
         }
+      }
+    },
+    "runtimes": {
+      "win-x64": {
+        "#import": []
       }
     }
   }

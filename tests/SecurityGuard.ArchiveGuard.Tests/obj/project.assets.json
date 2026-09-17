@@ -1036,24 +1036,26 @@
     ]
   },
   "packageFolders": {
-    "/Users/designyousupova/.nuget/packages/": {}
+    "C:\\Users\\yusup\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/designyousupova/Project/SecurityGuard/tests/SecurityGuard.ArchiveGuard.Tests/SecurityGuard.ArchiveGuard.Tests.csproj",
+      "projectUniqueName": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\tests\\SecurityGuard.ArchiveGuard.Tests\\SecurityGuard.ArchiveGuard.Tests.csproj",
       "projectName": "SecurityGuard.ArchiveGuard.Tests",
-      "projectPath": "/Users/designyousupova/Project/SecurityGuard/tests/SecurityGuard.ArchiveGuard.Tests/SecurityGuard.ArchiveGuard.Tests.csproj",
-      "packagesPath": "/Users/designyousupova/.nuget/packages/",
-      "outputPath": "/Users/designyousupova/Project/SecurityGuard/tests/SecurityGuard.ArchiveGuard.Tests/obj/",
+      "projectPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\tests\\SecurityGuard.ArchiveGuard.Tests\\SecurityGuard.ArchiveGuard.Tests.csproj",
+      "packagesPath": "C:\\Users\\yusup\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\tests\\SecurityGuard.ArchiveGuard.Tests\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "/Users/designyousupova/.nuget/NuGet/NuGet.Config"
+        "C:\\Users\\yusup\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
         "net10.0"
       ],
       "sources": {
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -1061,11 +1063,11 @@
           "framework": "net10.0",
           "targetAlias": "net10.0",
           "projectReferences": {
-            "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.ArchiveGuard/SecurityGuard.ArchiveGuard.csproj": {
-              "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.ArchiveGuard/SecurityGuard.ArchiveGuard.csproj"
+            "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.ArchiveGuard\\SecurityGuard.ArchiveGuard.csproj": {
+              "projectPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.ArchiveGuard\\SecurityGuard.ArchiveGuard.csproj"
             },
-            "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj": {
-              "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj"
+            "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Core\\SecurityGuard.Core.csproj": {
+              "projectPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Core\\SecurityGuard.Core.csproj"
             }
           }
         }
@@ -1081,7 +1083,7 @@
         "auditLevel": "low",
         "auditMode": "all"
       },
-      "SdkAnalysisLevel": "10.0.300"
+      "SdkAnalysisLevel": "10.0.400"
     },
     "frameworks": {
       "net10.0": {
@@ -1116,18 +1118,12 @@
         ],
         "assetTargetFallback": true,
         "warn": true,
-        "downloadDependencies": [
-          {
-            "name": "Microsoft.WindowsDesktop.App.Ref",
-            "version": "[10.0.10, 10.0.10]"
-          }
-        ],
         "frameworkReferences": {
           "Microsoft.NETCore.App": {
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/10.0.302/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.401/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.CSharp": "(,4.7.32767]",
           "Microsoft.VisualBasic": "(,10.4.32767]",

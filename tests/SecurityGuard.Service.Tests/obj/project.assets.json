@@ -3314,24 +3314,26 @@
     ]
   },
   "packageFolders": {
-    "/Users/designyousupova/.nuget/packages/": {}
+    "C:\\Users\\yusup\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/designyousupova/Project/SecurityGuard/tests/SecurityGuard.Service.Tests/SecurityGuard.Service.Tests.csproj",
+      "projectUniqueName": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\tests\\SecurityGuard.Service.Tests\\SecurityGuard.Service.Tests.csproj",
       "projectName": "SecurityGuard.Service.Tests",
-      "projectPath": "/Users/designyousupova/Project/SecurityGuard/tests/SecurityGuard.Service.Tests/SecurityGuard.Service.Tests.csproj",
-      "packagesPath": "/Users/designyousupova/.nuget/packages/",
-      "outputPath": "/Users/designyousupova/Project/SecurityGuard/tests/SecurityGuard.Service.Tests/obj/",
+      "projectPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\tests\\SecurityGuard.Service.Tests\\SecurityGuard.Service.Tests.csproj",
+      "packagesPath": "C:\\Users\\yusup\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\tests\\SecurityGuard.Service.Tests\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "/Users/designyousupova/.nuget/NuGet/NuGet.Config"
+        "C:\\Users\\yusup\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
         "net10.0-windows"
       ],
       "sources": {
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -3339,20 +3341,20 @@
           "framework": "net10.0-windows7.0",
           "targetAlias": "net10.0-windows",
           "projectReferences": {
-            "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.AlgorithmGuard/SecurityGuard.AlgorithmGuard.csproj": {
-              "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.AlgorithmGuard/SecurityGuard.AlgorithmGuard.csproj"
+            "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.AlgorithmGuard\\SecurityGuard.AlgorithmGuard.csproj": {
+              "projectPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.AlgorithmGuard\\SecurityGuard.AlgorithmGuard.csproj"
             },
-            "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj": {
-              "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj"
+            "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Core\\SecurityGuard.Core.csproj": {
+              "projectPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Core\\SecurityGuard.Core.csproj"
             },
-            "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Infrastructure/SecurityGuard.Infrastructure.csproj": {
-              "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Infrastructure/SecurityGuard.Infrastructure.csproj"
+            "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Infrastructure\\SecurityGuard.Infrastructure.csproj": {
+              "projectPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Infrastructure\\SecurityGuard.Infrastructure.csproj"
             },
-            "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Service/SecurityGuard.Service.csproj": {
-              "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Service/SecurityGuard.Service.csproj"
+            "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Service\\SecurityGuard.Service.csproj": {
+              "projectPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Service\\SecurityGuard.Service.csproj"
             },
-            "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Storage/SecurityGuard.Storage.csproj": {
-              "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Storage/SecurityGuard.Storage.csproj"
+            "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Storage\\SecurityGuard.Storage.csproj": {
+              "projectPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Storage\\SecurityGuard.Storage.csproj"
             }
           }
         }
@@ -3368,7 +3370,7 @@
         "auditLevel": "low",
         "auditMode": "all"
       },
-      "SdkAnalysisLevel": "10.0.300"
+      "SdkAnalysisLevel": "10.0.400"
     },
     "frameworks": {
       "net10.0-windows": {
@@ -3403,18 +3405,12 @@
         ],
         "assetTargetFallback": true,
         "warn": true,
-        "downloadDependencies": [
-          {
-            "name": "Microsoft.WindowsDesktop.App.Ref",
-            "version": "[10.0.10, 10.0.10]"
-          }
-        ],
         "frameworkReferences": {
           "Microsoft.NETCore.App": {
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/10.0.302/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.401/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.CSharp": "(,4.7.32767]",
           "Microsoft.VisualBasic": "(,10.4.32767]",

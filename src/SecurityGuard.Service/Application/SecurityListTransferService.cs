@@ -153,7 +153,7 @@ public sealed class SecurityListTransferService
                 "Too many security rule conditions to export.");
         }
 
-        if (threatHashes.Count >
+        if (threatHashes.Length >
             SecurityListPackageFormat.MaxThreatHashCount)
         {
             throw new InvalidOperationException(
@@ -395,16 +395,16 @@ public sealed class SecurityListTransferService
 
             if (existing is not null)
             {
-                var warnings =
+                var duplicateWarnings =
                     new List<string>
                     {
-                        "Этот пакет уже был импортирован ранее."
+            "Этот пакет уже был импортирован ранее."
                     };
 
                 if (!File.Exists(
                         existing.ArchivedPackagePath))
                 {
-                    warnings.Add(
+                    duplicateWarnings.Add(
                         "Архивированная копия ранее импортированного пакета отсутствует.");
                 }
 
@@ -420,9 +420,8 @@ public sealed class SecurityListTransferService
                     true,
                     false,
                     false,
-                    warnings);
+                    duplicateWarnings);
             }
-
             var package =
                 await ReadPackageAsync(
                     stagedPath,

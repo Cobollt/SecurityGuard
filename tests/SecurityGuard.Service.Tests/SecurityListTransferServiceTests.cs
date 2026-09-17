@@ -6,6 +6,7 @@ using SecurityGuard.Core.Lists;
 using SecurityGuard.Core.Models;
 using SecurityGuard.Infrastructure.Configuration;
 using SecurityGuard.Service.Application;
+using SecurityGuard.Infrastructure.Hashing;
 
 namespace SecurityGuard.Service.Tests;
 
@@ -74,6 +75,11 @@ public sealed class SecurityListTransferServiceTests
                         rules),
                     new FakeThreatHashRepository(
                         hashes),
+                    null!,
+                    null!,
+                    null!,
+                    null!,
+                    new Sha256FileHashService(),
                     new SecurityGuardPaths(
                         root),
                     audit);

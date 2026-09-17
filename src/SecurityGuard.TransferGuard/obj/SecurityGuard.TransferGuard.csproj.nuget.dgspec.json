@@ -1,25 +1,27 @@
 {
   "format": 1,
   "restore": {
-    "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/SecurityGuard.TransferGuard.csproj": {}
+    "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.TransferGuard\\SecurityGuard.TransferGuard.csproj": {}
   },
   "projects": {
-    "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj": {
+    "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Core\\SecurityGuard.Core.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj",
+        "projectUniqueName": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Core\\SecurityGuard.Core.csproj",
         "projectName": "SecurityGuard.Core",
-        "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj",
-        "packagesPath": "/Users/designyousupova/.nuget/packages/",
-        "outputPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/obj/",
+        "projectPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Core\\SecurityGuard.Core.csproj",
+        "packagesPath": "C:\\Users\\yusup\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Core\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/Users/designyousupova/.nuget/NuGet/NuGet.Config"
+          "C:\\Users\\yusup\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
         ],
         "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -40,7 +42,7 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.300"
+        "SdkAnalysisLevel": "10.0.400"
       },
       "frameworks": {
         "net10.0": {
@@ -59,8 +61,16 @@
           "warn": true,
           "downloadDependencies": [
             {
-              "name": "Microsoft.WindowsDesktop.App.Ref",
-              "version": "[10.0.10, 10.0.10]"
+              "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
+              "version": "[10.0.12, 10.0.12]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Runtime.win-x64",
+              "version": "[10.0.12, 10.0.12]"
+            },
+            {
+              "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
+              "version": "[10.0.12, 10.0.12]"
             }
           ],
           "frameworkReferences": {
@@ -68,7 +78,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/10.0.302/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.401/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -344,24 +354,31 @@
             "System.Xml.XPath.XDocument": "(,5.0.32767]"
           }
         }
+      },
+      "runtimes": {
+        "win-x64": {
+          "#import": []
+        }
       }
     },
-    "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/SecurityGuard.TransferGuard.csproj": {
+    "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.TransferGuard\\SecurityGuard.TransferGuard.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/SecurityGuard.TransferGuard.csproj",
+        "projectUniqueName": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.TransferGuard\\SecurityGuard.TransferGuard.csproj",
         "projectName": "SecurityGuard.TransferGuard",
-        "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/SecurityGuard.TransferGuard.csproj",
-        "packagesPath": "/Users/designyousupova/.nuget/packages/",
-        "outputPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.TransferGuard/obj/",
+        "projectPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.TransferGuard\\SecurityGuard.TransferGuard.csproj",
+        "packagesPath": "C:\\Users\\yusup\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.TransferGuard\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/Users/designyousupova/.nuget/NuGet/NuGet.Config"
+          "C:\\Users\\yusup\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
         ],
         "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -369,8 +386,8 @@
             "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {
-              "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj": {
-                "projectPath": "/Users/designyousupova/Project/SecurityGuard/src/SecurityGuard.Core/SecurityGuard.Core.csproj"
+              "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Core\\SecurityGuard.Core.csproj": {
+                "projectPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\src\\SecurityGuard.Core\\SecurityGuard.Core.csproj"
               }
             }
           }
@@ -386,7 +403,7 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.300"
+        "SdkAnalysisLevel": "10.0.400"
       },
       "frameworks": {
         "net10.0": {
@@ -415,8 +432,16 @@
           "warn": true,
           "downloadDependencies": [
             {
-              "name": "Microsoft.WindowsDesktop.App.Ref",
-              "version": "[10.0.10, 10.0.10]"
+              "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
+              "version": "[10.0.12, 10.0.12]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Runtime.win-x64",
+              "version": "[10.0.12, 10.0.12]"
+            },
+            {
+              "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
+              "version": "[10.0.12, 10.0.12]"
             }
           ],
           "frameworkReferences": {
@@ -424,7 +449,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/10.0.302/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.401/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -699,6 +724,11 @@
             "System.Xml.XPath": "(,4.3.32767]",
             "System.Xml.XPath.XDocument": "(,5.0.32767]"
           }
+        }
+      },
+      "runtimes": {
+        "win-x64": {
+          "#import": []
         }
       }
     }

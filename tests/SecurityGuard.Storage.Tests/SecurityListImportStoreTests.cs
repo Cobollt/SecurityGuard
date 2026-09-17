@@ -160,7 +160,11 @@ public sealed class SecurityListImportStoreTests
                 importedRule
             ],
             [],
-            SecurityListImportMode.Merge);
+            SecurityListImportMode.Merge,
+            CreateImportRecord(
+                1,
+                0,
+                0));
 
         Assert.NotNull(
             await repository.GetByIdAsync(
@@ -229,7 +233,11 @@ public sealed class SecurityListImportStoreTests
                 replacement
             ],
             [],
-            SecurityListImportMode.Merge);
+            SecurityListImportMode.Merge,
+            CreateImportRecord(
+                1,
+                1,
+                0));
 
         var result =
             await repository.GetByIdAsync(

@@ -12,6 +12,7 @@ using SecurityGuard.Service.Application;
 using SecurityGuard.Storage.Repositories;
 using SecurityGuard.TransferGuard.Contracts;
 using SecurityGuard.TransferGuard.Models;
+using SecurityGuard.Storage.Database;
 
 namespace SecurityGuard.Service.Tests;
 
@@ -20,11 +21,23 @@ public sealed class SecurityListRoundTripTests
     [Fact]
     public async Task Export_import_export_preserves_security_lists()
     {
-        await using var sourceDatabase =
-            await TestDatabase.CreateAsync();
+        await using var sourceEnvironment =
+            await TestEnvironment.CreateAsync();
 
-        await using var targetDatabase =
-            await TestDatabase.CreateAsync();
+        await using var targetEnvironment =
+            await TestEnvironment.CreateAsync();
+
+        var sourceInitializer =
+            new DatabaseInitializer(
+                sourceEnvironment.ConnectionFactory);
+
+        await sourceInitializer.InitializeAsync();
+
+        var targetInitializer =
+            new DatabaseInitializer(
+                targetEnvironment.ConnectionFactory);
+
+        await targetInitializer.InitializeAsync();
 
         var sourceRoot =
             Path.Combine(
@@ -44,11 +57,11 @@ public sealed class SecurityListRoundTripTests
         {
             var sourceRules =
                 new SqliteRuleRepository(
-                    sourceDatabase.ConnectionFactory);
+                    sourceEnvironment.ConnectionFactory);
 
             var sourceHashes =
                 new SqliteThreatHashRepository(
-                    sourceDatabase.ConnectionFactory);
+                    sourceEnvironment.ConnectionFactory);
 
             var rule =
                 new SecurityRule(
@@ -91,7 +104,7 @@ public sealed class SecurityListRoundTripTests
 
             var sourceService =
                 CreateService(
-                    sourceDatabase,
+                    sourceEnvironment,
                     sourceRoot);
 
             var firstExport =
@@ -99,7 +112,7 @@ public sealed class SecurityListRoundTripTests
 
             var targetService =
                 CreateService(
-                    targetDatabase,
+                    targetEnvironment,
                     targetRoot);
 
             var import =
@@ -159,24 +172,24 @@ public sealed class SecurityListRoundTripTests
     }
 
     private static SecurityListTransferService CreateService(
-        TestDatabase database,
+        TestEnvironment environment,
         string root)
     {
         var rules =
             new SqliteRuleRepository(
-                database.ConnectionFactory);
+                environment.ConnectionFactory);
 
         var hashes =
             new SqliteThreatHashRepository(
-                database.ConnectionFactory);
+                environment.ConnectionFactory);
 
         var importStore =
             new SqliteSecurityListImportStore(
-                database.ConnectionFactory);
+                environment.ConnectionFactory);
 
         var history =
             new SqliteSecurityListImportHistoryRepository(
-                database.ConnectionFactory);
+                environment.ConnectionFactory);
 
         return new SecurityListTransferService(
             rules,

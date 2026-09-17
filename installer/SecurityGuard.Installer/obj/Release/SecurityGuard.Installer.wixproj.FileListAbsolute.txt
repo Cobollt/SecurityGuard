@@ -1,0 +1,6 @@
+C:\Users\yusup\source\repos\Cobollt\SecurityGuard\installer\SecurityGuard.Installer\obj\Release\SecurityGuard.Installer.wixproj.CoreCompileInputs.cache
+C:\Users\yusup\source\repos\Cobollt\SecurityGuard\installer\SecurityGuard.Installer\obj\Release\SecurityGuard-0.1.0-win-x64.msi
+C:\Users\yusup\source\repos\Cobollt\SecurityGuard\installer\SecurityGuard.Installer\obj\Release\SecurityGuard-0.1.0-win-x64.wixpdb
+C:\Users\yusup\source\repos\Cobollt\SecurityGuard\installer\SecurityGuard.Installer\obj\Release\SecurityGuard.Installer.wixproj.BindTracking-neutral.txt
+C:\Users\yusup\source\repos\Cobollt\SecurityGuard\artifacts\installer\SecurityGuard-0.1.0-win-x64.msi
+C:\Users\yusup\source\repos\Cobollt\SecurityGuard\artifacts\installer\SecurityGuard-0.1.0-win-x64.wixpdb

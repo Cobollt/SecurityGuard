@@ -11,7 +11,6 @@ using Microsoft.Win32;
 using SecurityGuard.Core.Ipc.ArchiveGuard;
 using System.IO;
 using System.Diagnostics;
-using Microsoft.Win32;
 using SecurityGuard.Core.Ipc.SecurityLists;
 using SecurityGuard.Core.Lists;
 
