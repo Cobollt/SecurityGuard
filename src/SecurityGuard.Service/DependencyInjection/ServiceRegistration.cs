@@ -185,6 +185,8 @@ public static class ServiceRegistration
             IAlgorithmExecutionAnalyzer,
             AlgorithmExecutionAnalyzer>();
 
+        services.AddSingleton<AlgorithmObservationService>();
+
         services.AddSingleton<AlgorithmRuleContextFactory>();
 
         services.AddSingleton<
@@ -429,6 +431,13 @@ public static class ServiceRegistration
 
         services.AddSingleton<
             ArchiveGuardDecisionRequestFactory>();
+
+        services.AddSingleton<
+            ArchiveGuardScanResultMapper>();
+
+        services.AddSingleton<
+            IArchiveGuardRuleService,
+            ArchiveGuardRuleService>();
 
         services.AddSingleton<
             IArchiveGuardWorkflowService,

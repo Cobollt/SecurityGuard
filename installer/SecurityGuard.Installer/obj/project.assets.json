@@ -41,7 +41,7 @@
     "version": "1.0.0",
     "restore": {
       "projectUniqueName": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\installer\\SecurityGuard.Installer\\SecurityGuard.Installer.wixproj",
-      "projectName": "SecurityGuard-0.1.0-win-x64",
+      "projectName": "SecurityGuard-0.1.1-win-x64",
       "projectPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\installer\\SecurityGuard.Installer\\SecurityGuard.Installer.wixproj",
       "packagesPath": "C:\\Users\\yusup\\.nuget\\packages\\",
       "outputPath": "C:\\Users\\yusup\\source\\repos\\Cobollt\\SecurityGuard\\installer\\SecurityGuard.Installer\\obj\\",

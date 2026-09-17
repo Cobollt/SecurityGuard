@@ -19,64 +19,44 @@
       <Directory Id="INSTALLFOLDER"
                  Name="SecurityGuard">
 
-        <Directory Id="SERVICEFOLDER"
-                   Name="Service">
+		  <Directory Id="SERVICEFOLDER"
+			 Name="Service">
 
-          <Component Id="SecurityGuardServiceComponent"
-                     Guid="*">
+			  <Component Id="SecurityGuardServiceComponent"
+						 Guid="*">
 
-            <File Id="SecurityGuardServiceExecutable"
-                  Source="!(bindpath.ServicePublish)\SecurityGuard.Service.exe"
-                  KeyPath="yes" />
+				  <File Id="SecurityGuardServiceExecutable"
+						Source="!(bindpath.ServicePublish)\SecurityGuard.Service.exe"
+						KeyPath="yes" />
 
-            <ServiceInstall Id="SecurityGuardServiceInstall"
-                            Name="SecurityGuard"
-                            DisplayName="SecurityGuard"
-                            Description="SecurityGuard protection service"
-                            Type="ownProcess"
-                            Start="auto"
-                            ErrorControl="normal"
-                            Account="[WIX_ACCOUNT_LOCALSYSTEM]"
-                            Vital="yes">
+				  <ServiceInstall Id="SecurityGuardServiceInstall"
+								  Name="SecurityGuard"
+								  DisplayName="SecurityGuard"
+								  Description="SecurityGuard protection service"
+								  Type="ownProcess"
+								  Start="auto"
+								  ErrorControl="normal"
+								  Account="[WIX_ACCOUNT_LOCALSYSTEM]"
+								  Vital="yes">
 
-              <util:ServiceConfig FirstFailureActionType="restart"
-                                  SecondFailureActionType="restart"
-                                  ThirdFailureActionType="restart"
-                                  RestartServiceDelayInSeconds="5"
-                                  ResetPeriodInDays="1" />
+					  <util:ServiceConfig FirstFailureActionType="restart"
+										  SecondFailureActionType="restart"
+										  ThirdFailureActionType="restart"
+										  RestartServiceDelayInSeconds="5"
+										  ResetPeriodInDays="1" />
 
-            </ServiceInstall>
+				  </ServiceInstall>
 
-            <ServiceControl Id="SecurityGuardServiceControl"
-                            Name="SecurityGuard"
-                            Start="install"
-                            Stop="both"
-                            Remove="uninstall"
-                            Wait="yes" />
+				  <ServiceControl Id="SecurityGuardServiceControl"
+								  Name="SecurityGuard"
+								  Start="install"
+								  Stop="both"
+								  Remove="uninstall"
+								  Wait="yes" />
 
-          </Component>
+			  </Component>
 
-			<Files Include="!(bindpath.ServicePublish)\**">
-
-				<Exclude Files="!(bindpath.ServicePublish)\SecurityGuard.Service.exe" />
-
-				<Exclude Files="**\hostfxr.dll" />
-
-				<Exclude Files="!(bindpath.ServicePublish)\**\*.pdb" />
-
-			</Files>
-
-			<Component Id="SecurityGuardServiceHostFxrComponent"
-					   Guid="*">
-
-				<File Id="SecurityGuardServiceHostFxr"
-					  Source="!(bindpath.ServicePublish)\hostfxr.dll"
-					  DefaultLanguage="0"
-					  KeyPath="yes" />
-
-			</Component>
-
-        </Directory>
+		  </Directory>
 
         <Directory Id="UIFOLDER"
                    Name="UI">
@@ -116,6 +96,15 @@
       </Directory>
 
     </StandardDirectory>
+
+		<Files Directory="SERVICEFOLDER"
+       Include="!(bindpath.ServicePublish)\**">
+
+			<Exclude Files="!(bindpath.ServicePublish)\SecurityGuard.Service.exe" />
+
+			<Exclude Files="!(bindpath.ServicePublish)\**\*.pdb" />
+
+		</Files>
 
     <StandardDirectory Id="ProgramMenuFolder">
 

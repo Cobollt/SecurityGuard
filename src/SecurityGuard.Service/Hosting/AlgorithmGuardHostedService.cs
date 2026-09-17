@@ -151,6 +151,19 @@ public sealed class AlgorithmGuardHostedService
                 }
                 catch
                 {
+                    if (settings.FailurePolicy ==
+                        EnforcementFailurePolicy.FailOpen)
+                    {
+                        StartMonitor();
+
+                        _moduleRegistry.Set(
+                            SecurityModuleKind.AlgorithmGuard,
+                            ModuleOperationalState.Degraded,
+                            "AppLocker is unavailable; Monitor mode remains active");
+
+                        return;
+                    }
+
                     _moduleRegistry.Set(
                         SecurityModuleKind.AlgorithmGuard,
                         ModuleOperationalState.Faulted,

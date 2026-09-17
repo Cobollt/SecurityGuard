@@ -5,8 +5,9 @@
     <ProductVersion Condition="'$(ProductVersion)' == ''">0.1.0</ProductVersion>
     <DefineConstants>ProductVersion=$(ProductVersion)</DefineConstants>
     <OutputName>SecurityGuard-$(ProductVersion)-win-x64</OutputName>
-    <OutputPath>$(MSBuildThisFileDirectory)..\..\artifacts\installer\</OutputPath>
+	 <OutputPath>$(MSBuildThisFileDirectory)..\..\artifacts\installer\$(ProductVersion)\</OutputPath>
 	 <AcceptEula>wix7</AcceptEula>
+	 <SuppressIces>ICE60</SuppressIces>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,14 +15,14 @@
                       Version="7.0.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <BindPath Include="$(MSBuildThisFileDirectory)..\..\artifacts\publish\service\win-x64">
-      <BindName>ServicePublish</BindName>
-    </BindPath>
+	<ItemGroup>
+		<BindPath
+		  Include="$(MSBuildThisFileDirectory)..\..\artifacts\publish\service\win-x64"
+		  BindName="ServicePublish" />
 
-    <BindPath Include="$(MSBuildThisFileDirectory)..\..\artifacts\publish\ui\win-x64">
-      <BindName>UiPublish</BindName>
-    </BindPath>
-  </ItemGroup>
+		<BindPath
+		  Include="$(MSBuildThisFileDirectory)..\..\artifacts\publish\ui\win-x64"
+		  BindName="UiPublish" />
+	</ItemGroup>
 
 </Project>

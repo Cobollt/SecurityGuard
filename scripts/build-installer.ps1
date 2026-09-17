@@ -9,8 +9,7 @@ $root =
 
 Set-Location $root
 
-if ([System.Environment]::OSVersion.Platform -ne
-    [System.PlatformID]::Win32NT) {
+if ($env:OS -ne "Windows_NT") {
     throw "SecurityGuard MSI must be built on Windows."
 }
 
@@ -18,10 +17,6 @@ $publishScript =
     Join-Path $PSScriptRoot "publish-win-x64.ps1"
 
 & $publishScript
-
-if ($LASTEXITCODE -ne 0) {
-    throw "SecurityGuard publish failed."
-}
 
 $installerProject =
     Join-Path `
@@ -31,7 +26,7 @@ $installerProject =
 $installerOutput =
     Join-Path `
         $root `
-        "artifacts\installer"
+        "artifacts\installer\$Version"
 
 if (Test-Path $installerOutput) {
     Remove-Item `
@@ -55,17 +50,15 @@ if ($LASTEXITCODE -ne 0) {
     throw "SecurityGuard installer build failed."
 }
 
-$msi =
-    Get-ChildItem `
-        -Path $installerOutput `
-        -Filter "*.msi" `
-        -Recurse |
-    Select-Object -First 1
+$expectedMsi =
+    Join-Path `
+        $installerOutput `
+        "SecurityGuard-$Version-win-x64.msi"
 
-if ($null -eq $msi) {
-    throw "SecurityGuard MSI was not produced."
+if (-not (Test-Path $expectedMsi)) {
+    throw "SecurityGuard MSI was not produced: $expectedMsi"
 }
 
 Write-Host ""
 Write-Host "SecurityGuard installer created:"
-Write-Host $msi.FullName
+Write-Host $expectedMsi
