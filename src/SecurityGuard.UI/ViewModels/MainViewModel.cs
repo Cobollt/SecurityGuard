@@ -132,6 +132,16 @@ public sealed class MainViewModel
 
     public ICommand ArchiveDeleteCommand { get; }
 
+    public ICommand ExportSecurityListsCommand { get; }
+
+    public ICommand OpenSecurityListsFolderCommand { get; }
+
+    public ICommand SelectSecurityListPackageCommand { get; }
+
+    public ICommand ValidateSecurityListPackageCommand { get; }
+
+    public ICommand ImportSecurityListsCommand { get; }
+
     public IReadOnlyList<AlgorithmGuardMode> AlgorithmGuardModes { get; } =
         Enum.GetValues<AlgorithmGuardMode>();
 
@@ -440,6 +450,27 @@ public sealed class MainViewModel
                 () =>
                     CanApplyArchiveAction(
                         SecurityAction.AllowOnce));
+
+        ExportSecurityListsCommand =
+            new AsyncRelayCommand(
+                ExportSecurityListsAsync);
+
+        OpenSecurityListsFolderCommand =
+            new AsyncRelayCommand(
+                OpenSecurityListsFolderAsync);
+
+        SelectSecurityListPackageCommand =
+            new RelayCommand(
+                _ =>
+                    SelectSecurityListPackage());
+
+        ValidateSecurityListPackageCommand =
+            new AsyncRelayCommand(
+                ValidateSecurityListPackageAsync);
+
+        ImportSecurityListsCommand =
+            new AsyncRelayCommand(
+                ImportSecurityListsAsync);
 
         ArchiveAddExceptionCommand =
             new AsyncRelayCommand(

@@ -366,6 +366,47 @@ public sealed class SecurityGuardClient
                 response.Payload);
     }
 
+    public async Task<ArchiveGuardQuarantineRestoreIpcDto> RestoreArchiveFromQuarantineWithExceptionAsync(
+        Guid quarantineId,
+        CancellationToken cancellationToken = default)
+    {
+        if (quarantineId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "Quarantine ID is required.",
+                nameof(quarantineId));
+        }
+
+        var payload =
+            new ArchiveGuardQuarantineRestoreIpcRequest(
+                quarantineId);
+
+        var request =
+            PipeRequest.Create(
+                PipeMessageType.RestoreArchiveFromQuarantineWithException,
+                PipeJsonSerializer.Serialize(
+                    payload));
+
+        var response =
+            await SendAsync(
+                request,
+                cancellationToken);
+
+        EnsureSuccess(
+            response);
+
+        if (string.IsNullOrWhiteSpace(
+                response.Payload))
+        {
+            throw new InvalidDataException(
+                "ArchiveGuard quarantine restore response is empty.");
+        }
+
+        return PipeJsonSerializer.Deserialize<
+            ArchiveGuardQuarantineRestoreIpcDto>(
+                response.Payload);
+    }
+
     public async Task<ArchiveGuardAutoScanSettingsIpcDto> GetArchiveGuardAutoScanSettingsAsync(
         CancellationToken cancellationToken = default)
     {

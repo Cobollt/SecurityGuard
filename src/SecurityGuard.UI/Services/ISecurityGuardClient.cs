@@ -51,7 +51,11 @@ public interface ISecurityGuardClient
     Task<IReadOnlyList<ArchiveGuardRecentScanIpcDto>> GetArchiveGuardRecentScansAsync(
         int limit = 50,
         CancellationToken cancellationToken = default);
-    
+
+    Task<ArchiveGuardQuarantineRestoreIpcDto> RestoreArchiveFromQuarantineWithExceptionAsync(
+        Guid quarantineId,
+        CancellationToken cancellationToken = default);
+
     Task<ArchiveGuardAutoScanSettingsIpcDto> GetArchiveGuardAutoScanSettingsAsync(
         CancellationToken cancellationToken = default);
 

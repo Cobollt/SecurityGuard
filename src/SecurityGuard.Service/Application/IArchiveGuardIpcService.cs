@@ -11,4 +11,12 @@ public interface IArchiveGuardIpcService
     Task<IReadOnlyList<ArchiveGuardRecentScanIpcDto>> GetRecentAsync(
         ArchiveGuardRecentScansIpcRequest request,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<ArchiveGuardQuarantineItemIpcDto>> GetQuarantineItemsAsync(
+        ArchiveGuardQuarantineItemsIpcRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<ArchiveGuardQuarantineRestoreIpcDto> RestoreFromQuarantineWithExceptionAsync(
+        ArchiveGuardQuarantineRestoreIpcRequest request,
+        CancellationToken cancellationToken = default);
 }

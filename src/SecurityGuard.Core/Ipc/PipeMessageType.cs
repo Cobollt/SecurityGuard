@@ -21,5 +21,7 @@ public enum PipeMessageType
     ExportSecurityLists = 16,
     ValidateSecurityLists = 17,
     ImportSecurityLists = 18,
-    GetSecurityListsFolder = 19
+    GetSecurityListsFolder = 19,
+    RestoreArchiveFromQuarantineWithException = 20,
+    GetArchiveGuardQuarantineItems = 21
 }

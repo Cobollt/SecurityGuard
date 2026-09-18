@@ -8,6 +8,12 @@ public sealed record ArchiveGuardScanIpcRequest(
 public sealed record ArchiveGuardRecentScansIpcRequest(
     int Limit = 50);
 
+public sealed record ArchiveGuardQuarantineRestoreIpcRequest(
+    Guid QuarantineId);
+
+public sealed record ArchiveGuardQuarantineItemsIpcRequest(
+    int Limit = 200);
+
 public sealed record ArchiveGuardFindingIpcDto(
     string Kind,
     ScanVerdict Verdict,
@@ -37,3 +43,17 @@ public sealed record ArchiveGuardRecentScanIpcDto(
     ScanVerdict Verdict,
     string Summary,
     DateTimeOffset CompletedAtUtc);
+
+public sealed record ArchiveGuardQuarantineRestoreIpcDto(
+    Guid QuarantineId,
+    string RestoredPath,
+    string Sha256);
+
+public sealed record ArchiveGuardQuarantineItemIpcDto(
+    Guid Id,
+    string OriginalPath,
+    string OriginalFileName,
+    string Sha256,
+    long SizeBytes,
+    string Reason,
+    DateTimeOffset QuarantinedAtUtc);

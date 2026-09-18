@@ -444,6 +444,10 @@ public static class ServiceRegistration
             ArchiveGuardWorkflowService>();
 
         services.AddSingleton<
+            IArchiveGuardIpcService,
+            ArchiveGuardIpcService>();
+
+        services.AddSingleton<
             IArchiveGuardAuditSink,
             ArchiveGuardAuditSink>();
 
@@ -454,6 +458,14 @@ public static class ServiceRegistration
         services.AddSingleton<
             IArchiveGuardDecisionExecutor,
             ArchiveGuardDecisionExecutor>();
+
+        services.AddSingleton<
+            IArchiveGuardExceptionService,
+            ArchiveGuardExceptionService>();
+
+        services.AddSingleton<
+            ISecurityDecisionHandler,
+            ArchiveGuardDecisionHandler>();
 
         services.AddSingleton<
             ArchiveGuardAutoScanHostedService>();
