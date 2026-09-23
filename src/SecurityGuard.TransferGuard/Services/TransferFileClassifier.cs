@@ -528,6 +528,34 @@ public sealed class TransferFileClassifier
             return false;
         }
 
+        if (path.Contains(
+                @"\Mozilla\Firefox\Profiles\",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            if (path.Contains(
+                    @"\storage\default\",
+                    StringComparison.OrdinalIgnoreCase) ||
+                path.Contains(
+                    @"\cache2\",
+                    StringComparison.OrdinalIgnoreCase) ||
+                path.Contains(
+                    @"\safebrowsing\",
+                    StringComparison.OrdinalIgnoreCase) ||
+                path.Contains(
+                    @"\safebrowsing-updating\",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        if (path.Contains(
+                @"\Microsoft\CryptnetUrlCache\",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
         return path.Contains(
                    @"\Cache\",
                    StringComparison.OrdinalIgnoreCase) ||

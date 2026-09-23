@@ -65,6 +65,8 @@ public sealed class MainViewModel
 
     private string? _selectedArchiveGuardAdditionalDirectory;
 
+    private ArchiveGuardQuarantineItemIpcDto? _selectedArchiveQuarantineItem;
+
     public ObservableCollection<ModuleStatus> Modules { get; } =
         [];
 
@@ -84,6 +86,9 @@ public sealed class MainViewModel
         [];
 
     public ObservableCollection<ArchiveGuardRecentScanIpcDto> ArchiveScanHistory { get; } =
+        [];
+
+    public ObservableCollection<ArchiveGuardQuarantineItemIpcDto> ArchiveQuarantineItems { get; } =
         [];
 
     public ObservableCollection<DecisionRequestViewModel> PendingRequests { get; } =
@@ -118,6 +123,8 @@ public sealed class MainViewModel
 
     public ICommand RefreshArchiveHistoryCommand { get; }
 
+    public ICommand RefreshArchiveQuarantineCommand { get; }
+
     public ICommand ArchiveKeepCommand { get; }
 
     public ICommand ArchiveAddExceptionCommand { get; }
@@ -131,6 +138,8 @@ public sealed class MainViewModel
         [];
 
     public ICommand ArchiveDeleteCommand { get; }
+
+    public ICommand RestoreArchiveFromQuarantineWithExceptionCommand { get; }
 
     public ICommand ExportSecurityListsCommand { get; }
 
@@ -441,6 +450,19 @@ public sealed class MainViewModel
                 RefreshArchiveHistoryAsync,
                 () =>
                     !IsBusy);
+
+        RefreshArchiveQuarantineCommand =
+            new AsyncRelayCommand(
+                RefreshArchiveQuarantineAsync,
+                () =>
+                    !IsBusy);
+
+        RestoreArchiveFromQuarantineWithExceptionCommand =
+            new AsyncRelayCommand(
+                RestoreArchiveFromQuarantineWithExceptionAsync,
+                () =>
+                    !IsBusy &&
+                    SelectedArchiveQuarantineItem is not null);
 
         ArchiveKeepCommand =
             new AsyncRelayCommand(
@@ -950,6 +972,114 @@ public sealed class MainViewModel
         }
     }
 
+    private async Task RefreshArchiveQuarantineAsync()
+    {
+        if (IsBusy)
+        {
+            return;
+        }
+
+        IsBusy =
+            true;
+
+        try
+        {
+            var items =
+                await _client.GetArchiveGuardQuarantineItemsAsync(
+                    200);
+
+            Replace(
+                ArchiveQuarantineItems,
+                items);
+
+            if (SelectedArchiveQuarantineItem is not null &&
+                !items.Any(
+                    item =>
+                        item.Id ==
+                        SelectedArchiveQuarantineItem.Id))
+            {
+                SelectedArchiveQuarantineItem =
+                    null;
+            }
+
+            LastError =
+                null;
+        }
+        catch (Exception exception)
+        {
+            LastError =
+                exception.Message;
+        }
+        finally
+        {
+            IsBusy =
+                false;
+
+            RaiseArchiveCommandStates();
+        }
+    }
+
+    private async Task RestoreArchiveFromQuarantineWithExceptionAsync()
+    {
+        var item =
+            SelectedArchiveQuarantineItem;
+
+        if (item is null)
+        {
+            return;
+        }
+
+        IsBusy =
+            true;
+
+        var restored =
+            false;
+
+        try
+        {
+            var result =
+                await _client.RestoreArchiveFromQuarantineWithExceptionAsync(
+                    item.Id);
+
+            ArchiveStatusText =
+                $"Файл восстановлен: {result.RestoredPath}. SHA-256 добавлен в исключения ArchiveGuard.";
+
+            SelectedArchiveQuarantineItem =
+                null;
+
+            var items =
+                await _client.GetArchiveGuardQuarantineItemsAsync(
+                    200);
+
+            Replace(
+                ArchiveQuarantineItems,
+                items);
+
+            LastError =
+                null;
+
+            restored =
+                true;
+        }
+        catch (Exception exception)
+        {
+            LastError =
+                exception.Message;
+        }
+        finally
+        {
+            IsBusy =
+                false;
+
+            RaiseArchiveCommandStates();
+        }
+
+        if (restored)
+        {
+            await RefreshAsync();
+        }
+    }
+
     private async Task SubmitArchiveDecisionAsync(
         SecurityAction action)
     {
@@ -1037,8 +1167,17 @@ public sealed class MainViewModel
             historyCommand.RaiseCanExecuteChanged();
         }
 
+        if (RefreshArchiveQuarantineCommand is
+            AsyncRelayCommand quarantineRefreshCommand)
+        {
+            quarantineRefreshCommand.RaiseCanExecuteChanged();
+        }
+
         RaiseArchiveActionCommand(
             ArchiveKeepCommand);
+
+        RaiseArchiveActionCommand(
+            RestoreArchiveFromQuarantineWithExceptionCommand);
 
         RaiseArchiveActionCommand(
             ArchiveAddExceptionCommand);
@@ -1256,6 +1395,22 @@ public sealed class MainViewModel
                 OnPropertyChanged(
                     nameof(ArchiveHasPendingDecision));
 
+                RaiseArchiveCommandStates();
+            }
+        }
+    }
+
+    public ArchiveGuardQuarantineItemIpcDto? SelectedArchiveQuarantineItem
+    {
+        get =>
+            _selectedArchiveQuarantineItem;
+
+        set
+        {
+            if (SetProperty(
+                    ref _selectedArchiveQuarantineItem,
+                    value))
+            {
                 RaiseArchiveCommandStates();
             }
         }

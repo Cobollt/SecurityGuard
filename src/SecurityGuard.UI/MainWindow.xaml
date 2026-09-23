@@ -17,6 +17,9 @@
         <converters:IndexToVisibilityConverter
             x:Key="IndexToVisibilityConverter" />
 
+		<converters:LocalDateTimeConverter
+            x:Key="LocalDateTimeConverter" />
+
         <Style x:Key="NavigationButton"
                TargetType="Button">
 
@@ -301,7 +304,8 @@
 
                                         <GridViewColumn Header="Время"
                                                         Width="160"
-                                                        DisplayMemberBinding="{Binding CreatedAtUtc}" />
+                                                        DisplayMemberBinding="{Binding CreatedAtUtc,
+                                                            Converter={StaticResource LocalDateTimeConverter}}" />
 
                                         <GridViewColumn Header="Модуль"
                                                         Width="130"
@@ -353,7 +357,8 @@
 
                                     <GridViewColumn Header="Время"
                                                     Width="170"
-                                                    DisplayMemberBinding="{Binding CreatedAtUtc}" />
+                                                    DisplayMemberBinding="{Binding CreatedAtUtc,
+                                                            Converter={StaticResource LocalDateTimeConverter}}" />
 
                                     <GridViewColumn Header="Событие"
                                                     Width="240"
@@ -471,7 +476,8 @@
 
                                     <GridViewColumn Header="Время"
                                                     Width="165"
-                                                    DisplayMemberBinding="{Binding CreatedAtUtc}" />
+                                                    DisplayMemberBinding="{Binding CreatedAtUtc,
+                                                            Converter={StaticResource LocalDateTimeConverter}}" />
 
                                     <GridViewColumn Header="Тип"
                                                     Width="150"
@@ -1017,7 +1023,8 @@
 
                                     <GridViewColumn Header="Время"
                                                     Width="170"
-                                                    DisplayMemberBinding="{Binding CreatedAtUtc}" />
+                                                    DisplayMemberBinding="{Binding CreatedAtUtc,
+                                                            Converter={StaticResource LocalDateTimeConverter}}" />
 
                                     <GridViewColumn Header="Модуль"
                                                     Width="140"
@@ -1352,12 +1359,58 @@
 
                             <TextBlock Text="{Binding ServiceStatus}" />
 
-                            <TextBlock Text="Объекты карантина"
+							<TextBlock Text="Объекты карантина"
                                        FontSize="16"
                                        FontWeight="SemiBold"
                                        Margin="0,20,0,4" />
 
-                            <TextBlock Text="{Binding QuarantineCount}" />
+							<TextBlock Text="{Binding QuarantineCount}"
+									   Margin="0,0,0,8" />
+
+							<ListBox ItemsSource="{Binding ArchiveQuarantineItems}"
+									 SelectedItem="{Binding SelectedArchiveQuarantineItem}"
+									 Width="760"
+									 MinHeight="120"
+									 MaxHeight="260"
+									 HorizontalAlignment="Left">
+								<ListBox.ItemTemplate>
+									<DataTemplate>
+										<StackPanel Margin="4">
+											<TextBlock Text="{Binding OriginalFileName}"
+													   FontWeight="SemiBold" />
+
+											<TextBlock Text="{Binding OriginalPath}"
+													   TextWrapping="Wrap"
+													   Margin="0,3,0,0" />
+
+											<TextBlock Text="{Binding Sha256}"
+													   TextWrapping="Wrap"
+													   Margin="0,3,0,0" />
+
+											<TextBlock Text="{Binding Reason}"
+													   TextWrapping="Wrap"
+													   Margin="0,3,0,0" />
+
+											<TextBlock Text="{Binding QuarantinedAtUtc}"
+													   Margin="0,3,0,0" />
+										</StackPanel>
+									</DataTemplate>
+								</ListBox.ItemTemplate>
+							</ListBox>
+
+							<StackPanel Orientation="Horizontal"
+										Margin="0,10,0,0">
+
+								<Button Content="Обновить карантин"
+										Width="170"
+										Command="{Binding RefreshArchiveQuarantineCommand}" />
+
+								<Button Content="Восстановить и добавить в исключения"
+										Width="300"
+										Margin="8,0,0,0"
+										Command="{Binding RestoreArchiveFromQuarantineWithExceptionCommand}" />
+
+							</StackPanel>
 
                             <TextBlock Text="Последнее обновление"
                                        FontSize="16"

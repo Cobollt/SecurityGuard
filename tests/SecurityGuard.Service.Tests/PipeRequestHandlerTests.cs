@@ -1,5 +1,7 @@
 using SecurityGuard.Core.Contracts;
 using SecurityGuard.Core.Ipc;
+using SecurityGuard.Core.Ipc.ArchiveGuard;
+using SecurityGuard.Service.Application;
 using SecurityGuard.Core.Models;
 using SecurityGuard.Service.Ipc;
 using SecurityGuard.TransferGuard.Contracts;
@@ -349,6 +351,163 @@ public sealed class PipeRequestHandlerTests
             restored);
     }
 
+    [Fact]
+    public async Task ArchiveGuard_quarantine_items_are_returned()
+    {
+        var item =
+            new ArchiveGuardQuarantineItemIpcDto(
+                Guid.NewGuid(),
+                @"C:\Users\Test\Downloads\sample.zip",
+                "sample.zip",
+                new string(
+                    'A',
+                    64),
+                12345,
+                "Suspicious archive",
+                DateTimeOffset.UtcNow);
+
+        var archiveGuardService =
+            new FakeArchiveGuardIpcService
+            {
+                QuarantineItems =
+                [
+                    item
+                ]
+            };
+
+        var handler =
+            new PipeRequestHandler(
+                new FakeSnapshotService(
+                    CreateEmptySnapshot()),
+                new FakeDecisionService(),
+                new FakeRuleManagementService(),
+                new FakeAlgorithmGuardSettingsCoordinator(),
+                new FakeTransferGuardSettingsCoordinator(),
+                new FakeTransferManualRuleService(),
+                archiveGuardService);
+
+        var model =
+            new ArchiveGuardQuarantineItemsIpcRequest(
+                200);
+
+        var request =
+            PipeRequest.Create(
+                PipeMessageType.GetArchiveGuardQuarantineItems,
+                PipeJsonSerializer.Serialize(
+                    model));
+
+        var response =
+            await handler.HandleAsync(
+                request);
+
+        Assert.True(
+            response.Success);
+
+        Assert.NotNull(
+            response.Payload);
+
+        var restored =
+            PipeJsonSerializer.Deserialize<
+                List<ArchiveGuardQuarantineItemIpcDto>>(
+                    response.Payload);
+
+        var restoredItem =
+            Assert.Single(
+                restored);
+
+        Assert.Equal(
+            item.Id,
+            restoredItem.Id);
+
+        Assert.Equal(
+            item.OriginalPath,
+            restoredItem.OriginalPath);
+
+        Assert.Equal(
+            item.Sha256,
+            restoredItem.Sha256);
+    }
+
+    [Fact]
+    public async Task ArchiveGuard_quarantine_item_can_be_restored_with_exception()
+    {
+        var quarantineId =
+            Guid.NewGuid();
+
+        var restoredPath =
+            @"C:\Users\Test\Downloads\sample.zip";
+
+        var sha256 =
+            new string(
+                'B',
+                64);
+
+        var archiveGuardService =
+            new FakeArchiveGuardIpcService
+            {
+                RestoreResult =
+                    new ArchiveGuardQuarantineRestoreIpcDto(
+                        quarantineId,
+                        restoredPath,
+                        sha256)
+            };
+
+        var handler =
+            new PipeRequestHandler(
+                new FakeSnapshotService(
+                    CreateEmptySnapshot()),
+                new FakeDecisionService(),
+                new FakeRuleManagementService(),
+                new FakeAlgorithmGuardSettingsCoordinator(),
+                new FakeTransferGuardSettingsCoordinator(),
+                new FakeTransferManualRuleService(),
+                archiveGuardService);
+
+        var model =
+            new ArchiveGuardQuarantineRestoreIpcRequest(
+                quarantineId);
+
+        var request =
+            PipeRequest.Create(
+                PipeMessageType.RestoreArchiveFromQuarantineWithException,
+                PipeJsonSerializer.Serialize(
+                    model));
+
+        var response =
+            await handler.HandleAsync(
+                request);
+
+        Assert.True(
+            response.Success);
+
+        Assert.NotNull(
+            response.Payload);
+
+        Assert.NotNull(
+            archiveGuardService.RestoreRequest);
+
+        Assert.Equal(
+            quarantineId,
+            archiveGuardService.RestoreRequest.QuarantineId);
+
+        var restored =
+            PipeJsonSerializer.Deserialize<
+                ArchiveGuardQuarantineRestoreIpcDto>(
+                    response.Payload);
+
+        Assert.Equal(
+            quarantineId,
+            restored.QuarantineId);
+
+        Assert.Equal(
+            restoredPath,
+            restored.RestoredPath);
+
+        Assert.Equal(
+            sha256,
+            restored.Sha256);
+    }
+
     private static PipeRequestHandler CreateHandler()
     {
         return new PipeRequestHandler(
@@ -559,5 +718,55 @@ public sealed class PipeRequestHandlerTests
         Assert.Equal(
             "Block DOCX",
             service.LastRequest.Name);
+    }
+
+    private sealed class FakeArchiveGuardIpcService
+        : IArchiveGuardIpcService
+    {
+        public IReadOnlyList<ArchiveGuardQuarantineItemIpcDto> QuarantineItems { get; set; } =
+            [];
+
+        public ArchiveGuardQuarantineRestoreIpcRequest? RestoreRequest { get; private set; }
+
+        public ArchiveGuardQuarantineRestoreIpcDto? RestoreResult { get; set; }
+
+        public Task<ArchiveGuardScanIpcDto> ScanAsync(
+            ArchiveGuardScanIpcRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<IReadOnlyList<ArchiveGuardRecentScanIpcDto>> GetRecentAsync(
+            ArchiveGuardRecentScansIpcRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<IReadOnlyList<ArchiveGuardQuarantineItemIpcDto>> GetQuarantineItemsAsync(
+            ArchiveGuardQuarantineItemsIpcRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(
+                QuarantineItems);
+        }
+
+        public Task<ArchiveGuardQuarantineRestoreIpcDto> RestoreFromQuarantineWithExceptionAsync(
+            ArchiveGuardQuarantineRestoreIpcRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            RestoreRequest =
+                request;
+
+            if (RestoreResult is null)
+            {
+                throw new InvalidOperationException(
+                    "Restore result is not configured.");
+            }
+
+            return Task.FromResult(
+                RestoreResult);
+        }
     }
 }

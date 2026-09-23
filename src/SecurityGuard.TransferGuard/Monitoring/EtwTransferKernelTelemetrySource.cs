@@ -85,6 +85,12 @@ public sealed class EtwTransferKernelTelemetrySource
         session.StopOnDispose =
             true;
 
+        session.EnableKernelProvider(
+            KernelTraceEventParser.Keywords.Process |
+            KernelTraceEventParser.Keywords.FileIO |
+            KernelTraceEventParser.Keywords.FileIOInit |
+            KernelTraceEventParser.Keywords.NetworkTCPIP);
+
         session.Source.Kernel.ProcessStart +=
             data =>
             {
@@ -126,15 +132,12 @@ public sealed class EtwTransferKernelTelemetrySource
             data =>
             {
                 if (!ShouldObserveProcess(
-                        data.ProcessID))
-                {
-                    return;
-                }
+                    data.ProcessID))
 
                 if (data.IoSize <= 0)
-                {
-                    return;
-                }
+                    {
+                        return;
+                    }
 
                 var processInstance =
                     _processRegistry.Resolve(
@@ -242,11 +245,6 @@ public sealed class EtwTransferKernelTelemetrySource
                     data.dport,
                     data.size,
                     data.TimeStamp);
-
-        session.EnableKernelProvider(
-            KernelTraceEventParser.Keywords.Process |
-            KernelTraceEventParser.Keywords.FileIOInit |
-            KernelTraceEventParser.Keywords.NetworkTCPIP);
 
         var processingTask =
             Task.Run(

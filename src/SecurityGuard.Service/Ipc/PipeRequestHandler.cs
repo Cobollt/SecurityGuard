@@ -133,6 +133,11 @@ public sealed class PipeRequestHandler
                         request,
                         cancellationToken),
 
+                PipeMessageType.GetArchiveGuardQuarantineItems =>
+                    await GetArchiveGuardQuarantineItemsAsync(
+                        request,
+                        cancellationToken),
+
                 PipeMessageType.RestoreArchiveFromQuarantineWithException =>
                     await RestoreArchiveFromQuarantineWithExceptionAsync(
                         request,
@@ -415,6 +420,36 @@ public sealed class PipeRequestHandler
 
         var result =
             await _archiveGuardIpcService.GetRecentAsync(
+                model,
+                cancellationToken);
+
+        return PipeResponse.Ok(
+            request.Id,
+            PipeJsonSerializer.Serialize(
+                result));
+    }
+
+    private async Task<PipeResponse> GetArchiveGuardQuarantineItemsAsync(
+        PipeRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (_archiveGuardIpcService is null)
+        {
+            return PipeResponse.Fail(
+                request.Id,
+                "ArchiveGuard IPC service is unavailable.");
+        }
+
+        var model =
+            string.IsNullOrWhiteSpace(
+                request.Payload)
+                ? new ArchiveGuardQuarantineItemsIpcRequest()
+                : PipeJsonSerializer.Deserialize<
+                    ArchiveGuardQuarantineItemsIpcRequest>(
+                        request.Payload);
+
+        var result =
+            await _archiveGuardIpcService.GetQuarantineItemsAsync(
                 model,
                 cancellationToken);
 

@@ -274,6 +274,25 @@ internal sealed class FakeSecurityGuardClient
             rule);
     }
 
+    public Task<IReadOnlyList<ArchiveGuardQuarantineItemIpcDto>> GetArchiveGuardQuarantineItemsAsync(
+        int limit = 200,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyList<ArchiveGuardQuarantineItemIpcDto>>(
+            []);
+    }
+
+    public Task<ArchiveGuardQuarantineRestoreIpcDto> RestoreArchiveFromQuarantineWithExceptionAsync(
+        Guid quarantineId,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(
+            new ArchiveGuardQuarantineRestoreIpcDto(
+                quarantineId,
+                string.Empty,
+                string.Empty));
+    }
+
     public Task<ArchiveGuardAutoScanSettingsIpcDto> GetArchiveGuardAutoScanSettingsAsync(
         CancellationToken cancellationToken = default)
     {

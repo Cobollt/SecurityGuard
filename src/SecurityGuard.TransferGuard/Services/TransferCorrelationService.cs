@@ -315,18 +315,22 @@ public sealed class TransferCorrelationService
                 classification,
                 connection);
 
-        await _auditService.WriteAsync(
-            SecurityModuleKind.TransferGuard,
-            SecurityEventType.FileTransfer,
-            GetSeverity(
-                assessment.Confidence),
-            "Possible file transfer correlation",
-            BuildDetails(
-                candidate),
-            SecurityAction.None,
-            cancellationToken:
-                cancellationToken);
-        
+        if (assessment.Confidence !=
+            TransferCorrelationConfidence.Low)
+        {
+            await _auditService.WriteAsync(
+                SecurityModuleKind.TransferGuard,
+                SecurityEventType.FileTransfer,
+                GetSeverity(
+                    assessment.Confidence),
+                "Possible file transfer correlation",
+                BuildDetails(
+                    candidate),
+                SecurityAction.None,
+                cancellationToken:
+                    cancellationToken);
+        }
+
         await _filePolicyService.HandleAsync(
             candidate,
             cancellationToken);

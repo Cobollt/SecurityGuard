@@ -51,7 +51,7 @@ public sealed class WmiProcessMetadataProvider
                     Name,
                     ExecutablePath,
                     CommandLine,
-                    CreationDatex
+                    CreationDate
                 FROM Win32_Process
                 WHERE ProcessId = {processId}
                 """);

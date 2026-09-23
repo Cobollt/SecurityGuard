@@ -5,6 +5,9 @@ using SecurityGuard.Infrastructure.FileSystem;
 using SecurityGuard.Service.Hosting;
 using SecurityGuard.Storage.Database;
 using SecurityGuard.Storage.Repositories;
+using Microsoft.Extensions.DependencyInjection;
+using SecurityGuard.Service.Application;
+using SecurityGuard.Service.DependencyInjection;
 
 namespace SecurityGuard.Service.Tests;
 
@@ -123,5 +126,28 @@ public sealed class SecurityGuardStartupServiceTests
             securityEvent =>
                 securityEvent.Title ==
                 "SecurityGuard stopped");
+    }
+
+    [Fact]
+    public void ArchiveGuard_ipc_service_is_resolved_from_runtime_container()
+    {
+        var services =
+            new ServiceCollection();
+
+        services.AddSecurityGuard();
+
+        using var provider =
+            services.BuildServiceProvider(
+                new ServiceProviderOptions
+                {
+                    ValidateOnBuild = true,
+                    ValidateScopes = true
+                });
+
+        var service =
+            provider.GetRequiredService<IArchiveGuardIpcService>();
+
+        Assert.NotNull(
+            service);
     }
 }

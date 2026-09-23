@@ -52,6 +52,10 @@ public interface ISecurityGuardClient
         int limit = 50,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<ArchiveGuardQuarantineItemIpcDto>> GetArchiveGuardQuarantineItemsAsync(
+        int limit = 200,
+        CancellationToken cancellationToken = default);
+
     Task<ArchiveGuardQuarantineRestoreIpcDto> RestoreArchiveFromQuarantineWithExceptionAsync(
         Guid quarantineId,
         CancellationToken cancellationToken = default);

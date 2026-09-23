@@ -116,8 +116,11 @@ public sealed class AlgorithmGuardMonitor
             {
                 break;
             }
-            catch
+            catch (Exception exception)
             {
+                throw new InvalidOperationException(
+                    $"AlgorithmGuard event processing failed for PID {signal.ProcessId}, process {signal.ProcessName}.",
+                    exception);
             }
         }
     }

@@ -308,9 +308,45 @@ public sealed class AlgorithmGuardHostedService
         _monitorTask =
             Task.Run(
                 () =>
-                    _monitor.RunAsync(
+                    RunMonitorAsync(
                         token),
                 CancellationToken.None);
+    }
+
+    private async Task RunMonitorAsync(
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _monitor.RunAsync(
+                cancellationToken);
+        }
+        catch (OperationCanceledException)
+            when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            _moduleRegistry.Set(
+                SecurityModuleKind.AlgorithmGuard,
+                ModuleOperationalState.Faulted,
+                "AlgorithmGuard monitoring failed");
+
+            try
+            {
+                await _auditService.WriteAsync(
+                    SecurityModuleKind.AlgorithmGuard,
+                    SecurityEventType.System,
+                    SecuritySeverity.Critical,
+                    "AlgorithmGuard monitoring failed",
+                    exception.ToString(),
+                    cancellationToken:
+                        CancellationToken.None);
+            }
+            catch
+            {
+            }
+        }
     }
 
     private async Task StopMonitorAsync()
