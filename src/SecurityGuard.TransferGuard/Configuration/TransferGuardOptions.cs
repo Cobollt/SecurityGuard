@@ -32,6 +32,9 @@ public sealed class TransferGuardOptions
     public int KernelTelemetryChannelCapacity { get; init; } =
         16384;
 
+    public TimeSpan KernelTelemetryAggregationInterval { get; init; } =
+        TimeSpan.FromMilliseconds(250);
+
     public long MaxImmediateHashFileSizeBytes { get; init; } =
         32L * 1024L * 1024L;
 

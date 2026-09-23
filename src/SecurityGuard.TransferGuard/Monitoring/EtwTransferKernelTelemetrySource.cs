@@ -7,6 +7,7 @@ using SecurityGuard.TransferGuard.Configuration;
 using SecurityGuard.TransferGuard.Contracts;
 using SecurityGuard.TransferGuard.Enums;
 using SecurityGuard.TransferGuard.Models;
+using System.Collections.Concurrent;
 
 namespace SecurityGuard.TransferGuard.Monitoring;
 
@@ -78,6 +79,16 @@ public sealed class EtwTransferKernelTelemetrySource
                 _ =>
                     _healthTracker.RecordKernelDrop());
 
+        var pendingFileReads =
+            new ConcurrentDictionary<
+                string,
+                PendingFileRead>(
+                StringComparer.OrdinalIgnoreCase);
+
+        using var aggregationCancellation =
+            CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken);
+
         using var session =
             new TraceEventSession(
                 SessionName);
@@ -112,6 +123,15 @@ public sealed class EtwTransferKernelTelemetrySource
         session.Source.Kernel.ProcessStop +=
             data =>
             {
+                FlushPendingFileReads(
+                    pendingFileReads,
+                    channel.Writer,
+                    DateTimeOffset.MaxValue,
+                    processId:
+                        data.ProcessID,
+                    force:
+                        true);
+
                 var instance =
                     _processRegistry.RegisterStop(
                         data.ProcessID);
@@ -178,16 +198,41 @@ public sealed class EtwTransferKernelTelemetrySource
                     return;
                 }
 
-                channel.Writer.TryWrite(
-                    new FileReadKernelActivity(
-                        new FileReadActivity(
+                var readAtUtc =
+                    ToUtc(
+                        data.TimeStamp);
+
+                var key =
+                    BuildFileReadAggregationKey(
+                        data.ProcessID,
+                        path);
+
+                pendingFileReads.AddOrUpdate(
+                    key,
+                    _ =>
+                        new PendingFileRead(
                             data.ProcessID,
                             path,
                             data.IoSize,
-                            ToUtc(
-                                data.TimeStamp),
+                            readAtUtc,
                             classification,
-                            processInstance)));
+                            processInstance),
+                    (_, existing) =>
+                        existing with
+                        {
+                            BytesRead =
+                                existing.BytesRead +
+                                data.IoSize,
+
+                            LastReadAtUtc =
+                                readAtUtc,
+
+                            Classification =
+                                classification,
+
+                            ProcessInstance =
+                                processInstance
+                        });
             };
 
         session.Source.Kernel.TcpIpSend +=
@@ -246,6 +291,34 @@ public sealed class EtwTransferKernelTelemetrySource
                     data.size,
                     data.TimeStamp);
 
+        var aggregationTask =
+            Task.Run(
+                async () =>
+                {
+                    using var timer =
+                        new PeriodicTimer(
+                            _options.KernelTelemetryAggregationInterval);
+
+                    try
+                    {
+                        while (await timer.WaitForNextTickAsync(
+                                   aggregationCancellation.Token))
+                        {
+                            FlushPendingFileReads(
+                                pendingFileReads,
+                                channel.Writer,
+                                DateTimeOffset.MaxValue,
+                                force:
+                                    true);
+                        }
+                    }
+                    catch (OperationCanceledException)
+                        when (aggregationCancellation.IsCancellationRequested)
+                    {
+                    }
+                },
+        CancellationToken.None);
+
         var processingTask =
             Task.Run(
                 () =>
@@ -253,6 +326,13 @@ public sealed class EtwTransferKernelTelemetrySource
                     try
                     {
                         session.Source.Process();
+
+                        FlushPendingFileReads(
+                            pendingFileReads,
+                            channel.Writer,
+                            DateTimeOffset.MaxValue,
+                            force:
+                                true);
 
                         channel.Writer.TryComplete();
                     }
@@ -283,6 +363,7 @@ public sealed class EtwTransferKernelTelemetrySource
         }
         finally
         {
+            aggregationCancellation.Cancel();
             try
             {
                 session.Stop(
@@ -303,6 +384,68 @@ public sealed class EtwTransferKernelTelemetrySource
             }
         }
     }
+
+    private static string BuildFileReadAggregationKey(
+        int processId,
+        string path)
+        {
+            return $"{processId}|{path}";
+        }
+
+    private static void FlushPendingFileReads(
+        ConcurrentDictionary<
+            string,
+            PendingFileRead> pendingFileReads,
+        ChannelWriter<TransferKernelActivity> writer,
+        DateTimeOffset cutoff,
+        int? processId = null,
+        bool force = false)
+    {
+        foreach (var item in pendingFileReads)
+        {
+            var pending =
+                item.Value;
+
+            if (processId is not null &&
+                pending.ProcessId !=
+                processId.Value)
+            {
+                continue;
+            }
+
+            if (!force &&
+                pending.LastReadAtUtc >
+                cutoff)
+            {
+                continue;
+            }
+
+            if (!pendingFileReads.TryRemove(
+                    item.Key,
+                    out var removed))
+            {
+                continue;
+            }
+
+            writer.TryWrite(
+                new FileReadKernelActivity(
+                    new FileReadActivity(
+                        removed.ProcessId,
+                        removed.FilePath,
+                        removed.BytesRead,
+                        removed.LastReadAtUtc,
+                        removed.Classification,
+                        removed.ProcessInstance)));
+        }
+    }
+
+    private sealed record PendingFileRead(
+        int ProcessId,
+        string FilePath,
+        long BytesRead,
+        DateTimeOffset LastReadAtUtc,
+        TransferFileClassification Classification,
+        TransferProcessInstanceId? ProcessInstance);
 
     private void WriteNetworkSend(
         ChannelWriter<TransferKernelActivity> writer,
