@@ -5,6 +5,7 @@ using SecurityGuard.TransferGuard.Contracts;
 using SecurityGuard.TransferGuard.Enums;
 using SecurityGuard.TransferGuard.Models;
 using SecurityGuard.TransferGuard.Services;
+using SecurityGuard.Core.Services;
 
 namespace SecurityGuard.TransferGuard.Tests;
 
@@ -121,6 +122,7 @@ public sealed class TransferDecisionHandlerTests
             "client.exe",
             [
                 SecurityAction.Allow,
+                SecurityAction.AllowApplication,
                 SecurityAction.Block
             ],
             DateTimeOffset.UtcNow,
@@ -319,6 +321,7 @@ public sealed class TransferDecisionHandlerTests
                 "client.exe",
                 [
                     SecurityAction.Allow,
+                    SecurityAction.AllowApplication,
                     SecurityAction.Block
                 ],
                 DateTimeOffset.UtcNow,
@@ -389,6 +392,265 @@ public sealed class TransferDecisionHandlerTests
                     RuleScope.ProcessPath &&
                 condition.Value ==
                     @"C:\Apps\client.exe");
+    }
+
+    [Fact]
+    public async Task Allow_application_creates_program_rules()
+    {
+        var repository =
+            new FakeRuleRepository();
+
+        var enforcement =
+            new FakeEnforcementService();
+
+        var handler =
+            new TransferDecisionHandler(
+                repository,
+                enforcement,
+                new TransferEnforcementRuleFactory(
+                    new FakePathNormalizer()),
+                new FakeRuntimeController(),
+                new FakeFileEnforcementCoordinator(),
+                new FakeTemporaryEnforcementService());
+
+        var request =
+            CreateRequest();
+
+        await handler.HandleAsync(
+            request,
+            new SecurityDecision(
+                request.Id,
+                SecurityAction.AllowApplication,
+                true,
+                DateTimeOffset.UtcNow));
+
+        Assert.Equal(
+            2,
+            repository.Rules.Count);
+
+        Assert.All(
+            repository.Rules,
+            rule =>
+            {
+                Assert.Equal(
+                    SecurityModuleKind.TransferGuard,
+                    rule.Module);
+
+                Assert.Equal(
+                    RuleDecision.Allow,
+                    rule.Decision);
+
+                Assert.Equal(
+                    RuleScope.ProcessPath,
+                    rule.Scope);
+
+                Assert.Equal(
+                    @"C:\Apps\client.exe",
+                    rule.Value);
+
+                Assert.True(
+                    rule.Enabled);
+
+                Assert.Null(
+                    rule.ExpiresAtUtc);
+
+                var condition =
+                    Assert.Single(
+                        rule.Conditions!);
+
+                Assert.Equal(
+                    RuleScope.TransferActivityKind,
+                    condition.Scope);
+            });
+
+        Assert.Contains(
+            repository.Rules,
+            rule =>
+                rule.Conditions!.Any(
+                    condition =>
+                        condition.Scope ==
+                        RuleScope.TransferActivityKind &&
+                        condition.Value ==
+                        "NetworkConnection"));
+
+        Assert.Contains(
+            repository.Rules,
+            rule =>
+                rule.Conditions!.Any(
+                    condition =>
+                        condition.Scope ==
+                        RuleScope.TransferActivityKind &&
+                        condition.Value ==
+                        "FileTransfer"));
+
+        Assert.False(
+            enforcement.WasCalled);
+    }
+
+    [Fact]
+    public async Task Allow_application_matches_other_activity_from_same_program()
+    {
+        var repository =
+            new FakeRuleRepository();
+
+        var handler =
+            new TransferDecisionHandler(
+                repository,
+                new FakeEnforcementService(),
+                new TransferEnforcementRuleFactory(
+                    new FakePathNormalizer()),
+                new FakeRuntimeController(),
+                new FakeFileEnforcementCoordinator(),
+                new FakeTemporaryEnforcementService());
+
+        var request =
+            CreateRequest();
+
+        await handler.HandleAsync(
+            request,
+            new SecurityDecision(
+                request.Id,
+                SecurityAction.AllowApplication,
+                true,
+                DateTimeOffset.UtcNow));
+
+        var engine =
+            new RuleEngine(
+                repository);
+
+        var networkResult =
+            await engine.EvaluateAsync(
+                SecurityModuleKind.TransferGuard,
+                new RuleMatchContext(
+                    Process:
+                        "client.exe",
+                    ProcessPath:
+                        @"C:\Apps\client.exe",
+                    RemoteAddress:
+                        "9.9.9.9",
+                    RemotePort:
+                        8443,
+                    Protocol:
+                        "Udp",
+                    TransferActivityKind:
+                        "NetworkConnection"));
+
+        Assert.True(
+            networkResult.Matched);
+
+        Assert.Equal(
+            RuleDecision.Allow,
+            networkResult.Decision);
+
+        var fileResult =
+            await engine.EvaluateAsync(
+                SecurityModuleKind.TransferGuard,
+                new RuleMatchContext(
+                    FileHash:
+                        "OTHER-HASH",
+                    FilePath:
+                        @"D:\Files\other.zip",
+                    FileName:
+                        "other.zip",
+                    FileExtension:
+                        ".zip",
+                    FileCategory:
+                        "Archive",
+                    Process:
+                        "client.exe",
+                    ProcessPath:
+                        @"C:\Apps\client.exe",
+                    RemoteAddress:
+                        "203.0.113.50",
+                    RemotePort:
+                        5000,
+                    Protocol:
+                        "Tcp",
+                    TransferActivityKind:
+                        "FileTransfer"));
+
+        Assert.True(
+            fileResult.Matched);
+
+        Assert.Equal(
+            RuleDecision.Allow,
+            fileResult.Decision);
+    }
+
+    [Fact]
+    public async Task Allow_application_does_not_match_other_program()
+    {
+        var repository =
+            new FakeRuleRepository();
+
+        var handler =
+            new TransferDecisionHandler(
+                repository,
+                new FakeEnforcementService(),
+                new TransferEnforcementRuleFactory(
+                    new FakePathNormalizer()),
+                new FakeRuntimeController(),
+                new FakeFileEnforcementCoordinator(),
+                new FakeTemporaryEnforcementService());
+
+        var request =
+            CreateRequest();
+
+        await handler.HandleAsync(
+            request,
+            new SecurityDecision(
+                request.Id,
+                SecurityAction.AllowApplication,
+                true,
+                DateTimeOffset.UtcNow));
+
+        var engine =
+            new RuleEngine(
+                repository);
+
+        var networkResult =
+            await engine.EvaluateAsync(
+                SecurityModuleKind.TransferGuard,
+                new RuleMatchContext(
+                    Process:
+                        "other.exe",
+                    ProcessPath:
+                        @"C:\Apps\other.exe",
+                    RemoteAddress:
+                        "1.1.1.1",
+                    RemotePort:
+                        443,
+                    Protocol:
+                        "Tcp",
+                    TransferActivityKind:
+                        "NetworkConnection"));
+
+        Assert.False(
+            networkResult.Matched);
+
+        var fileResult =
+            await engine.EvaluateAsync(
+                SecurityModuleKind.TransferGuard,
+                new RuleMatchContext(
+                    FileHash:
+                        "ABC123",
+                    FilePath:
+                        @"C:\Files\document.pdf",
+                    Process:
+                        "other.exe",
+                    ProcessPath:
+                        @"C:\Apps\other.exe",
+                    RemoteAddress:
+                        "1.1.1.1",
+                    RemotePort:
+                        443,
+                    Protocol:
+                        "Tcp",
+                    TransferActivityKind:
+                        "FileTransfer"));
+
+        Assert.False(
+            fileResult.Matched);
     }
 
     private sealed class FakeFileEnforcementCoordinator

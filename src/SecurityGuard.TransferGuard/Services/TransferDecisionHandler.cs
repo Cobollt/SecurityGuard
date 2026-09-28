@@ -50,6 +50,16 @@ public sealed class TransferDecisionHandler
         SecurityDecision decision,
         CancellationToken cancellationToken = default)
     {
+        if (decision.Action ==
+            SecurityAction.AllowApplication)
+        {
+            await HandleApplicationDecisionAsync(
+                request,
+                cancellationToken);
+
+            return;
+        }
+
         var ruleDecision =
             decision.Action switch
             {
@@ -133,6 +143,88 @@ public sealed class TransferDecisionHandler
             cancellationToken);
     }
 
+    private async Task HandleApplicationDecisionAsync(
+        SecurityDecisionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var context =
+            request.RuleContext ??
+            throw new InvalidOperationException(
+                "TransferGuard rule context is missing.");
+
+        if (string.IsNullOrWhiteSpace(
+                context.ProcessPath))
+        {
+            throw new InvalidOperationException(
+                "TransferGuard requires ProcessPath for application rules.");
+        }
+
+        var existingRules =
+            await _ruleRepository.GetAllAsync(
+                cancellationToken);
+
+        var activities =
+            new[]
+            {
+            Enums.TransferActivityKind.NetworkConnection,
+            Enums.TransferActivityKind.FileTransfer
+            };
+
+        foreach (var activity in activities)
+        {
+            var activityValue =
+                activity.ToString();
+
+            var existingRule =
+                existingRules.FirstOrDefault(
+                    rule =>
+                        rule.Module ==
+                        SecurityModuleKind.TransferGuard &&
+                        rule.Decision ==
+                        RuleDecision.Allow &&
+                        rule.Scope ==
+                        RuleScope.ProcessPath &&
+                        string.Equals(
+                            rule.Value,
+                            context.ProcessPath,
+                            StringComparison.OrdinalIgnoreCase) &&
+                        rule.Conditions is { Count: 1 } &&
+                        rule.Conditions[0].Scope ==
+                        RuleScope.TransferActivityKind &&
+                        string.Equals(
+                            rule.Conditions[0].Value,
+                            activityValue,
+                            StringComparison.OrdinalIgnoreCase));
+
+            if (existingRule is not null)
+            {
+                if (!existingRule.Enabled ||
+                    existingRule.ExpiresAtUtc is not null)
+                {
+                    await _ruleRepository.UpsertAsync(
+                        existingRule with
+                        {
+                            Enabled = true,
+                            ExpiresAtUtc = null
+                        },
+                        cancellationToken);
+                }
+
+                continue;
+            }
+
+            var rule =
+                BuildApplicationRule(
+                    request,
+                    context.ProcessPath,
+                    activity);
+
+            await _ruleRepository.UpsertAsync(
+                rule,
+                cancellationToken);
+        }
+    }
+
     private static SecurityRule BuildNetworkRule(
         SecurityDecisionRequest request,
         RuleDecision decision)
@@ -189,6 +281,42 @@ public sealed class TransferDecisionHandler
             DateTimeOffset.UtcNow,
             null,
             conditions);
+    }
+
+    private static SecurityRule BuildApplicationRule(
+        SecurityDecisionRequest request,
+        string processPath,
+        Enums.TransferActivityKind activity)
+    {
+        var processName =
+            !string.IsNullOrWhiteSpace(
+                request.ProcessName)
+                ? request.ProcessName
+                : Path.GetFileNameWithoutExtension(
+                    processPath);
+
+        var priority =
+            activity ==
+            Enums.TransferActivityKind.FileTransfer
+                ? 150
+                : 100;
+
+        return new SecurityRule(
+            Guid.NewGuid(),
+            $"Allow application: {processName} ({activity})",
+            SecurityModuleKind.TransferGuard,
+            RuleDecision.Allow,
+            RuleScope.ProcessPath,
+            processPath,
+            true,
+            priority,
+            DateTimeOffset.UtcNow,
+            null,
+            [
+                new SecurityRuleCondition(
+                RuleScope.TransferActivityKind,
+                activity.ToString())
+            ]);
     }
 
     private static void AddCondition(

@@ -688,7 +688,9 @@ public sealed class MainViewModel
                     requestId,
                     action,
                     action ==
-                    SecurityAction.Allow,
+                    SecurityAction.Allow ||
+                    action ==
+                    SecurityAction.AllowApplication,
                     DateTimeOffset.UtcNow);
 
             await _client.SubmitDecisionAsync(

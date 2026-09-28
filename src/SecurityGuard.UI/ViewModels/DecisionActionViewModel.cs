@@ -36,6 +36,9 @@ public sealed class DecisionActionViewModel
             SecurityAction.AllowOnce =>
                 "Разрешить один раз",
 
+            SecurityAction.AllowApplication =>
+                "Разрешить всю программу",
+
             SecurityAction.Block =>
                 "Заблокировать",
 

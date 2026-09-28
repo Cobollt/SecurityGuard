@@ -123,6 +123,7 @@ public sealed class TransferPolicyService
                 observation.Process?.ProcessName,
                 [
                     SecurityAction.Allow,
+                    SecurityAction.AllowApplication,
                     SecurityAction.Block
                 ],
                 now,

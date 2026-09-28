@@ -133,6 +133,7 @@ public sealed class TransferFilePolicyService
                 candidate.Connection.Process?.ProcessName,
                 [
                     SecurityAction.Allow,
+                    SecurityAction.AllowApplication,
                     SecurityAction.Block
                 ],
                 now,
