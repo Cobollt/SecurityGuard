@@ -153,6 +153,9 @@ public sealed class EtwTransferKernelTelemetrySource
             {
                 if (!ShouldObserveProcess(
                     data.ProcessID))
+                    {
+                        return;
+                    }
 
                 if (data.IoSize <= 0)
                     {
