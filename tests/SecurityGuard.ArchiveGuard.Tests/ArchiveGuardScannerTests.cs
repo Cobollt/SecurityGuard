@@ -938,6 +938,55 @@ public sealed class ArchiveGuardScannerTests
     }
 
     [Fact]
+    public async Task Suspicious_file_inside_rar_is_detected()
+    {
+        var root =
+            CreateTemporaryDirectory();
+
+        try
+        {
+            var file =
+                Path.Combine(
+                    root,
+                    "archive.rar");
+
+            var content =
+                Convert.FromBase64String(
+                    "UmFyIRoHAQAzkrXlCgEFBgAFAQGAgADR9gZ2KwIDC4YABIYAIOROqg+AAAAPaW52b2ljZS5wZGYuZXhlCgMCqKGMkmhL3QF0ZXN0DQodd1ZRAwUEAA==");
+
+            await File.WriteAllBytesAsync(
+                file,
+                content);
+
+            var result =
+                await CreateScanner()
+                    .ScanAsync(
+                        new ArchiveScanRequest(
+                            file));
+
+            Assert.Equal(
+                DetectedFileType.Rar,
+                result.FileType);
+
+            Assert.Equal(
+                ScanVerdict.Suspicious,
+                result.Verdict);
+
+            Assert.Contains(
+                result.Findings,
+                finding =>
+                    finding.Kind ==
+                    ArchiveFindingKind.DoubleExtension);
+        }
+        finally
+        {
+            Directory.Delete(
+                root,
+                true);
+        }
+    }
+
+    [Fact]
     public async Task Suspicious_pe_inside_zip_is_analyzed()
     {
         var root =
