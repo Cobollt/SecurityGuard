@@ -8,6 +8,7 @@ public sealed class SecurityDecisionService
     : ISecurityDecisionService
 {
     private readonly IDecisionRequestRepository _requestRepository;
+
     private readonly IReadOnlyDictionary<
         SecurityModuleKind,
         ISecurityDecisionHandler> _handlers;
@@ -19,19 +20,24 @@ public sealed class SecurityDecisionService
         IEnumerable<ISecurityDecisionHandler> handlers,
         IAuditService auditService)
     {
-        _requestRepository = requestRepository;
-        _auditService = auditService;
+        _requestRepository =
+            requestRepository;
+
+        _auditService =
+            auditService;
 
         _handlers =
             handlers.ToDictionary(
-                handler => handler.Module);
+                handler =>
+                    handler.Module);
     }
 
     public async Task ApplyAsync(
         SecurityDecision decision,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(decision);
+        ArgumentNullException.ThrowIfNull(
+            decision);
 
         var request =
             await _requestRepository.GetByIdAsync(
@@ -64,6 +70,14 @@ public sealed class SecurityDecisionService
             decision,
             cancellationToken);
 
+        if (decision.Action ==
+            SecurityAction.AllowApplication)
+        {
+            await RemoveApplicationPendingRequestsAsync(
+                request,
+                cancellationToken);
+        }
+
         await _requestRepository.RemoveAsync(
             request.Id,
             cancellationToken);
@@ -75,6 +89,54 @@ public sealed class SecurityDecisionService
             "Security decision applied",
             $"{request.Title}: {decision.Action}",
             decision.Action,
-            cancellationToken: cancellationToken);
+            cancellationToken:
+                cancellationToken);
+    }
+
+    private async Task RemoveApplicationPendingRequestsAsync(
+        SecurityDecisionRequest resolvedRequest,
+        CancellationToken cancellationToken)
+    {
+        var processPath =
+            resolvedRequest.RuleContext?.ProcessPath;
+
+        if (string.IsNullOrWhiteSpace(
+                processPath))
+        {
+            return;
+        }
+
+        var pending =
+            await _requestRepository.GetPendingAsync(
+                cancellationToken);
+
+        var staleRequestIds =
+            pending
+                .Where(
+                    request =>
+                        request.Id !=
+                        resolvedRequest.Id)
+                .Where(
+                    request =>
+                        request.Module ==
+                        resolvedRequest.Module)
+                .Where(
+                    request =>
+                        string.Equals(
+                            request.RuleContext?.ProcessPath,
+                            processPath,
+                            StringComparison.OrdinalIgnoreCase))
+                .Select(
+                    request =>
+                        request.Id)
+                .ToArray();
+
+        foreach (var requestId in
+                 staleRequestIds)
+        {
+            await _requestRepository.RemoveAsync(
+                requestId,
+                cancellationToken);
+        }
     }
 }

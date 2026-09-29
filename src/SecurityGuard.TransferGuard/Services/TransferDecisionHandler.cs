@@ -2,6 +2,7 @@ using SecurityGuard.Core.Contracts;
 using SecurityGuard.Core.Enums;
 using SecurityGuard.Core.Models;
 using SecurityGuard.TransferGuard.Contracts;
+using SecurityGuard.TransferGuard.Constants;
 
 namespace SecurityGuard.TransferGuard.Services;
 
@@ -276,8 +277,8 @@ public sealed class TransferDecisionHandler
             true,
             decision ==
             RuleDecision.Block
-                ? 200
-                : 100,
+                ? TransferRulePriorities.NetworkBlock
+                : TransferRulePriorities.NetworkAllow,
             DateTimeOffset.UtcNow,
             null,
             conditions);
@@ -298,8 +299,8 @@ public sealed class TransferDecisionHandler
         var priority =
             activity ==
             Enums.TransferActivityKind.FileTransfer
-                ? 150
-                : 100;
+                ? TransferRulePriorities.FileTransferAllow
+                : TransferRulePriorities.NetworkAllow;
 
         return new SecurityRule(
             Guid.NewGuid(),
@@ -529,8 +530,8 @@ public sealed class TransferDecisionHandler
             true,
             decision ==
             RuleDecision.Block
-                ? 250
-                : 150,
+                ? TransferRulePriorities.FileTransferBlock
+                : TransferRulePriorities.FileTransferAllow,
             DateTimeOffset.UtcNow,
             null,
             conditions);

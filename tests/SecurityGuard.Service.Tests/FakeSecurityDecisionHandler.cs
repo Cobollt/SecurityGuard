@@ -7,8 +7,15 @@ namespace SecurityGuard.Service.Tests;
 internal sealed class FakeSecurityDecisionHandler
     : ISecurityDecisionHandler
 {
-    public SecurityModuleKind Module =>
-        SecurityModuleKind.AlgorithmGuard;
+    public FakeSecurityDecisionHandler(
+        SecurityModuleKind module =
+            SecurityModuleKind.AlgorithmGuard)
+    {
+        Module =
+            module;
+    }
+
+    public SecurityModuleKind Module { get; }
 
     public bool WasCalled { get; private set; }
 
@@ -19,8 +26,11 @@ internal sealed class FakeSecurityDecisionHandler
         SecurityDecision decision,
         CancellationToken cancellationToken = default)
     {
-        WasCalled = true;
-        Decision = decision;
+        WasCalled =
+            true;
+
+        Decision =
+            decision;
 
         return Task.CompletedTask;
     }
