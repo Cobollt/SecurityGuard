@@ -26,29 +26,24 @@ public sealed class SecuritySnapshotService
     public async Task<SecuritySnapshot> GetAsync(
         CancellationToken cancellationToken = default)
     {
-        var eventsTask =
-            _eventRepository.GetRecentAsync(
+        var recentEvents =
+            await _eventRepository.GetRecentAsync(
                 100,
                 cancellationToken);
 
-        var decisionsTask =
-            _decisionRepository.GetPendingAsync(
+        var pendingRequests =
+            await _decisionRepository.GetPendingAsync(
                 cancellationToken);
 
-        var quarantineTask =
-            _quarantineRepository.CountAsync(
+        var quarantineCount =
+            await _quarantineRepository.CountAsync(
                 cancellationToken);
-
-        await Task.WhenAll(
-            eventsTask,
-            decisionsTask,
-            quarantineTask);
 
         return new SecuritySnapshot(
             _moduleRegistry.GetAll(),
-            await eventsTask,
-            await decisionsTask,
-            await quarantineTask,
+            recentEvents,
+            pendingRequests,
+            quarantineCount,
             DateTimeOffset.UtcNow);
     }
 }
