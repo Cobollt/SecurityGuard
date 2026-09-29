@@ -9,7 +9,7 @@ SecurityGuard — локальное приложение безопасност
 SecurityGuard включает следующие основные модули:
 
 * AlgorithmGuard — контроль выполнения скриптов и потенциально нежелательных алгоритмов.
-* TransferGuard — контроль исходящих операций передачи файлов и сетевой активности.
+* TransferGuard — контроль исходящих сетевых соединений и операций передачи файлов, правила разрешения и блокировки, а также постоянное разрешение всего приложения по пути исполняемого файла.
 * ArchiveGuard — проверка файлов и архивов.
 * Quarantine — изоляция подозрительных объектов.
 * Rules and Exceptions — правила разрешений, блокировок и исключений.
@@ -84,8 +84,8 @@ dotnet test .\SecurityGuard.slnx
 Текущий проверенный набор:
 
 ```text
-Всего тестов: 325
-Успешно: 325
+Всего тестов: 338
+Успешно: 338
 Сбой: 0
 Пропущено: 0
 ```
@@ -113,16 +113,16 @@ artifacts\publish\ui\win-x64
 
 ## Сборка установщика
 
-Для сборки MSI версии `0.1.1`:
+Для сборки MSI версии `0.1.26`:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 0.1.1
+.\scripts\build-installer.ps1 -Version 0.1.26
 ```
 
 Готовый установщик:
 
 ```text
-artifacts\installer\0.1.1\SecurityGuard-0.1.1-win-x64.msi
+artifacts\installer\0.1.26\SecurityGuard-0.1.26-win-x64.msi
 ```
 
 Если после изменения версии WiX не создаёт MSI, очистите промежуточные файлы установщика:
@@ -143,7 +143,7 @@ Remove-Item `
 Запустите PowerShell от имени администратора.
 
 ```powershell
-$msi = (Resolve-Path ".\artifacts\installer\0.1.1\SecurityGuard-0.1.1-win-x64.msi").Path
+$msi = (Resolve-Path ".\artifacts\installer\0.1.26\SecurityGuard-0.1.26-win-x64.msi").Path
 
 $p = Start-Process msiexec.exe `
     -Verb RunAs `
@@ -236,13 +236,13 @@ sc.exe qfailure SecurityGuard
 После установки выполните:
 
 ```powershell
-.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.1
+.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.26
 ```
 
 Успешная проверка выглядит примерно так:
 
 ```text
-Version: 0.1.1
+Version: 0.1.26
 Service: Running
 Startup: Automatic
 Account: LocalSystem
@@ -260,6 +260,39 @@ Start-Process "C:\Program Files\SecurityGuard\UI\SecurityGuard.UI.exe"
 
 Служба SecurityGuard должна быть установлена и запущена.
 
+## TransferGuard
+
+TransferGuard контролирует исходящие сетевые соединения и операции передачи файлов.
+
+Для неизвестного сетевого действия пользователь может разрешить или заблокировать операцию. Также поддерживается постоянное разрешение всего приложения.
+
+При выборе разрешения всего приложения правило создаётся по полному пути исполняемого файла:
+
+```text
+C:\Program Files\Mozilla Firefox\firefox.exe
+```
+
+Такое правило:
+
+* не зависит от PID процесса;
+* продолжает действовать после перезапуска программы;
+* применяется к новым сетевым адресам и портам;
+* применяется отдельно к `NetworkConnection` и `FileTransfer`;
+* не распространяется на программу с другим путём к исполняемому файлу.
+
+После разрешения всего приложения старые ожидающие запросы этого же приложения автоматически удаляются. Запросы других приложений сохраняются.
+
+Для правил TransferGuard используются следующие уровни приоритета:
+
+```text
+Network Allow       100
+FileTransfer Allow  150
+Network Block       200
+FileTransfer Block  250
+```
+
+При совпадении нескольких правил преимущество имеет правило с большим приоритетом. При одинаковом приоритете блокирующее правило имеет преимущество перед разрешающим.
+
 ## AlgorithmGuard и AppLocker
 
 AlgorithmGuard может использовать возможности Windows AppLocker.
@@ -275,15 +308,15 @@ SecurityGuard поддерживает обновление MSI поверх у�
 Например:
 
 ```text
-0.1.0 → 0.1.1
+0.1.25 → 0.1.26
 ```
 
-Для обновления предварительное удаление `0.1.0` не требуется.
+Для обновления предварительное удаление `0.1.25` не требуется.
 
 Запустите новый MSI:
 
 ```powershell
-$msi = (Resolve-Path ".\artifacts\installer\0.1.1\SecurityGuard-0.1.1-win-x64.msi").Path
+$msi = (Resolve-Path ".\artifacts\installer\0.1.26\SecurityGuard-0.1.26-win-x64.msi").Path
 
 $p = Start-Process msiexec.exe `
     -Verb RunAs `
@@ -297,7 +330,7 @@ $p.ExitCode
 После обновления:
 
 ```powershell
-.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.1
+.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.26
 ```
 
 ## Удаление
@@ -377,13 +410,13 @@ dotnet test .\SecurityGuard.slnx
 Затем:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 0.1.1
+.\scripts\build-installer.ps1 -Version 0.1.26
 ```
 
 После установки:
 
 ```powershell
-.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.1
+.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.26
 ```
 
 ## Текущий статус
@@ -391,7 +424,7 @@ dotnet test .\SecurityGuard.slnx
 На Windows проверены:
 
 * полная сборка решения;
-* 325 автоматических тестов;
+* 338 автоматических тестов;
 * установка MSI;
 * автоматический запуск Windows Service;
 * работа службы от LocalSystem;
@@ -401,7 +434,13 @@ dotnet test .\SecurityGuard.slnx
 * удаление MSI;
 * сохранение `ProgramData`;
 * повторная установка;
-* обновление `0.1.0 → 0.1.1`.
+* обновление `0.1.25 → 0.1.26`;
+* обнаружение исходящих сетевых соединений TransferGuard;
+* постоянное разрешение всего приложения по `ProcessPath`;
+* работа разрешения после перезапуска приложения и смены PID;
+* автоматическая очистка старых Pending-запросов разрешённого приложения;
+* сохранение Pending-запросов других приложений;
+* согласованное отображение новых Pending-запросов в UI.
 
 ## Платформа
 
