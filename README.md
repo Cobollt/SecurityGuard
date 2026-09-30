@@ -106,16 +106,16 @@ artifacts\publish\ui\win-x64
 
 ## Сборка установщика
 
-Для сборки MSI версии `0.1.29`:
+Для сборки MSI версии `0.1.30`:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 0.1.29
+.\scripts\build-installer.ps1 -Version 0.1.30
 ```
 
 Готовый установщик:
 
 ```text
-artifacts\installer\0.1.29\SecurityGuard-0.1.29-win-x64.msi
+artifacts\installer\0.1.30\SecurityGuard-0.1.30-win-x64.msi
 ```
 
 Если после изменения версии WiX не создаёт MSI, очистите промежуточные файлы установщика:
@@ -136,7 +136,7 @@ Remove-Item `
 Запустите PowerShell от имени администратора.
 
 ```powershell
-$msi = (Resolve-Path ".\artifacts\installer\0.1.29\SecurityGuard-0.1.29-win-x64.msi").Path
+$msi = (Resolve-Path ".\artifacts\installer\0.1.30\SecurityGuard-0.1.30-win-x64.msi").Path
 
 $p = Start-Process msiexec.exe `
     -Verb RunAs `
@@ -229,13 +229,13 @@ sc.exe qfailure SecurityGuard
 После установки выполните:
 
 ```powershell
-.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.29
+.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.30
 ```
 
 Успешная проверка выглядит примерно так:
 
 ```text
-Version: 0.1.29
+Version: 0.1.30
 Service: Running
 Startup: Automatic
 Account: LocalSystem
@@ -254,6 +254,8 @@ Start-Process "C:\Program Files\SecurityGuard\UI\SecurityGuard.UI.exe"
 Служба SecurityGuard должна быть установлена и запущена.
 
 Начиная с версии `0.1.29` WPF UI автоматически запускается после входа пользователя с параметром `--background`. Главное окно при этом не открывается: UI работает через системный трей. Нажатие `X` скрывает окно, а пункт `Выход` завершает только UI. Windows Service продолжает работать независимо от UI. Повторный запуск SecurityGuard открывает уже работающий экземпляр интерфейса и не создаёт второй процесс.
+
+При обновлении или удалении SecurityGuard установщик автоматически закрывает работающий фоновый WPF UI перед заменой или удалением файлов. Windows Service управляется MSI отдельно от пользовательского интерфейса.
 
 ## TransferGuard
 
@@ -305,15 +307,15 @@ SecurityGuard поддерживает обновление MSI поверх у�
 Например:
 
 ```text
-0.1.28 → 0.1.29
+0.1.29 → 0.1.30
 ```
 
-Для обновления предварительное удаление `0.1.28` не требуется.
+Для обновления предварительное удаление `0.1.29` не требуется.
 
 Запустите новый MSI:
 
 ```powershell
-$msi = (Resolve-Path ".\artifacts\installer\0.1.29\SecurityGuard-0.1.29-win-x64.msi").Path
+$msi = (Resolve-Path ".\artifacts\installer\0.1.30\SecurityGuard-0.1.30-win-x64.msi").Path
 
 $p = Start-Process msiexec.exe `
     -Verb RunAs `
@@ -327,7 +329,7 @@ $p.ExitCode
 После обновления:
 
 ```powershell
-.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.29
+.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.30
 ```
 
 ## Удаление
@@ -407,13 +409,13 @@ dotnet test .\SecurityGuard.slnx
 Затем:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 0.1.29
+.\scripts\build-installer.ps1 -Version 0.1.30
 ```
 
 После установки:
 
 ```powershell
-.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.29
+.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.30
 ```
 
 ## Текущий статус
@@ -431,12 +433,13 @@ dotnet test .\SecurityGuard.slnx
 * работа UI через системный трей;
 * скрытие окна при нажатии `X`;
 * защита от запуска нескольких экземпляров UI;
+* корректное закрытие фонового UI при обновлении и удалении MSI;
 * перезапуск службы;
 * восстановление службы после сбоя;
 * удаление MSI;
 * сохранение `ProgramData`;
 * повторная установка;
-* обновление `0.1.28 → 0.1.29`;
+* обновление `0.1.29 → 0.1.30`;
 * обнаружение исходящих сетевых соединений TransferGuard;
 * постоянное разрешение всего приложения по `ProcessPath`;
 * постоянная блокировка всего приложения по `ProcessPath`;
