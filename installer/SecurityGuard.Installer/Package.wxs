@@ -13,6 +13,15 @@
     <MediaTemplate EmbedCab="yes" />
 
     <util:QueryWindowsWellKnownSIDs />
+		
+	<util:CloseApplication Id="CloseSecurityGuardUi"
+                       Target="SecurityGuard.UI.exe"
+                       CloseMessage="yes"
+                       ElevatedCloseMessage="yes"
+                       Timeout="3"
+                       TerminateProcess="0"
+                       RebootPrompt="no"
+                       Condition="Installed OR WIX_UPGRADE_DETECTED" />
 
     <StandardDirectory Id="ProgramFiles64Folder">
 
