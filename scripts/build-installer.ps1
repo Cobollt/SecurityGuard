@@ -18,7 +18,7 @@ if ($env:OS -ne "Windows_NT") {
 $publishScript =
     Join-Path $PSScriptRoot "publish-win-x64.ps1"
 
-& $publishScript
+& $publishScript -Version $Version
 
 $installerProject =
     Join-Path `

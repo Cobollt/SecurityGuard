@@ -1,3 +1,9 @@
+param(
+    [Parameter(Mandatory = $true)]
+    [ValidatePattern('^\d+\.\d+\.\d+$')]
+    [string]$Version
+)
+
 $ErrorActionPreference = "Stop"
 
 $root =
@@ -16,6 +22,9 @@ $serviceOutput =
 
 $uiOutput =
     Join-Path $publishRoot "ui\win-x64"
+
+$binaryVersion =
+    "$Version.0"
 
 if (Test-Path $serviceOutput) {
     Remove-Item `
@@ -52,6 +61,11 @@ dotnet publish `
     -p:PublishTrimmed=false `
     -p:DebugSymbols=false `
     -p:DebugType=None `
+    -p:Version=$Version `
+    -p:AssemblyVersion=$binaryVersion `
+    -p:FileVersion=$binaryVersion `
+    -p:InformationalVersion=$Version `
+    -p:IncludeSourceRevisionInInformationalVersion=false `
     -o $serviceOutput
 
 if ($LASTEXITCODE -ne 0) {
@@ -67,6 +81,11 @@ dotnet publish `
     -p:PublishTrimmed=false `
     -p:DebugSymbols=false `
     -p:DebugType=None `
+    -p:Version=$Version `
+    -p:AssemblyVersion=$binaryVersion `
+    -p:FileVersion=$binaryVersion `
+    -p:InformationalVersion=$Version `
+    -p:IncludeSourceRevisionInInformationalVersion=false `
     -o $uiOutput
 
 if ($LASTEXITCODE -ne 0) {
@@ -89,6 +108,9 @@ if (-not (Test-Path $uiExecutable)) {
 
 Write-Host ""
 Write-Host "SecurityGuard publish completed."
+Write-Host ""
+Write-Host "Version:"
+Write-Host $Version
 Write-Host ""
 Write-Host "Service:"
 Write-Host $serviceOutput
