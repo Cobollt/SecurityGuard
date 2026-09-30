@@ -858,7 +858,7 @@ public sealed class MainViewModel
         object? parameter)
     {
         var dialog =
-            new OpenFileDialog
+            new Microsoft.Win32.OpenFileDialog
             {
                 Title =
                     "Выберите файл для проверки",
@@ -1511,7 +1511,7 @@ public sealed class MainViewModel
     private void SelectSecurityListPackage()
     {
         var dialog =
-            new OpenFileDialog
+            new Microsoft.Win32.OpenFileDialog
             {
                 Title =
                     "Выберите пакет списков SecurityGuard",

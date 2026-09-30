@@ -77,6 +77,13 @@
 
             </File>
 
+			<RegistryValue Id="SecurityGuardUiAutoStart"
+               Root="HKLM"
+               Key="Software\Microsoft\Windows\CurrentVersion\Run"
+               Name="SecurityGuard"
+               Value="&quot;[UIFOLDER]SecurityGuard.UI.exe&quot; --background"
+               Type="string" />
+
             <RemoveFolder Id="RemoveSecurityGuardProgramsFolder"
                           Directory="SecurityGuardProgramsFolder"
                           On="uninstall" />
