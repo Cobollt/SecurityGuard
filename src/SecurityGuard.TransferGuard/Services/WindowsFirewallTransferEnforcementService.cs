@@ -195,10 +195,10 @@ public sealed class WindowsFirewallTransferEnforcementService
                     -ErrorAction SilentlyContinue
 
             if ($null -ne $existing) {
-                $existing |
-                    Remove-NetFirewallRule `
-                        -PolicyStore PersistentStore `
-                        -ErrorAction Stop
+                Remove-NetFirewallRule `
+                    -PolicyStore PersistentStore `
+                    -Name $name `
+                    -ErrorAction Stop
             }
 
             $parameters =
@@ -259,24 +259,29 @@ public sealed class WindowsFirewallTransferEnforcementService
     {
         return
             """
-            $ErrorActionPreference = 'Stop'
+        $ErrorActionPreference = 'Stop'
 
-            Import-Module NetSecurity -ErrorAction Stop
+        Import-Module NetSecurity -ErrorAction Stop
 
-            $id =
-                $env:SG_FW_RULE_ID
+        $id =
+            $env:SG_FW_RULE_ID
 
-            $name =
-                "SecurityGuard.TransferGuard.$id"
+        $name =
+            "SecurityGuard.TransferGuard.$id"
 
+        $existing =
             Get-NetFirewallRule `
                 -PolicyStore PersistentStore `
                 -Name $name `
-                -ErrorAction SilentlyContinue |
-                Remove-NetFirewallRule `
-                    -PolicyStore PersistentStore `
-                    -ErrorAction Stop
-            """;
+                -ErrorAction SilentlyContinue
+
+        if ($null -ne $existing) {
+            Remove-NetFirewallRule `
+                -PolicyStore PersistentStore `
+                -Name $name `
+                -ErrorAction Stop
+        }
+        """;
     }
 
     private static string BuildInspectScript()
