@@ -8,5 +8,6 @@ public enum SecurityAction
     Block = 3,
     Quarantine = 4,
     Delete = 5,
-    AllowApplication = 6
+    AllowApplication = 6,
+    BlockApplication = 7
 }

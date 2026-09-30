@@ -174,12 +174,20 @@ public sealed class TransferDecisionHandlerTests
     {
         public bool WasCalled { get; private set; }
 
+        public TransferEnforcementRule? LastAddedRule { get; private set; }
+
+        public List<Guid> RemovedRuleIds { get; } =
+            [];
+
         public Task<TransferEnforcementResult> AddBlockAsync(
             TransferEnforcementRule rule,
             CancellationToken cancellationToken = default)
         {
             WasCalled =
                 true;
+
+            LastAddedRule =
+                rule;
 
             return Task.FromResult(
                 new TransferEnforcementResult(
@@ -191,6 +199,9 @@ public sealed class TransferDecisionHandlerTests
             Guid securityRuleId,
             CancellationToken cancellationToken = default)
         {
+            RemovedRuleIds.Add(
+                securityRuleId);
+
             return Task.CompletedTask;
         }
 
@@ -651,6 +662,398 @@ public sealed class TransferDecisionHandlerTests
 
         Assert.False(
             fileResult.Matched);
+    }
+
+    [Fact]
+    public async Task Block_application_creates_program_block_rules()
+    {
+        var repository =
+            new FakeRuleRepository();
+
+        var enforcement =
+            new FakeEnforcementService();
+
+        var runtime =
+            new FakeRuntimeController
+            {
+                CurrentSettings =
+                    new TransferGuardSettings(
+                        true,
+                        TransferGuardMode.Enforce,
+                        TransferEnforcementFailurePolicy.FailClosed)
+            };
+
+        var handler =
+            new TransferDecisionHandler(
+                repository,
+                enforcement,
+                new TransferEnforcementRuleFactory(
+                    new FakePathNormalizer()),
+                runtime,
+                new FakeFileEnforcementCoordinator(),
+                new FakeTemporaryEnforcementService());
+
+        var request =
+            CreateRequest();
+
+        await handler.HandleAsync(
+            request,
+            new SecurityDecision(
+                request.Id,
+                SecurityAction.BlockApplication,
+                true,
+                DateTimeOffset.UtcNow));
+
+        Assert.Equal(
+            2,
+            repository.Rules.Count);
+
+        Assert.All(
+            repository.Rules,
+            rule =>
+            {
+                Assert.Equal(
+                    SecurityModuleKind.TransferGuard,
+                    rule.Module);
+
+                Assert.Equal(
+                    RuleDecision.Block,
+                    rule.Decision);
+
+                Assert.Equal(
+                    RuleScope.ProcessPath,
+                    rule.Scope);
+
+                Assert.Equal(
+                    @"C:\Apps\client.exe",
+                    rule.Value);
+
+                Assert.True(
+                    rule.Enabled);
+
+                Assert.Null(
+                    rule.ExpiresAtUtc);
+            });
+
+        var networkRule =
+            Assert.Single(
+                repository.Rules,
+                rule =>
+                    rule.Conditions!.Any(
+                        condition =>
+                            condition.Scope ==
+                                RuleScope.TransferActivityKind &&
+                            condition.Value ==
+                                "NetworkConnection"));
+
+        Assert.Equal(
+            200,
+            networkRule.Priority);
+
+        var fileRule =
+            Assert.Single(
+                repository.Rules,
+                rule =>
+                    rule.Conditions!.Any(
+                        condition =>
+                            condition.Scope ==
+                                RuleScope.TransferActivityKind &&
+                            condition.Value ==
+                                "FileTransfer"));
+
+        Assert.Equal(
+            250,
+            fileRule.Priority);
+
+        Assert.True(
+            enforcement.WasCalled);
+
+        Assert.NotNull(
+            enforcement.LastAddedRule);
+
+        Assert.True(
+            enforcement.LastAddedRule.ApplicationWide);
+
+        Assert.Equal(
+            @"C:\Apps\client.exe",
+            enforcement.LastAddedRule.ProgramPath);
+
+        Assert.Null(
+            enforcement.LastAddedRule.RemoteAddress);
+
+        Assert.Null(
+            enforcement.LastAddedRule.RemotePort);
+
+        Assert.Null(
+            enforcement.LastAddedRule.Protocol);
+    }
+
+    [Fact]
+    public async Task Block_application_matches_new_connection_from_same_program()
+    {
+        var repository =
+            new FakeRuleRepository();
+
+        var handler =
+            new TransferDecisionHandler(
+                repository,
+                new FakeEnforcementService(),
+                new TransferEnforcementRuleFactory(
+                    new FakePathNormalizer()),
+                new FakeRuntimeController(),
+                new FakeFileEnforcementCoordinator(),
+                new FakeTemporaryEnforcementService());
+
+        var request =
+            CreateRequest();
+
+        await handler.HandleAsync(
+            request,
+            new SecurityDecision(
+                request.Id,
+                SecurityAction.BlockApplication,
+                true,
+                DateTimeOffset.UtcNow));
+
+        var engine =
+            new RuleEngine(
+                repository);
+
+        var result =
+            await engine.EvaluateAsync(
+                SecurityModuleKind.TransferGuard,
+                new RuleMatchContext(
+                    Process:
+                        "client.exe",
+                    ProcessPath:
+                        @"C:\Apps\client.exe",
+                    RemoteAddress:
+                        "203.0.113.77",
+                    RemotePort:
+                        54321,
+                    Protocol:
+                        "Udp",
+                    TransferActivityKind:
+                        "NetworkConnection"));
+
+        Assert.True(
+            result.Matched);
+
+        Assert.Equal(
+            RuleDecision.Block,
+            result.Decision);
+    }
+
+    [Fact]
+    public async Task Block_application_replaces_allow_application_rules()
+    {
+        var repository =
+            new FakeRuleRepository();
+
+        var enforcement =
+            new FakeEnforcementService();
+
+        var runtime =
+            new FakeRuntimeController
+            {
+                CurrentSettings =
+                    new TransferGuardSettings(
+                        true,
+                        TransferGuardMode.Enforce,
+                        TransferEnforcementFailurePolicy.FailClosed)
+            };
+
+        var handler =
+            new TransferDecisionHandler(
+                repository,
+                enforcement,
+                new TransferEnforcementRuleFactory(
+                    new FakePathNormalizer()),
+                runtime,
+                new FakeFileEnforcementCoordinator(),
+                new FakeTemporaryEnforcementService());
+
+        var request =
+            CreateRequest();
+
+        await handler.HandleAsync(
+            request,
+            new SecurityDecision(
+                request.Id,
+                SecurityAction.AllowApplication,
+                true,
+                DateTimeOffset.UtcNow));
+
+        Assert.Equal(
+            2,
+            repository.Rules.Count);
+
+        Assert.All(
+            repository.Rules,
+            rule =>
+                Assert.Equal(
+                    RuleDecision.Allow,
+                    rule.Decision));
+
+        await handler.HandleAsync(
+            request,
+            new SecurityDecision(
+                request.Id,
+                SecurityAction.BlockApplication,
+                true,
+                DateTimeOffset.UtcNow));
+
+        Assert.Equal(
+            2,
+            repository.Rules.Count);
+
+        Assert.All(
+            repository.Rules,
+            rule =>
+                Assert.Equal(
+                    RuleDecision.Block,
+                    rule.Decision));
+
+        Assert.True(
+            enforcement.WasCalled);
+    }
+
+    [Fact]
+    public async Task Allow_application_replaces_block_application_rules()
+    {
+        var repository =
+            new FakeRuleRepository();
+
+        var enforcement =
+            new FakeEnforcementService();
+
+        var runtime =
+            new FakeRuntimeController
+            {
+                CurrentSettings =
+                    new TransferGuardSettings(
+                        true,
+                        TransferGuardMode.Enforce,
+                        TransferEnforcementFailurePolicy.FailClosed)
+            };
+
+        var handler =
+            new TransferDecisionHandler(
+                repository,
+                enforcement,
+                new TransferEnforcementRuleFactory(
+                    new FakePathNormalizer()),
+                runtime,
+                new FakeFileEnforcementCoordinator(),
+                new FakeTemporaryEnforcementService());
+
+        var request =
+            CreateRequest();
+
+        await handler.HandleAsync(
+            request,
+            new SecurityDecision(
+                request.Id,
+                SecurityAction.BlockApplication,
+                true,
+                DateTimeOffset.UtcNow));
+
+        Assert.Equal(
+            2,
+            repository.Rules.Count);
+
+        Assert.All(
+            repository.Rules,
+            rule =>
+                Assert.Equal(
+                    RuleDecision.Block,
+                    rule.Decision));
+
+        var networkBlockRule =
+            Assert.Single(
+                repository.Rules,
+                rule =>
+                    rule.Conditions!.Any(
+                        condition =>
+                            condition.Scope ==
+                                RuleScope.TransferActivityKind &&
+                            condition.Value ==
+                                "NetworkConnection"));
+
+        await handler.HandleAsync(
+            request,
+            new SecurityDecision(
+                request.Id,
+                SecurityAction.AllowApplication,
+                true,
+                DateTimeOffset.UtcNow));
+
+        Assert.Equal(
+            2,
+            repository.Rules.Count);
+
+        Assert.All(
+            repository.Rules,
+            rule =>
+                Assert.Equal(
+                    RuleDecision.Allow,
+                    rule.Decision));
+
+        Assert.Contains(
+            networkBlockRule.Id,
+            enforcement.RemovedRuleIds);
+    }
+
+    [Fact]
+    public async Task Block_application_does_not_match_same_process_name_from_different_path()
+    {
+        var repository =
+            new FakeRuleRepository();
+
+        var handler =
+            new TransferDecisionHandler(
+                repository,
+                new FakeEnforcementService(),
+                new TransferEnforcementRuleFactory(
+                    new FakePathNormalizer()),
+                new FakeRuntimeController(),
+                new FakeFileEnforcementCoordinator(),
+                new FakeTemporaryEnforcementService());
+
+        var request =
+            CreateRequest();
+
+        await handler.HandleAsync(
+            request,
+            new SecurityDecision(
+                request.Id,
+                SecurityAction.BlockApplication,
+                true,
+                DateTimeOffset.UtcNow));
+
+        var engine =
+            new RuleEngine(
+                repository);
+
+        var result =
+            await engine.EvaluateAsync(
+                SecurityModuleKind.TransferGuard,
+                new RuleMatchContext(
+                    Process:
+                        "client.exe",
+                    ProcessPath:
+                        @"D:\Portable\client.exe",
+                    RemoteAddress:
+                        "203.0.113.77",
+                    RemotePort:
+                        443,
+                    Protocol:
+                        "Tcp",
+                    TransferActivityKind:
+                        "NetworkConnection"));
+
+        Assert.False(
+            result.Matched);
     }
 
     private sealed class FakeFileEnforcementCoordinator

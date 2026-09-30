@@ -42,6 +42,9 @@ public sealed class DecisionActionViewModel
             SecurityAction.Block =>
                 "Заблокировать",
 
+            SecurityAction.BlockApplication =>
+                "Заблокировать всю программу",
+
             SecurityAction.Quarantine =>
                 "Карантин",
 

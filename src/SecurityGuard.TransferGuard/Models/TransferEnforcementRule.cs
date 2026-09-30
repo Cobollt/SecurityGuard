@@ -5,6 +5,7 @@ namespace SecurityGuard.TransferGuard.Models;
 public sealed record TransferEnforcementRule(
     Guid SecurityRuleId,
     string ProgramPath,
-    string RemoteAddress,
-    int RemotePort,
-    TransferProtocol Protocol);
+    string? RemoteAddress,
+    int? RemotePort,
+    TransferProtocol? Protocol,
+    bool ApplicationWide = false);

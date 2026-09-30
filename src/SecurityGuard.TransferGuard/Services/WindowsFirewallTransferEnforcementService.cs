@@ -36,12 +36,29 @@ public sealed class WindowsFirewallTransferEnforcementService
                 false,
                 $"Program path is not fully qualified: {rule.ProgramPath}");
         }
-
-        if (rule.RemotePort is < 1 or > 65535)
+        if (!rule.ApplicationWide)
         {
-            return new TransferEnforcementResult(
-                false,
-                $"Invalid remote port: {rule.RemotePort}");
+            if (string.IsNullOrWhiteSpace(
+                    rule.RemoteAddress))
+            {
+                return new TransferEnforcementResult(
+                    false,
+                    "Remote address is missing.");
+            }
+
+            if (rule.RemotePort is null or < 1 or > 65535)
+            {
+                return new TransferEnforcementResult(
+                    false,
+                    $"Invalid remote port: {rule.RemotePort}");
+            }
+
+            if (rule.Protocol is null)
+            {
+                return new TransferEnforcementResult(
+                    false,
+                    "Protocol is missing.");
+            }
         }
 
         var environment =
@@ -53,14 +70,22 @@ public sealed class WindowsFirewallTransferEnforcementService
                 ["SG_FW_PROGRAM"] =
                     rule.ProgramPath,
 
+                ["SG_FW_APPLICATION_WIDE"] =
+                    rule.ApplicationWide
+                        ? "1"
+                        : "0",
+
                 ["SG_FW_REMOTE_ADDRESS"] =
-                    rule.RemoteAddress,
+                    rule.RemoteAddress ??
+                    string.Empty,
 
                 ["SG_FW_REMOTE_PORT"] =
-                    rule.RemotePort.ToString(),
+                    rule.RemotePort?.ToString() ??
+                    string.Empty,
 
                 ["SG_FW_PROTOCOL"] =
-                    rule.Protocol.ToString()
+                    rule.Protocol?.ToString() ??
+                    string.Empty
             };
 
         await _runner.RunEncodedAsync(
@@ -160,14 +185,8 @@ public sealed class WindowsFirewallTransferEnforcementService
             $program =
                 $env:SG_FW_PROGRAM
 
-            $address =
-                $env:SG_FW_REMOTE_ADDRESS
-
-            $port =
-                $env:SG_FW_REMOTE_PORT
-
-            $protocol =
-                $env:SG_FW_PROTOCOL
+            $applicationWide =
+                $env:SG_FW_APPLICATION_WIDE -eq '1'
 
             $existing =
                 Get-NetFirewallRule `
@@ -182,25 +201,58 @@ public sealed class WindowsFirewallTransferEnforcementService
                         -ErrorAction Stop
             }
 
-            New-NetFirewallRule `
-                -PolicyStore PersistentStore `
-                -Name $name `
-                -DisplayName $name `
-                -Group "SecurityGuard.TransferGuard" `
-                -Description "SecurityGuardManaged:$id" `
-                -Direction Outbound `
-                -Action Block `
-                -Enabled True `
-                -Profile Any `
-                -Program $program `
-                -RemoteAddress $address `
-                -RemotePort $port `
-                -Protocol $protocol `
-                -ErrorAction Stop |
+            $parameters =
+                @{
+                    PolicyStore =
+                        'PersistentStore'
+
+                    Name =
+                        $name
+
+                    DisplayName =
+                        $name
+
+                    Group =
+                        'SecurityGuard.TransferGuard'
+
+                    Description =
+                        "SecurityGuardManaged:$id"
+
+                    Direction =
+                        'Outbound'
+
+                    Action =
+                        'Block'
+
+                    Enabled =
+                        'True'
+
+                    Profile =
+                        'Any'
+
+                    Program =
+                        $program
+
+                    ErrorAction =
+                        'Stop'
+                }
+
+            if (-not $applicationWide) {
+                $parameters['RemoteAddress'] =
+                    $env:SG_FW_REMOTE_ADDRESS
+
+                $parameters['RemotePort'] =
+                    $env:SG_FW_REMOTE_PORT
+
+                $parameters['Protocol'] =
+                    $env:SG_FW_PROTOCOL
+            }
+
+            New-NetFirewallRule @parameters |
                 Out-Null
 
             Write-Output $name
-            """;
+        """;
     }
 
     private static string BuildRemoveScript()

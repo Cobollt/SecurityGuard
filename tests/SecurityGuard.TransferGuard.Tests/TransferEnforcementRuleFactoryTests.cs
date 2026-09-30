@@ -137,4 +137,63 @@ public sealed class TransferEnforcementRuleFactoryTests
         Assert.NotNull(
             error);
     }
+
+    [Fact]
+    public void Application_wide_network_block_is_projected()
+    {
+        var rule =
+            new SecurityRule(
+                Guid.NewGuid(),
+                "Block application: client.exe (NetworkConnection)",
+                SecurityModuleKind.TransferGuard,
+                RuleDecision.Block,
+                RuleScope.ProcessPath,
+                @"C:\Apps\client.exe",
+                true,
+                200,
+                DateTimeOffset.UtcNow,
+                null,
+                [
+                    new SecurityRuleCondition(
+                    RuleScope.TransferActivityKind,
+                    "NetworkConnection")
+                ]);
+
+        var factory =
+            new TransferEnforcementRuleFactory(
+                new FakePathNormalizer());
+
+        var created =
+            factory.TryCreate(
+                rule,
+                out var enforcement,
+                out var error);
+
+        Assert.True(
+            created,
+            error);
+
+        Assert.NotNull(
+            enforcement);
+
+        Assert.Equal(
+            rule.Id,
+            enforcement.SecurityRuleId);
+
+        Assert.Equal(
+            @"C:\Apps\client.exe",
+            enforcement.ProgramPath);
+
+        Assert.True(
+            enforcement.ApplicationWide);
+
+        Assert.Null(
+            enforcement.RemoteAddress);
+
+        Assert.Null(
+            enforcement.RemotePort);
+
+        Assert.Null(
+            enforcement.Protocol);
+    }
 }

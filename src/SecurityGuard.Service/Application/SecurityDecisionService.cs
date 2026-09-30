@@ -71,7 +71,9 @@ public sealed class SecurityDecisionService
             cancellationToken);
 
         if (decision.Action ==
-            SecurityAction.AllowApplication)
+                SecurityAction.AllowApplication ||
+            decision.Action ==
+                SecurityAction.BlockApplication)
         {
             await RemoveApplicationPendingRequestsAsync(
                 request,

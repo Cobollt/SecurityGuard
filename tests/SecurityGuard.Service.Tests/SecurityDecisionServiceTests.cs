@@ -302,6 +302,170 @@ public sealed class SecurityDecisionServiceTests
             remaining.RuleContext?.ProcessPath);
     }
 
+    [Fact]
+    public async Task Block_application_removes_all_pending_requests_for_same_program()
+    {
+        await using var environment =
+            await TestEnvironment.CreateAsync();
+
+        var initializer =
+            new DatabaseInitializer(
+                environment.ConnectionFactory);
+
+        await initializer.InitializeAsync();
+
+        var requestRepository =
+            new SqliteDecisionRequestRepository(
+                environment.ConnectionFactory);
+
+        var eventRepository =
+            new SqliteSecurityEventRepository(
+                environment.ConnectionFactory);
+
+        var firefox1 =
+            CreateTransferRequest(
+                @"C:\Program Files\Mozilla Firefox\firefox.exe",
+                "firefox.exe",
+                "NET:FIREFOX:BLOCK:1");
+
+        var firefox2 =
+            CreateTransferRequest(
+                @"C:\Program Files\Mozilla Firefox\firefox.exe",
+                "firefox.exe",
+                "NET:FIREFOX:BLOCK:2");
+
+        var firefox3 =
+            CreateTransferRequest(
+                @"C:\Program Files\Mozilla Firefox\firefox.exe",
+                "firefox.exe",
+                "NET:FIREFOX:BLOCK:3");
+
+        var chrome =
+            CreateTransferRequest(
+                @"C:\Program Files\Google\Chrome\Application\chrome.exe",
+                "chrome.exe",
+                "NET:CHROME:BLOCK:1");
+
+        await requestRepository.AddAsync(
+            firefox1);
+
+        await requestRepository.AddAsync(
+            firefox2);
+
+        await requestRepository.AddAsync(
+            firefox3);
+
+        await requestRepository.AddAsync(
+            chrome);
+
+        var handler =
+            new FakeSecurityDecisionHandler(
+                SecurityModuleKind.TransferGuard);
+
+        var service =
+            new SecurityDecisionService(
+                requestRepository,
+                [handler],
+                new AuditService(
+                    eventRepository));
+
+        await service.ApplyAsync(
+            new SecurityDecision(
+                firefox1.Id,
+                SecurityAction.BlockApplication,
+                true,
+                DateTimeOffset.UtcNow));
+
+        var pending =
+            await requestRepository.GetPendingAsync();
+
+        var remaining =
+            Assert.Single(
+                pending);
+
+        Assert.Equal(
+            chrome.Id,
+            remaining.Id);
+
+        Assert.True(
+            handler.WasCalled);
+
+        Assert.Equal(
+            SecurityAction.BlockApplication,
+            handler.Decision?.Action);
+    }
+
+    [Fact]
+    public async Task Block_application_does_not_remove_same_process_name_from_other_path()
+    {
+        await using var environment =
+            await TestEnvironment.CreateAsync();
+
+        var initializer =
+            new DatabaseInitializer(
+                environment.ConnectionFactory);
+
+        await initializer.InitializeAsync();
+
+        var requestRepository =
+            new SqliteDecisionRequestRepository(
+                environment.ConnectionFactory);
+
+        var eventRepository =
+            new SqliteSecurityEventRepository(
+                environment.ConnectionFactory);
+
+        var installedFirefox =
+            CreateTransferRequest(
+                @"C:\Program Files\Mozilla Firefox\firefox.exe",
+                "firefox.exe",
+                "NET:FIREFOX:BLOCK:INSTALLED");
+
+        var portableFirefox =
+            CreateTransferRequest(
+                @"D:\Portable\Firefox\firefox.exe",
+                "firefox.exe",
+                "NET:FIREFOX:BLOCK:PORTABLE");
+
+        await requestRepository.AddAsync(
+            installedFirefox);
+
+        await requestRepository.AddAsync(
+            portableFirefox);
+
+        var service =
+            new SecurityDecisionService(
+                requestRepository,
+                [
+                    new FakeSecurityDecisionHandler(
+                    SecurityModuleKind.TransferGuard)
+                ],
+                new AuditService(
+                    eventRepository));
+
+        await service.ApplyAsync(
+            new SecurityDecision(
+                installedFirefox.Id,
+                SecurityAction.BlockApplication,
+                true,
+                DateTimeOffset.UtcNow));
+
+        var pending =
+            await requestRepository.GetPendingAsync();
+
+        var remaining =
+            Assert.Single(
+                pending);
+
+        Assert.Equal(
+            portableFirefox.Id,
+            remaining.Id);
+
+        Assert.Equal(
+            @"D:\Portable\Firefox\firefox.exe",
+            remaining.RuleContext?.ProcessPath);
+    }
+
     private static SecurityDecisionRequest CreateTransferRequest(
     string processPath,
     string processName,
@@ -316,9 +480,10 @@ public sealed class SecurityDecisionServiceTests
             null,
             processName,
             [
-                SecurityAction.Allow,
+            SecurityAction.Allow,
             SecurityAction.AllowApplication,
-            SecurityAction.Block
+            SecurityAction.Block,
+            SecurityAction.BlockApplication
             ],
             DateTimeOffset.UtcNow,
             new RuleMatchContext(

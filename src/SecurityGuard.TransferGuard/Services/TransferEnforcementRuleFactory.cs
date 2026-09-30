@@ -43,7 +43,7 @@ public sealed class TransferEnforcementRuleFactory
             return false;
         }
 
-        if (IsFileTransferRule(
+        if (TransferRuleClassifier.IsFileTransferRule(
                 rule))
         {
             error =
@@ -70,6 +70,21 @@ public sealed class TransferEnforcementRuleFactory
                 "ProcessPath is missing or cannot be normalized.";
 
             return false;
+        }
+
+        if (IsApplicationWideNetworkRule(
+                rule))
+        {
+            result =
+                new TransferEnforcementRule(
+                    rule.Id,
+                    processPath,
+                    null,
+                    null,
+                    null,
+                    true);
+
+            return true;
         }
 
         var remoteAddress =
@@ -132,6 +147,20 @@ public sealed class TransferEnforcementRuleFactory
         return true;
     }
 
+    private static bool IsApplicationWideNetworkRule(
+    SecurityRule rule)
+    {
+        return rule.Scope ==
+                   RuleScope.ProcessPath &&
+               rule.Conditions is { Count: 1 } &&
+               rule.Conditions[0].Scope ==
+                   RuleScope.TransferActivityKind &&
+               string.Equals(
+                   rule.Conditions[0].Value,
+                   TransferActivityKind.NetworkConnection.ToString(),
+                   StringComparison.OrdinalIgnoreCase);
+    }
+
     private static string? GetValue(
         SecurityRule rule,
         RuleScope scope)
@@ -148,42 +177,5 @@ public sealed class TransferEnforcementRuleFactory
                     condition.Scope ==
                     scope)
             ?.Value;
-    }
-
-    private static bool IsFileTransferRule(
-        SecurityRule rule)
-    {
-        return HasScope(
-                rule,
-                RuleScope.FileHash) ||
-            HasScope(
-                rule,
-                RuleScope.FilePath) ||
-            HasScope(
-                rule,
-                RuleScope.FileName) ||
-            HasScope(
-                rule,
-                RuleScope.FileExtension) ||
-            HasScope(
-                rule,
-                RuleScope.FileCategory);
-    }
-
-    private static bool HasScope(
-        SecurityRule rule,
-        RuleScope scope)
-    {
-        if (rule.Scope ==
-            scope)
-        {
-            return true;
-        }
-
-        return rule.Conditions?.Any(
-                condition =>
-                    condition.Scope ==
-                    scope) ==
-            true;
     }
 }

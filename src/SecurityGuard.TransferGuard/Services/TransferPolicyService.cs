@@ -124,7 +124,8 @@ public sealed class TransferPolicyService
                 [
                     SecurityAction.Allow,
                     SecurityAction.AllowApplication,
-                    SecurityAction.Block
+                    SecurityAction.Block,
+                    SecurityAction.BlockApplication
                 ],
                 now,
                 context,

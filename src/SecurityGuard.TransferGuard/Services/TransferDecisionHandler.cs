@@ -52,10 +52,16 @@ public sealed class TransferDecisionHandler
         CancellationToken cancellationToken = default)
     {
         if (decision.Action ==
-            SecurityAction.AllowApplication)
+                SecurityAction.AllowApplication ||
+            decision.Action ==
+                SecurityAction.BlockApplication)
         {
             await HandleApplicationDecisionAsync(
                 request,
+                decision.Action ==
+                    SecurityAction.BlockApplication
+                    ? RuleDecision.Block
+                    : RuleDecision.Allow,
                 cancellationToken);
 
             return;
@@ -146,6 +152,7 @@ public sealed class TransferDecisionHandler
 
     private async Task HandleApplicationDecisionAsync(
         SecurityDecisionRequest request,
+        RuleDecision decision,
         CancellationToken cancellationToken)
     {
         var context =
@@ -176,54 +183,104 @@ public sealed class TransferDecisionHandler
             var activityValue =
                 activity.ToString();
 
-            var existingRule =
-                existingRules.FirstOrDefault(
-                    rule =>
-                        rule.Module ==
-                        SecurityModuleKind.TransferGuard &&
-                        rule.Decision ==
-                        RuleDecision.Allow &&
-                        rule.Scope ==
-                        RuleScope.ProcessPath &&
-                        string.Equals(
-                            rule.Value,
-                            context.ProcessPath,
-                            StringComparison.OrdinalIgnoreCase) &&
-                        rule.Conditions is { Count: 1 } &&
-                        rule.Conditions[0].Scope ==
-                        RuleScope.TransferActivityKind &&
-                        string.Equals(
-                            rule.Conditions[0].Value,
-                            activityValue,
-                            StringComparison.OrdinalIgnoreCase));
+            var matchingRules =
+                existingRules
+                    .Where(
+                        rule =>
+                            IsApplicationRule(
+                                rule,
+                                context.ProcessPath,
+                                activityValue))
+                    .ToArray();
 
-            if (existingRule is not null)
+            var conflictingRules =
+                matchingRules
+                    .Where(
+                        rule =>
+                            rule.Decision !=
+                            decision)
+                    .ToArray();
+
+            foreach (var conflictingRule in conflictingRules)
             {
-                if (!existingRule.Enabled ||
-                    existingRule.ExpiresAtUtc is not null)
+                if (conflictingRule.Decision ==
+                        RuleDecision.Block &&
+                    activity ==
+                        Enums.TransferActivityKind.NetworkConnection)
                 {
-                    await _ruleRepository.UpsertAsync(
-                        existingRule with
-                        {
-                            Enabled = true,
-                            ExpiresAtUtc = null
-                        },
+                    await _enforcementService.RemoveBlockAsync(
+                        conflictingRule.Id,
                         cancellationToken);
                 }
 
-                continue;
+                await _ruleRepository.DeleteAsync(
+                    conflictingRule.Id,
+                    cancellationToken);
             }
 
-            var rule =
-                BuildApplicationRule(
-                    request,
-                    context.ProcessPath,
-                    activity);
+            var existingRule =
+                matchingRules.FirstOrDefault(
+                    rule =>
+                        rule.Decision ==
+                        decision);
+
+            SecurityRule rule;
+
+            if (existingRule is not null)
+            {
+                rule =
+                    existingRule with
+                    {
+                        Enabled = true,
+                        ExpiresAtUtc = null
+                    };
+            }
+            else
+            {
+                rule =
+                    BuildApplicationRule(
+                        request,
+                        context.ProcessPath,
+                        activity,
+                        decision);
+            }
+
+            if (decision ==
+                    RuleDecision.Block &&
+                activity ==
+                    Enums.TransferActivityKind.NetworkConnection)
+            {
+                await ApplyApplicationBlockAsync(
+                    rule,
+                    cancellationToken);
+            }
 
             await _ruleRepository.UpsertAsync(
                 rule,
                 cancellationToken);
         }
+    }
+
+    private static bool IsApplicationRule(
+        SecurityRule rule,
+        string processPath,
+        string activity)
+    {
+        return rule.Module ==
+                   SecurityModuleKind.TransferGuard &&
+               rule.Scope ==
+                   RuleScope.ProcessPath &&
+               string.Equals(
+                   rule.Value,
+                   processPath,
+                   StringComparison.OrdinalIgnoreCase) &&
+               rule.Conditions is { Count: 1 } &&
+               rule.Conditions[0].Scope ==
+                   RuleScope.TransferActivityKind &&
+               string.Equals(
+                   rule.Conditions[0].Value,
+                   activity,
+                   StringComparison.OrdinalIgnoreCase);
     }
 
     private static SecurityRule BuildNetworkRule(
@@ -287,7 +344,8 @@ public sealed class TransferDecisionHandler
     private static SecurityRule BuildApplicationRule(
         SecurityDecisionRequest request,
         string processPath,
-        Enums.TransferActivityKind activity)
+        Enums.TransferActivityKind activity,
+        RuleDecision decision)
     {
         var processName =
             !string.IsNullOrWhiteSpace(
@@ -296,17 +354,31 @@ public sealed class TransferDecisionHandler
                 : Path.GetFileNameWithoutExtension(
                     processPath);
 
-        var priority =
-            activity ==
-            Enums.TransferActivityKind.FileTransfer
-                ? TransferRulePriorities.FileTransferAllow
-                : TransferRulePriorities.NetworkAllow;
+        int priority;
+
+        if (activity ==
+            Enums.TransferActivityKind.FileTransfer)
+        {
+            priority =
+                decision ==
+                RuleDecision.Block
+                    ? TransferRulePriorities.FileTransferBlock
+                    : TransferRulePriorities.FileTransferAllow;
+        }
+        else
+        {
+            priority =
+                decision ==
+                RuleDecision.Block
+                    ? TransferRulePriorities.NetworkBlock
+                    : TransferRulePriorities.NetworkAllow;
+        }
 
         return new SecurityRule(
             Guid.NewGuid(),
-            $"Allow application: {processName} ({activity})",
+            $"{decision} application: {processName} ({activity})",
             SecurityModuleKind.TransferGuard,
-            RuleDecision.Allow,
+            decision,
             RuleScope.ProcessPath,
             processPath,
             true,
@@ -318,6 +390,71 @@ public sealed class TransferDecisionHandler
                 RuleScope.TransferActivityKind,
                 activity.ToString())
             ]);
+    }
+
+    private async Task ApplyApplicationBlockAsync(
+        SecurityRule rule,
+        CancellationToken cancellationToken)
+    {
+        var settings =
+            _runtimeController.CurrentSettings;
+
+        if (!settings.Enabled ||
+            settings.Mode ==
+            Enums.TransferGuardMode.Monitor)
+        {
+            return;
+        }
+
+        if (!_enforcementRuleFactory.TryCreate(
+                rule,
+                out var enforcementRule,
+                out var error) ||
+            enforcementRule is null)
+        {
+            var message =
+                error ??
+                "Unable to build application-wide Windows Firewall rule.";
+
+            await _runtimeController.ReportEnforcementFailureAsync(
+                message,
+                cancellationToken);
+
+            if (settings.FailurePolicy ==
+                Enums.TransferEnforcementFailurePolicy.FailClosed)
+            {
+                throw new InvalidOperationException(
+                    message);
+            }
+
+            return;
+        }
+
+        try
+        {
+            var result =
+                await _enforcementService.AddBlockAsync(
+                    enforcementRule,
+                    cancellationToken);
+
+            if (!result.Applied)
+            {
+                throw new InvalidOperationException(
+                    result.Message);
+            }
+        }
+        catch (Exception exception)
+        {
+            await _runtimeController.ReportEnforcementFailureAsync(
+                exception.Message,
+                cancellationToken);
+
+            if (settings.FailurePolicy ==
+                Enums.TransferEnforcementFailurePolicy.FailClosed)
+            {
+                throw;
+            }
+        }
     }
 
     private static void AddCondition(
