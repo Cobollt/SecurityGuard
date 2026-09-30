@@ -16,7 +16,7 @@ SecurityGuard включает следующие основные модули:
 * Security Lists — импорт и экспорт списков SecurityGuard.
 * Security Events — журнал событий безопасности.
 * Windows Service — выполнение защитной логики независимо от пользовательского интерфейса.
-* WPF UI — единый интерфейс управления SecurityGuard.
+* WPF UI — интерфейс управления SecurityGuard с автоматическим запуском, фоновым режимом, системным треем и защитой от запуска нескольких экземпляров.
 
 ## Архитектура
 
@@ -81,14 +81,7 @@ dotnet build .\SecurityGuard.slnx
 dotnet test .\SecurityGuard.slnx
 ```
 
-Текущий проверенный набор:
-
-```text
-Всего тестов: 338
-Успешно: 338
-Сбой: 0
-Пропущено: 0
-```
+Текущий набор тестов проверяется командой выше. Все тестовые проекты должны завершаться без ошибок.
 
 ## Публикация Service и UI
 
@@ -113,16 +106,16 @@ artifacts\publish\ui\win-x64
 
 ## Сборка установщика
 
-Для сборки MSI версии `0.1.26`:
+Для сборки MSI версии `0.1.29`:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 0.1.26
+.\scripts\build-installer.ps1 -Version 0.1.29
 ```
 
 Готовый установщик:
 
 ```text
-artifacts\installer\0.1.26\SecurityGuard-0.1.26-win-x64.msi
+artifacts\installer\0.1.29\SecurityGuard-0.1.29-win-x64.msi
 ```
 
 Если после изменения версии WiX не создаёт MSI, очистите промежуточные файлы установщика:
@@ -143,7 +136,7 @@ Remove-Item `
 Запустите PowerShell от имени администратора.
 
 ```powershell
-$msi = (Resolve-Path ".\artifacts\installer\0.1.26\SecurityGuard-0.1.26-win-x64.msi").Path
+$msi = (Resolve-Path ".\artifacts\installer\0.1.29\SecurityGuard-0.1.29-win-x64.msi").Path
 
 $p = Start-Process msiexec.exe `
     -Verb RunAs `
@@ -236,13 +229,13 @@ sc.exe qfailure SecurityGuard
 После установки выполните:
 
 ```powershell
-.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.26
+.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.29
 ```
 
 Успешная проверка выглядит примерно так:
 
 ```text
-Version: 0.1.26
+Version: 0.1.29
 Service: Running
 Startup: Automatic
 Account: LocalSystem
@@ -260,11 +253,13 @@ Start-Process "C:\Program Files\SecurityGuard\UI\SecurityGuard.UI.exe"
 
 Служба SecurityGuard должна быть установлена и запущена.
 
+Начиная с версии `0.1.29` WPF UI автоматически запускается после входа пользователя с параметром `--background`. Главное окно при этом не открывается: UI работает через системный трей. Нажатие `X` скрывает окно, а пункт `Выход` завершает только UI. Windows Service продолжает работать независимо от UI. Повторный запуск SecurityGuard открывает уже работающий экземпляр интерфейса и не создаёт второй процесс.
+
 ## TransferGuard
 
 TransferGuard контролирует исходящие сетевые соединения и операции передачи файлов.
 
-Для неизвестного сетевого действия пользователь может разрешить или заблокировать операцию. Также поддерживается постоянное разрешение всего приложения.
+Для неизвестного сетевого действия доступны `Allow`, `AllowApplication`, `Block` и `BlockApplication`. Правила уровня приложения создаются по полному `ProcessPath`.
 
 При выборе разрешения всего приложения правило создаётся по полному пути исполняемого файла:
 
@@ -280,7 +275,9 @@ C:\Program Files\Mozilla Firefox\firefox.exe
 * применяется отдельно к `NetworkConnection` и `FileTransfer`;
 * не распространяется на программу с другим путём к исполняемому файлу.
 
-После разрешения всего приложения старые ожидающие запросы этого же приложения автоматически удаляются. Запросы других приложений сохраняются.
+После `AllowApplication` или `BlockApplication` старые ожидающие запросы этого же приложения по полному `ProcessPath` автоматически удаляются. Запросы других приложений сохраняются.
+
+`BlockApplication` создаёт постоянную блокировку приложения. Для `NetworkConnection` в режиме `Enforce` блокировка применяется через исходящее правило Windows Firewall по полному `ProcessPath`. Последующий `AllowApplication` удаляет противоположную firewall-блокировку.
 
 Для правил TransferGuard используются следующие уровни приоритета:
 
@@ -308,15 +305,15 @@ SecurityGuard поддерживает обновление MSI поверх у�
 Например:
 
 ```text
-0.1.25 → 0.1.26
+0.1.28 → 0.1.29
 ```
 
-Для обновления предварительное удаление `0.1.25` не требуется.
+Для обновления предварительное удаление `0.1.28` не требуется.
 
 Запустите новый MSI:
 
 ```powershell
-$msi = (Resolve-Path ".\artifacts\installer\0.1.26\SecurityGuard-0.1.26-win-x64.msi").Path
+$msi = (Resolve-Path ".\artifacts\installer\0.1.29\SecurityGuard-0.1.29-win-x64.msi").Path
 
 $p = Start-Process msiexec.exe `
     -Verb RunAs `
@@ -330,7 +327,7 @@ $p.ExitCode
 После обновления:
 
 ```powershell
-.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.26
+.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.29
 ```
 
 ## Удаление
@@ -410,13 +407,13 @@ dotnet test .\SecurityGuard.slnx
 Затем:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 0.1.26
+.\scripts\build-installer.ps1 -Version 0.1.29
 ```
 
 После установки:
 
 ```powershell
-.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.26
+.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.29
 ```
 
 ## Текущий статус
@@ -424,19 +421,27 @@ dotnet test .\SecurityGuard.slnx
 На Windows проверены:
 
 * полная сборка решения;
-* 338 автоматических тестов;
+* автоматические тесты решения без ошибок;
 * установка MSI;
 * автоматический запуск Windows Service;
 * работа службы от LocalSystem;
 * запуск WPF UI;
+* автоматический запуск WPF UI после входа пользователя;
+* фоновый запуск UI с `--background`;
+* работа UI через системный трей;
+* скрытие окна при нажатии `X`;
+* защита от запуска нескольких экземпляров UI;
 * перезапуск службы;
 * восстановление службы после сбоя;
 * удаление MSI;
 * сохранение `ProgramData`;
 * повторная установка;
-* обновление `0.1.25 → 0.1.26`;
+* обновление `0.1.28 → 0.1.29`;
 * обнаружение исходящих сетевых соединений TransferGuard;
 * постоянное разрешение всего приложения по `ProcessPath`;
+* постоянная блокировка всего приложения по `ProcessPath`;
+* применение `BlockApplication` через Windows Firewall в режиме `Enforce`;
+* снятие firewall-блокировки через `AllowApplication`;
 * работа разрешения после перезапуска приложения и смены PID;
 * автоматическая очистка старых Pending-запросов разрешённого приложения;
 * сохранение Pending-запросов других приложений;
