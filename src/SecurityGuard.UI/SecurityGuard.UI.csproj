@@ -12,6 +12,12 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<UseWPF>true</UseWPF>
 		<UseWindowsForms>true</UseWindowsForms>
+		
+		<AssemblyTitle>SecurityGuard</AssemblyTitle>
+		<Product>SecurityGuard</Product>
+		<Company>Cobollt</Company>
+		<Authors>Cobollt</Authors>
+		<Description>SecurityGuard desktop security management interface</Description>
 	</PropertyGroup>
 
 </Project>
