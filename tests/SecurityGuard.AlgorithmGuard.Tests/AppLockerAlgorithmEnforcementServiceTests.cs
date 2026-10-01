@@ -1,4 +1,6 @@
+using SecurityGuard.AlgorithmGuard.Contracts;
 using SecurityGuard.AlgorithmGuard.Enums;
+using SecurityGuard.AlgorithmGuard.Models;
 using SecurityGuard.AlgorithmGuard.Services;
 
 namespace SecurityGuard.AlgorithmGuard.Tests;
@@ -7,7 +9,8 @@ public sealed class AppLockerAlgorithmEnforcementServiceTests
 {
     private readonly AppLockerAlgorithmEnforcementService _service =
         new(
-            new PowerShellProcessRunner());
+            new PowerShellProcessRunner(),
+            new FakeAppLockerHealthService());
 
     [Theory]
     [InlineData(@"C:\Temp\test.bat")]
@@ -50,5 +53,35 @@ public sealed class AppLockerAlgorithmEnforcementServiceTests
         Assert.Equal(
             AlgorithmEnforcementLevel.Unsupported,
             result);
+    }
+
+    private sealed class FakeAppLockerHealthService
+        : IAppLockerHealthService
+    {
+        private static readonly AppLockerHealthSnapshot Ready =
+            new(
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                null);
+
+        public Task<AppLockerHealthSnapshot> GetHealthAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(
+                Ready);
+        }
+
+        public Task<AppLockerHealthSnapshot> EnsureReadyAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(
+                Ready);
+        }
     }
 }

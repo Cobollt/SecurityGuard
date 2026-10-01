@@ -200,6 +200,10 @@ public static class ServiceRegistration
         services.AddSingleton<PowerShellProcessRunner>();
 
         services.AddSingleton<
+            IAppLockerHealthService,
+            AppLockerHealthService>();
+
+        services.AddSingleton<
             IAuthenticodeSignatureService,
             PowerShellAuthenticodeSignatureService>();
 

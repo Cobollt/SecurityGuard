@@ -13,6 +13,7 @@ public sealed class AlgorithmGuardHostedService
 {
     private readonly IAlgorithmGuardMonitor _monitor;
     private readonly IAlgorithmEnforcementSynchronizer _synchronizer;
+    private readonly IAppLockerHealthService _appLockerHealthService;
     private readonly IAlgorithmGuardSettingsService _settingsService;
     private readonly IModuleRegistry _moduleRegistry;
     private readonly IAuditService _auditService;
@@ -34,6 +35,7 @@ public sealed class AlgorithmGuardHostedService
     public AlgorithmGuardHostedService(
         IAlgorithmGuardMonitor monitor,
         IAlgorithmEnforcementSynchronizer synchronizer,
+        IAppLockerHealthService appLockerHealthService,
         IAlgorithmGuardSettingsService settingsService,
         IModuleRegistry moduleRegistry,
         IAuditService auditService)
@@ -43,6 +45,9 @@ public sealed class AlgorithmGuardHostedService
 
         _synchronizer =
             synchronizer;
+
+        _appLockerHealthService =
+            appLockerHealthService;
 
         _settingsService =
             settingsService;
@@ -182,6 +187,57 @@ public sealed class AlgorithmGuardHostedService
                 await WriteModeChangedAsync(
                     settings,
                     cancellationToken);
+
+                return;
+            }
+
+            var health =
+                await _appLockerHealthService.EnsureReadyAsync(
+                    cancellationToken);
+
+            if (!health.EnforcementReady)
+            {
+                var message =
+                    BuildAppLockerHealthMessage(
+                        health);
+
+                if (settings.FailurePolicy ==
+                    EnforcementFailurePolicy.FailOpen)
+                {
+                    StartMonitor();
+
+                    _moduleRegistry.Set(
+                        SecurityModuleKind.AlgorithmGuard,
+                        ModuleOperationalState.Degraded,
+                        message);
+
+                    await _auditService.WriteAsync(
+                        SecurityModuleKind.AlgorithmGuard,
+                        SecurityEventType.System,
+                        SecuritySeverity.Info,
+                        "AlgorithmGuard enforcement unavailable",
+                        message,
+                        cancellationToken:
+                            cancellationToken);
+
+                    return;
+                }
+
+                await StopMonitorAsync();
+
+                _moduleRegistry.Set(
+                    SecurityModuleKind.AlgorithmGuard,
+                    ModuleOperationalState.Faulted,
+                    message);
+
+                await _auditService.WriteAsync(
+                    SecurityModuleKind.AlgorithmGuard,
+                    SecurityEventType.System,
+                    SecuritySeverity.Critical,
+                    "AlgorithmGuard enforcement unavailable",
+                    message,
+                    cancellationToken:
+                        cancellationToken);
 
                 return;
             }
@@ -376,6 +432,62 @@ public sealed class AlgorithmGuardHostedService
 
         _monitorTask =
             null;
+    }
+
+    private static string BuildAppLockerHealthMessage(
+    AppLockerHealthSnapshot health)
+    {
+        if (!health.IsWindows)
+        {
+            return
+                "AppLocker enforcement is unavailable because the operating system is not Windows.";
+        }
+
+        if (!health.EngineInstalled)
+        {
+            return
+                "AppLocker enforcement engine is not installed.";
+        }
+
+        if (!health.EngineRunning)
+        {
+            return
+                "AppLocker enforcement engine is not running.";
+        }
+
+        if (!health.ApplicationIdentityInstalled)
+        {
+            return
+                "Application Identity service is not installed.";
+        }
+
+        if (!health.ApplicationIdentityRunning)
+        {
+            return
+                "Application Identity service could not be started.";
+        }
+
+        if (!health.PowerShellAvailable)
+        {
+            return
+                "Windows PowerShell is unavailable.";
+        }
+
+        if (!health.ManagementCmdletsAvailable)
+        {
+            return
+                "AppLocker engine is available, but AppLocker management cmdlets are unavailable. Monitor mode remains active.";
+        }
+
+        if (!health.PolicyReadable)
+        {
+            return
+                "AppLocker policy cannot be read. Monitor mode remains active.";
+        }
+
+        return
+            health.Error ??
+            "AppLocker enforcement is unavailable.";
     }
 
     private Task WriteModeChangedAsync(

@@ -20,12 +20,17 @@ public sealed class AppLockerAlgorithmEnforcementService
             StringComparer.OrdinalIgnoreCase);
 
     private readonly PowerShellProcessRunner _powerShellRunner;
+    private readonly IAppLockerHealthService _healthService;
 
     public AppLockerAlgorithmEnforcementService(
-        PowerShellProcessRunner powerShellRunner)
+        PowerShellProcessRunner powerShellRunner,
+        IAppLockerHealthService healthService)
     {
         _powerShellRunner =
             powerShellRunner;
+
+        _healthService =
+            healthService;
     }
 
     public AlgorithmEnforcementLevel GetLevel(
@@ -61,6 +66,9 @@ public sealed class AppLockerAlgorithmEnforcementService
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+
+        await EnsureEnforcementReadyAsync(
+            cancellationToken);
 
         var fullPath =
             Path.GetFullPath(filePath);
@@ -118,10 +126,13 @@ public sealed class AppLockerAlgorithmEnforcementService
             message);
     }
 
-    public Task RemoveBlockAsync(
+    public async Task RemoveBlockAsync(
         Guid securityRuleId,
         CancellationToken cancellationToken = default)
     {
+        await EnsureEnforcementReadyAsync(
+            cancellationToken);
+
         var environment =
             new Dictionary<string, string>
             {
@@ -129,7 +140,7 @@ public sealed class AppLockerAlgorithmEnforcementService
                     securityRuleId.ToString("D")
             };
 
-        return _powerShellRunner.RunEncodedAsync(
+        await _powerShellRunner.RunEncodedAsync(
             BuildRemovePolicyScript(),
             environment,
             cancellationToken);
@@ -138,6 +149,10 @@ public sealed class AppLockerAlgorithmEnforcementService
     public async Task<AlgorithmEnforcementSnapshot> InspectAsync(
         CancellationToken cancellationToken = default)
     {
+
+        await EnsureEnforcementReadyAsync(
+            cancellationToken);
+
         var output =
             await _powerShellRunner.RunEncodedAsync(
                 BuildInspectionScript(),
@@ -172,6 +187,43 @@ public sealed class AppLockerAlgorithmEnforcementService
             effective,
             state.ManagedBaselinePresent,
             state.UnmanagedScriptRulesPresent);
+    }
+
+    private async Task<AppLockerHealthSnapshot> EnsureEnforcementReadyAsync(
+        CancellationToken cancellationToken)
+    {
+        var health =
+            await _healthService.EnsureReadyAsync(
+                cancellationToken);
+
+        if (health.EnforcementReady)
+        {
+            return health;
+        }
+
+        if (!health.EngineReady)
+        {
+            throw new InvalidOperationException(
+                health.Error ??
+                "AppLocker enforcement engine is unavailable.");
+        }
+
+        if (!health.ManagementCmdletsAvailable)
+        {
+            throw new InvalidOperationException(
+                "AppLocker enforcement engine is available, but the AppLocker management interface is unavailable.");
+        }
+
+        if (!health.PolicyReadable)
+        {
+            throw new InvalidOperationException(
+                health.Error ??
+                "AppLocker policy cannot be read.");
+        }
+
+        throw new InvalidOperationException(
+            health.Error ??
+            "AppLocker enforcement is unavailable.");
     }
 
     private static string BuildAddPolicyScript()
