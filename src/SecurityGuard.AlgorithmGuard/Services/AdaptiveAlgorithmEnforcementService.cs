@@ -36,7 +36,7 @@ public sealed class AdaptiveAlgorithmEnforcementService
     public AlgorithmEnforcementLevel GetLevel(
         string? filePath)
     {
-        return _appLocker.GetLevel(
+        return AlgorithmEnforcementClassifier.GetLevel(
             filePath);
     }
 

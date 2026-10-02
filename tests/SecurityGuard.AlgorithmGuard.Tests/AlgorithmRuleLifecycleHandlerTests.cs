@@ -78,7 +78,7 @@ public sealed class AlgorithmRuleLifecycleHandlerTests
         public AlgorithmEnforcementLevel GetLevel(
             string? filePath)
         {
-            return AlgorithmEnforcementLevel.AppLockerBlocked;
+            return AlgorithmEnforcementLevel.Blocked;
         }
 
         public Task<AlgorithmEnforcementResult> AddBlockAsync(
@@ -90,7 +90,7 @@ public sealed class AlgorithmRuleLifecycleHandlerTests
             return Task.FromResult(
                 new AlgorithmEnforcementResult(
                     true,
-                    AlgorithmEnforcementLevel.AppLockerBlocked,
+                    AlgorithmEnforcementLevel.Blocked,
                     "Applied"));
         }
 

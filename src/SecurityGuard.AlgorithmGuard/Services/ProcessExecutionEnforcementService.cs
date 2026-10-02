@@ -10,17 +10,6 @@ public sealed class ProcessExecutionEnforcementService
     : IAlgorithmEnforcementService,
       IAlgorithmRuntimeEnforcer
 {
-    private static readonly HashSet<string> SupportedExtensions =
-        new(
-            [
-                ".ps1",
-                ".bat",
-                ".cmd",
-                ".vbs",
-                ".js"
-            ],
-            StringComparer.OrdinalIgnoreCase);
-
     private readonly IFileHashService _hashService;
 
     private readonly IProcessTerminationService _processTerminationService;
@@ -42,31 +31,8 @@ public sealed class ProcessExecutionEnforcementService
     public AlgorithmEnforcementLevel GetLevel(
         string? filePath)
     {
-        if (string.IsNullOrWhiteSpace(
-                filePath))
-        {
-            return AlgorithmEnforcementLevel.Unsupported;
-        }
-
-        var extension =
-            Path.GetExtension(
-                filePath);
-
-        if (!SupportedExtensions.Contains(
-                extension))
-        {
-            return AlgorithmEnforcementLevel.Unsupported;
-        }
-
-        if (string.Equals(
-                extension,
-                ".ps1",
-                StringComparison.OrdinalIgnoreCase))
-        {
-            return AlgorithmEnforcementLevel.PowerShellConstrained;
-        }
-
-        return AlgorithmEnforcementLevel.AppLockerBlocked;
+        return AlgorithmEnforcementClassifier.GetLevel(
+            filePath);
     }
 
     public async Task<AlgorithmEnforcementResult> AddBlockAsync(

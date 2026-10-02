@@ -295,7 +295,7 @@ public sealed class AlgorithmDecisionHandlerTests
         public SecurityGuard.AlgorithmGuard.Enums.AlgorithmEnforcementLevel GetLevel(
             string? filePath)
             {
-            return SecurityGuard.AlgorithmGuard.Enums.AlgorithmEnforcementLevel.AppLockerBlocked;
+            return SecurityGuard.AlgorithmGuard.Enums.AlgorithmEnforcementLevel.Blocked;
             }
 
         public Task RemoveBlockAsync(
@@ -330,7 +330,7 @@ public sealed class AlgorithmDecisionHandlerTests
             return Task.FromResult(
                 new SecurityGuard.AlgorithmGuard.Models.AlgorithmEnforcementResult(
                     true,
-                    SecurityGuard.AlgorithmGuard.Enums.AlgorithmEnforcementLevel.AppLockerBlocked,
+                    SecurityGuard.AlgorithmGuard.Enums.AlgorithmEnforcementLevel.Blocked,
                     "Applied"));
             }
         }
@@ -343,7 +343,7 @@ public sealed class AlgorithmDecisionHandlerTests
         public SecurityGuard.AlgorithmGuard.Enums.AlgorithmEnforcementLevel GetLevel(
             string? filePath)
         {
-            return SecurityGuard.AlgorithmGuard.Enums.AlgorithmEnforcementLevel.AppLockerBlocked;
+            return SecurityGuard.AlgorithmGuard.Enums.AlgorithmEnforcementLevel.Blocked;
         }
 
         public Task RemoveBlockAsync(
@@ -380,7 +380,7 @@ public sealed class AlgorithmDecisionHandlerTests
             return Task.FromResult(
                 new SecurityGuard.AlgorithmGuard.Models.AlgorithmEnforcementResult(
                     true,
-                    SecurityGuard.AlgorithmGuard.Enums.AlgorithmEnforcementLevel.AppLockerBlocked,
+                    SecurityGuard.AlgorithmGuard.Enums.AlgorithmEnforcementLevel.Blocked,
                     "Applied"));
         }
     }

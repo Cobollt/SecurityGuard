@@ -24,7 +24,7 @@ public sealed class AppLockerAlgorithmEnforcementServiceTests
             _service.GetLevel(path);
 
         Assert.Equal(
-            AlgorithmEnforcementLevel.AppLockerBlocked,
+            AlgorithmEnforcementLevel.Blocked,
             result);
     }
 
@@ -36,7 +36,7 @@ public sealed class AppLockerAlgorithmEnforcementServiceTests
                 @"C:\Temp\test.ps1");
 
         Assert.Equal(
-            AlgorithmEnforcementLevel.PowerShellConstrained,
+            AlgorithmEnforcementLevel.PowerShellScript,
             result);
     }
 

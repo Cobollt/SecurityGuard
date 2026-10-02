@@ -8,17 +8,6 @@ namespace SecurityGuard.AlgorithmGuard.Services;
 public sealed class AppLockerAlgorithmEnforcementService
     : IAlgorithmEnforcementService
 {
-    private static readonly HashSet<string> SupportedExtensions =
-        new(
-            [
-                ".ps1",
-                ".bat",
-                ".cmd",
-                ".vbs",
-                ".js"
-            ],
-            StringComparer.OrdinalIgnoreCase);
-
     private readonly PowerShellProcessRunner _powerShellRunner;
     private readonly IAppLockerHealthService _healthService;
 
@@ -36,28 +25,8 @@ public sealed class AppLockerAlgorithmEnforcementService
     public AlgorithmEnforcementLevel GetLevel(
         string? filePath)
     {
-        if (string.IsNullOrWhiteSpace(filePath))
-        {
-            return AlgorithmEnforcementLevel.Unsupported;
-        }
-
-        var extension =
-            Path.GetExtension(filePath);
-
-        if (!SupportedExtensions.Contains(extension))
-        {
-            return AlgorithmEnforcementLevel.Unsupported;
-        }
-
-        if (string.Equals(
-                extension,
-                ".ps1",
-                StringComparison.OrdinalIgnoreCase))
-        {
-            return AlgorithmEnforcementLevel.PowerShellConstrained;
-        }
-
-        return AlgorithmEnforcementLevel.AppLockerBlocked;
+        return AlgorithmEnforcementClassifier.GetLevel(
+            filePath);
     }
 
     public async Task<AlgorithmEnforcementResult> AddBlockAsync(
@@ -115,10 +84,10 @@ public sealed class AppLockerAlgorithmEnforcementService
         var message =
             level switch
             {
-                AlgorithmEnforcementLevel.PowerShellConstrained =>
+                AlgorithmEnforcementLevel.PowerShellScript =>
                     "AppLocker PowerShell enforcement applied.",
 
-                AlgorithmEnforcementLevel.AppLockerBlocked =>
+                AlgorithmEnforcementLevel.Blocked =>
                     "AppLocker block rule applied.",
 
                 _ =>
