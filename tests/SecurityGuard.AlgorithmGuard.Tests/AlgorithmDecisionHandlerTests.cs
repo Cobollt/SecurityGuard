@@ -324,6 +324,7 @@ public sealed class AlgorithmDecisionHandlerTests
             AddBlockAsync(
                 Guid securityRuleId,
                 string filePath,
+                string expectedSha256,
                 CancellationToken cancellationToken = default)
             {
             return Task.FromResult(
@@ -371,6 +372,7 @@ public sealed class AlgorithmDecisionHandlerTests
             AddBlockAsync(
                 Guid securityRuleId,
                 string filePath,
+                string expectedSha256,
                 CancellationToken cancellationToken = default)
         {
             WasCalled = true;

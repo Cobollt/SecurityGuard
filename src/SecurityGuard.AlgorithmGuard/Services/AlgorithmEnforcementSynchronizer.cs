@@ -162,6 +162,7 @@ public sealed class AlgorithmEnforcementSynchronizer : IAlgorithmEnforcementSync
                     await _enforcementService.AddBlockAsync(
                         rule.Id,
                         protectedObject.Path,
+                        rule.Value,
                         cancellationToken);
 
                 if (result.Applied)

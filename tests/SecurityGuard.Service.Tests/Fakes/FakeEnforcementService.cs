@@ -52,6 +52,7 @@ public sealed class FakeEnforcementService : IAlgorithmEnforcementService
     public Task<AlgorithmEnforcementResult> AddBlockAsync(
         Guid securityRuleId,
         string filePath,
+        string expectedSha256,
         CancellationToken cancellationToken = default)
     {
         AddBlockCallCount++;

@@ -11,6 +11,7 @@ public interface IAlgorithmEnforcementService
     Task<AlgorithmEnforcementResult> AddBlockAsync(
         Guid securityRuleId,
         string filePath,
+        string expectedSha256,
         CancellationToken cancellationToken = default);
 
     Task RemoveBlockAsync(

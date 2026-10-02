@@ -84,6 +84,7 @@ public sealed class AlgorithmRuleLifecycleHandlerTests
         public Task<AlgorithmEnforcementResult> AddBlockAsync(
             Guid securityRuleId,
             string filePath,
+            string expectedSha256,
             CancellationToken cancellationToken = default)
         {
             return Task.FromResult(

@@ -63,9 +63,11 @@ public sealed class AppLockerAlgorithmEnforcementService
     public async Task<AlgorithmEnforcementResult> AddBlockAsync(
         Guid securityRuleId,
         string filePath,
+        string expectedSha256,
         CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(
+            expectedSha256);
 
         await EnsureEnforcementReadyAsync(
             cancellationToken);
@@ -99,7 +101,10 @@ public sealed class AppLockerAlgorithmEnforcementService
                     fullPath,
 
                 ["SG_RULE_ID"] =
-                    securityRuleId.ToString("D")
+                    securityRuleId.ToString("D"),
+
+                ["SG_EXPECTED_SHA256"] =
+                    expectedSha256
             };
 
         await _powerShellRunner.RunEncodedAsync(
@@ -237,9 +242,32 @@ public sealed class AppLockerAlgorithmEnforcementService
             $targetFile = $env:SG_TARGET_FILE
             $securityRuleId = $env:SG_RULE_ID
             $ruleName = "SecurityGuard:$securityRuleId"
+                        $expectedSha256 =
+                $env:SG_EXPECTED_SHA256
+
+            if ([string]::IsNullOrWhiteSpace($expectedSha256)) {
+                throw "Expected SHA256 is missing."
+            }
 
             if (-not (Test-Path -LiteralPath $targetFile -PathType Leaf)) {
                 throw "Target file was not found."
+            }
+
+                        $currentSha256 =
+                (
+                    Get-FileHash `
+                        -LiteralPath $targetFile `
+                        -Algorithm SHA256 `
+                        -ErrorAction Stop
+                ).Hash
+
+            if (
+                -not [string]::Equals(
+                    $currentSha256,
+                    $expectedSha256,
+                    [System.StringComparison]::OrdinalIgnoreCase)
+            ) {
+                throw "Script hash no longer matches the persisted block rule."
             }
 
             $service = Get-Service -Name AppIDSvc -ErrorAction Stop

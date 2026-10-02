@@ -194,6 +194,10 @@ public static class ServiceRegistration
             AlgorithmTemporaryDecisionStore>();
 
         services.AddSingleton<
+            IProcessTerminationService,
+            WindowsProcessTerminationService>();
+
+        services.AddSingleton<
             IInternalProcessRegistry,
             InternalProcessRegistry>();
 
@@ -208,8 +212,25 @@ public static class ServiceRegistration
             PowerShellAuthenticodeSignatureService>();
 
         services.AddSingleton<
-            IAlgorithmEnforcementService,
             AppLockerAlgorithmEnforcementService>();
+
+        services.AddSingleton<
+            ProcessExecutionEnforcementService>();
+
+        services.AddSingleton<
+            AdaptiveAlgorithmEnforcementService>();
+
+        services.AddSingleton<
+            IAlgorithmRuntimeEnforcer>(
+                provider =>
+                    provider.GetRequiredService<
+                        AdaptiveAlgorithmEnforcementService>());
+
+        services.AddSingleton<
+            IAlgorithmEnforcementService>(
+                provider =>
+                    provider.GetRequiredService<
+                        AdaptiveAlgorithmEnforcementService>());
 
         services.AddSingleton<
             ISecurityRuleLifecycleHandler,

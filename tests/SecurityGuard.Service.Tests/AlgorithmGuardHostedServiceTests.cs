@@ -11,7 +11,7 @@ namespace SecurityGuard.Service.Tests;
 public sealed class AlgorithmGuardHostedServiceTests
 {
     [Fact]
-    public async Task Enforce_with_unavailable_management_and_fail_open_enters_degraded_monitor()
+    public async Task Enforce_with_unavailable_management_and_fail_open_uses_process_fallback()
     {
         var monitor =
             new FakeAlgorithmGuardMonitor();
@@ -45,25 +45,25 @@ public sealed class AlgorithmGuardHostedServiceTests
                 registry,
                 audit);
 
+        await service.ApplyAsync(
+            settings);
+
+        await monitor.Started.Task.WaitAsync(
+            TimeSpan.FromSeconds(2));
+
         try
         {
-            await service.ApplyAsync(
-                settings);
-
-            await monitor.Started.Task.WaitAsync(
-                TimeSpan.FromSeconds(2));
-
             Assert.Equal(
-                ModuleOperationalState.Degraded,
+                ModuleOperationalState.Active,
                 registry.LastState);
 
             Assert.Contains(
-                "management cmdlets are unavailable",
+                "process runtime fallback",
                 registry.LastMessage,
                 StringComparison.OrdinalIgnoreCase);
 
             Assert.Equal(
-                0,
+                1,
                 synchronizer.SynchronizeCalls);
 
             Assert.Equal(
@@ -75,7 +75,7 @@ public sealed class AlgorithmGuardHostedServiceTests
                 audit.LastSeverity);
 
             Assert.Equal(
-                "AlgorithmGuard enforcement unavailable",
+                "AlgorithmGuard mode applied",
                 audit.LastTitle);
         }
         finally
@@ -89,7 +89,7 @@ public sealed class AlgorithmGuardHostedServiceTests
     }
 
     [Fact]
-    public async Task Enforce_with_unavailable_management_and_fail_closed_enters_faulted_without_monitor()
+    public async Task Enforce_with_unavailable_management_and_fail_closed_uses_process_fallback()
     {
         var monitor =
             new FakeAlgorithmGuardMonitor();
@@ -126,30 +126,44 @@ public sealed class AlgorithmGuardHostedServiceTests
         await service.ApplyAsync(
             settings);
 
-        Assert.Equal(
-            ModuleOperationalState.Faulted,
-            registry.LastState);
+        await monitor.Started.Task.WaitAsync(
+            TimeSpan.FromSeconds(2));
 
-        Assert.Contains(
-            "management cmdlets are unavailable",
-            registry.LastMessage,
-            StringComparison.OrdinalIgnoreCase);
+        try
+        {
+            Assert.Equal(
+                ModuleOperationalState.Active,
+                registry.LastState);
 
-        Assert.Equal(
-            0,
-            synchronizer.SynchronizeCalls);
+            Assert.Contains(
+                "process runtime fallback",
+                registry.LastMessage,
+                StringComparison.OrdinalIgnoreCase);
 
-        Assert.Equal(
-            0,
-            monitor.RunCalls);
+            Assert.Equal(
+                1,
+                synchronizer.SynchronizeCalls);
 
-        Assert.Equal(
-            SecuritySeverity.Critical,
-            audit.LastSeverity);
+            Assert.Equal(
+                1,
+                monitor.RunCalls);
 
-        Assert.Equal(
-            "AlgorithmGuard enforcement unavailable",
-            audit.LastTitle);
+            Assert.Equal(
+                SecuritySeverity.Info,
+                audit.LastSeverity);
+
+            Assert.Equal(
+                "AlgorithmGuard mode applied",
+                audit.LastTitle);
+        }
+        finally
+        {
+            await service.ApplyAsync(
+                new AlgorithmGuardSettings(
+                    false,
+                    AlgorithmGuardMode.Monitor,
+                    EnforcementFailurePolicy.FailOpen));
+        }
     }
 
     private static AppLockerHealthSnapshot CreateManagementUnavailableHealth()
@@ -192,6 +206,15 @@ public sealed class AlgorithmGuardHostedServiceTests
     private sealed class FakeAlgorithmEnforcementSynchronizer
         : IAlgorithmEnforcementSynchronizer
     {
+        private readonly bool _healthy;
+
+        public FakeAlgorithmEnforcementSynchronizer(
+            bool healthy = true)
+        {
+            _healthy =
+                healthy;
+        }
+
         public int SynchronizeCalls { get; private set; }
 
         public int DisableCalls { get; private set; }
@@ -205,8 +228,13 @@ public sealed class AlgorithmGuardHostedServiceTests
                 new AlgorithmEnforcementSyncResult(
                     0,
                     0,
-                    true,
-                    Array.Empty<string>()));
+                    _healthy,
+                    _healthy
+                        ? Array.Empty<string>()
+                        : new[]
+                        {
+                        "Test synchronization failure"
+                        }));
         }
 
         public Task<int> DisableManagedRulesAsync(
@@ -347,5 +375,127 @@ public sealed class AlgorithmGuardHostedServiceTests
 
             return Task.CompletedTask;
         }
+    }
+
+    [Fact]
+    public async Task Process_fallback_with_unhealthy_sync_and_fail_open_is_degraded()
+    {
+        var monitor =
+            new FakeAlgorithmGuardMonitor();
+
+        var synchronizer =
+            new FakeAlgorithmEnforcementSynchronizer(
+                healthy: false);
+
+        var settings =
+            new AlgorithmGuardSettings(
+                true,
+                AlgorithmGuardMode.Enforce,
+                EnforcementFailurePolicy.FailOpen);
+
+        var registry =
+            new FakeModuleRegistry();
+
+        var service =
+            new AlgorithmGuardHostedService(
+                monitor,
+                synchronizer,
+                new FakeAppLockerHealthService(
+                    CreateManagementUnavailableHealth()),
+                new FakeAlgorithmGuardSettingsService(
+                    settings),
+                registry,
+                new FakeAuditService());
+
+        await service.ApplyAsync(
+            settings);
+
+        await monitor.Started.Task.WaitAsync(
+            TimeSpan.FromSeconds(2));
+
+        try
+        {
+            Assert.Equal(
+                1,
+                synchronizer.SynchronizeCalls);
+
+            Assert.Equal(
+                1,
+                monitor.RunCalls);
+
+            Assert.Equal(
+                ModuleOperationalState.Degraded,
+                registry.LastState);
+
+            Assert.Contains(
+                "warnings",
+                registry.LastMessage,
+                StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            await service.ApplyAsync(
+                new AlgorithmGuardSettings(
+                    false,
+                    AlgorithmGuardMode.Monitor,
+                    EnforcementFailurePolicy.FailOpen));
+        }
+    }
+
+    [Fact]
+    public async Task Process_fallback_with_unhealthy_sync_and_fail_closed_is_faulted()
+    {
+        var monitor =
+            new FakeAlgorithmGuardMonitor();
+
+        var synchronizer =
+            new FakeAlgorithmEnforcementSynchronizer(
+                healthy: false);
+
+        var settings =
+            new AlgorithmGuardSettings(
+                true,
+                AlgorithmGuardMode.Enforce,
+                EnforcementFailurePolicy.FailClosed);
+
+        var registry =
+            new FakeModuleRegistry();
+
+        var audit =
+            new FakeAuditService();
+
+        var service =
+            new AlgorithmGuardHostedService(
+                monitor,
+                synchronizer,
+                new FakeAppLockerHealthService(
+                    CreateManagementUnavailableHealth()),
+                new FakeAlgorithmGuardSettingsService(
+                    settings),
+                registry,
+                audit);
+
+        await service.ApplyAsync(
+            settings);
+
+        Assert.Equal(
+            1,
+            synchronizer.SynchronizeCalls);
+
+        Assert.Equal(
+            0,
+            monitor.RunCalls);
+
+        Assert.Equal(
+            ModuleOperationalState.Faulted,
+            registry.LastState);
+
+        Assert.Equal(
+            SecuritySeverity.Critical,
+            audit.LastSeverity);
+
+        Assert.Equal(
+            "AlgorithmGuard fail-closed",
+            audit.LastTitle);
     }
 }

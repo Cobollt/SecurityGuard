@@ -195,7 +195,8 @@ public sealed class AlgorithmGuardHostedService
                 await _appLockerHealthService.EnsureReadyAsync(
                     cancellationToken);
 
-            if (!health.EnforcementReady)
+            if (!health.EnforcementReady &&
+                !health.IsWindows)
             {
                 var message =
                     BuildAppLockerHealthMessage(
@@ -242,6 +243,9 @@ public sealed class AlgorithmGuardHostedService
                 return;
             }
 
+            var usingProcessFallback =
+                !health.EnforcementReady;
+
             var sync =
                 await _synchronizer.SynchronizeAsync(
                     cancellationToken);
@@ -253,7 +257,9 @@ public sealed class AlgorithmGuardHostedService
                 _moduleRegistry.Set(
                     SecurityModuleKind.AlgorithmGuard,
                     ModuleOperationalState.Active,
-                    "Enforce mode is active");
+                    usingProcessFallback
+                        ? "Enforce mode is active using process runtime fallback"
+                        : "Enforce mode is active");
 
                 await WriteModeChangedAsync(
                     settings,

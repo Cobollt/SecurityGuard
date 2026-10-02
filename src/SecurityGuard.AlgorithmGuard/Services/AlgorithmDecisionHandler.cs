@@ -152,6 +152,7 @@ public sealed class AlgorithmDecisionHandler
                 await _enforcementService.AddBlockAsync(
                     rule.Id,
                     request.FilePath,
+                    rule.Value,
                     cancellationToken);
 
             if (!result.Applied)

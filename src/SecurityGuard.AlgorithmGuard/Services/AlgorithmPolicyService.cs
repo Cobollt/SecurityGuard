@@ -14,6 +14,9 @@ public sealed class AlgorithmPolicyService
     private readonly AlgorithmRuleContextFactory _contextFactory;
     private readonly IAlgorithmTemporaryDecisionStore _temporaryDecisionStore;
     private readonly IRuleEngine _ruleEngine;
+    private readonly IAlgorithmRuntimeEnforcer _runtimeEnforcer;
+    private readonly IAlgorithmGuardSettingsService _settingsService;
+    private readonly IModuleRegistry _moduleRegistry;
     private readonly IDecisionRequestRepository _decisionRepository;
     private readonly IAuditService _auditService;
     private readonly AlgorithmGuardOptions _options;
@@ -23,6 +26,9 @@ public sealed class AlgorithmPolicyService
         AlgorithmRuleContextFactory contextFactory,
         IAlgorithmTemporaryDecisionStore temporaryDecisionStore,
         IRuleEngine ruleEngine,
+        IAlgorithmRuntimeEnforcer runtimeEnforcer,
+        IAlgorithmGuardSettingsService settingsService,
+        IModuleRegistry moduleRegistry,
         IDecisionRequestRepository decisionRepository,
         IAuditService auditService,
         AlgorithmGuardOptions options)
@@ -44,6 +50,15 @@ public sealed class AlgorithmPolicyService
 
         _auditService =
             auditService;
+
+        _runtimeEnforcer =
+            runtimeEnforcer;
+
+        _settingsService =
+            settingsService;
+
+        _moduleRegistry =
+            moduleRegistry;
 
         _options =
             options;
@@ -84,6 +99,14 @@ public sealed class AlgorithmPolicyService
 
         if (result.Matched)
         {
+            if (result.Decision ==
+                RuleDecision.Block)
+            {
+                await ApplyRuntimeEnforcementAsync(
+                    enriched,
+                    cancellationToken);
+            }
+
             await HandleRuleMatchAsync(
                 enriched,
                 result,
@@ -91,11 +114,70 @@ public sealed class AlgorithmPolicyService
 
             return;
         }
-            await CreateDecisionRequestAsync(
+
+        await CreateDecisionRequestAsync(
                 enriched,
                 context,
                 identity,
                 cancellationToken);
+    }
+
+    private async Task ApplyRuntimeEnforcementAsync(
+        AlgorithmExecutionAttempt attempt,
+        CancellationToken cancellationToken)
+    {
+        var result =
+            await _runtimeEnforcer.EnforceAsync(
+                attempt,
+                cancellationToken);
+
+        if (!result.Required)
+        {
+            return;
+        }
+
+        await _auditService.WriteAsync(
+            SecurityModuleKind.AlgorithmGuard,
+            SecurityEventType.AlgorithmExecution,
+            result.Terminated
+                ? SecuritySeverity.High
+                : SecuritySeverity.Critical,
+            result.Terminated
+                ? "Blocked algorithm process terminated"
+                : "Blocked algorithm process termination failed",
+            string.Join(
+                Environment.NewLine,
+                $"PID: {attempt.ProcessId}",
+                $"Process: {attempt.ProcessName}",
+                $"Script: {attempt.ScriptPath ?? "Unknown"}",
+                $"SHA256: {attempt.ScriptSha256 ?? "Unknown"}",
+                $"Result: {result.Message}"),
+            SecurityAction.Block,
+            correlationId: attempt.CorrelationId,
+            cancellationToken: cancellationToken);
+
+        if (result.Terminated)
+        {
+            return;
+        }
+
+        var settings =
+            await _settingsService.GetAsync(
+                cancellationToken);
+
+        if (settings.FailurePolicy ==
+            EnforcementFailurePolicy.FailOpen)
+        {
+            _moduleRegistry.Set(
+                SecurityModuleKind.AlgorithmGuard,
+                ModuleOperationalState.Degraded,
+                "Runtime enforcement failure; monitoring remains active");
+
+            return;
+        }
+
+        throw new InvalidOperationException(
+            $"Algorithm runtime enforcement failed for PID {attempt.ProcessId}: {result.Message}");
     }
 
     private Task WriteAllowedOnceAsync(
