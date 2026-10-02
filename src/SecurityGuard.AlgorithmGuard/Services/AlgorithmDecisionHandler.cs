@@ -376,44 +376,6 @@ public sealed class AlgorithmDecisionHandler
                 scope,
                 value));
     }
-    private async Task<string> CreateIdentityAsync(
-        SecurityDecisionRequest request,
-        CancellationToken cancellationToken)
-    {
-        if (!string.IsNullOrWhiteSpace(
-                request.FilePath) &&
-            File.Exists(
-                request.FilePath))
-        {
-            var hash =
-                await _hashService.ComputeSha256Async(
-                    request.FilePath,
-                    cancellationToken);
-
-            var attempt =
-                new AlgorithmExecutionAttempt(
-                    Guid.NewGuid(),
-                    0,
-                    null,
-                    request.ProcessName ?? string.Empty,
-                    null,
-                    request.Description,
-                    Enums.InterpreterKind.PowerShell,
-                    Enums.AlgorithmInvocationType.ScriptFile,
-                    request.FilePath,
-                    hash,
-                    DateTimeOffset.UtcNow);
-
-            return AlgorithmExecutionIdentity.Create(
-                attempt);
-        }
-
-        return string.Join(
-            ":",
-            "COMMAND",
-            request.ProcessName ?? string.Empty,
-            request.Description);
-    }
 
     private async Task QuarantineAsync(
         SecurityDecisionRequest request,

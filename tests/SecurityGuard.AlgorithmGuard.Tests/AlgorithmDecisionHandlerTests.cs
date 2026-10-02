@@ -261,16 +261,292 @@ public sealed class AlgorithmDecisionHandlerTests
         }
     }
 
+    [Fact]
+    public async Task Allow_once_stores_request_identity()
+    {
+        var root =
+            Path.Combine(
+                Path.GetTempPath(),
+                "SecurityGuard.AlgorithmGuard.Tests",
+                Guid.NewGuid().ToString("N"));
+
+        Directory.CreateDirectory(root);
+
+        try
+        {
+            var factory =
+                new SqliteConnectionFactory(
+                    new StorageOptions(
+                        Path.Combine(
+                            root,
+                            "test.db")));
+
+            await new DatabaseInitializer(
+                factory).InitializeAsync();
+
+            var temporaryStore =
+                new AlgorithmTemporaryDecisionStore();
+
+            var handler =
+                new AlgorithmDecisionHandler(
+                    new Sha256FileHashService(),
+                    new SqliteRuleRepository(
+                        factory),
+                    new FakeQuarantineService(),
+                    temporaryStore,
+                    new FakeEnforcementService(),
+                    new AlgorithmGuardOptions(),
+                    new FakeRuntimeController());
+
+            var identity =
+                "test-algorithm-identity";
+
+            var request =
+                new SecurityDecisionRequest(
+                    Guid.NewGuid(),
+                    SecurityModuleKind.AlgorithmGuard,
+                    SecurityEventType.AlgorithmExecution,
+                    "Unknown",
+                    "powershell.exe -Command test",
+                    null,
+                    "powershell.exe",
+                    [
+                        SecurityAction.AllowOnce
+                    ],
+                    DateTimeOffset.UtcNow,
+                    Identity:
+                        identity);
+
+            await handler.HandleAsync(
+                request,
+                new SecurityDecision(
+                    request.Id,
+                    SecurityAction.AllowOnce,
+                    false,
+                    DateTimeOffset.UtcNow));
+
+            Assert.True(
+                temporaryStore.TryConsumeAllowOnce(
+                    identity));
+
+            Assert.False(
+                temporaryStore.TryConsumeAllowOnce(
+                    identity));
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(
+                    root,
+                    true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Quarantine_sends_script_to_quarantine_service()
+    {
+        var root =
+            Path.Combine(
+                Path.GetTempPath(),
+                "SecurityGuard.AlgorithmGuard.Tests",
+                Guid.NewGuid().ToString("N"));
+
+        Directory.CreateDirectory(root);
+
+        try
+        {
+            var factory =
+                new SqliteConnectionFactory(
+                    new StorageOptions(
+                        Path.Combine(
+                            root,
+                            "test.db")));
+
+            await new DatabaseInitializer(
+                factory).InitializeAsync();
+
+            var quarantine =
+                new FakeQuarantineService();
+
+            var handler =
+                new AlgorithmDecisionHandler(
+                    new Sha256FileHashService(),
+                    new SqliteRuleRepository(
+                        factory),
+                    quarantine,
+                    new AlgorithmTemporaryDecisionStore(),
+                    new FakeEnforcementService(),
+                    new AlgorithmGuardOptions(),
+                    new FakeRuntimeController());
+
+            var script =
+                Path.Combine(
+                    root,
+                    "quarantine.ps1");
+
+            await File.WriteAllTextAsync(
+                script,
+                "Write-Host test");
+
+            var request =
+                new SecurityDecisionRequest(
+                    Guid.NewGuid(),
+                    SecurityModuleKind.AlgorithmGuard,
+                    SecurityEventType.AlgorithmExecution,
+                    "Unknown",
+                    script,
+                    script,
+                    "powershell.exe",
+                    [
+                        SecurityAction.Quarantine
+                    ],
+                    DateTimeOffset.UtcNow);
+
+            await handler.HandleAsync(
+                request,
+                new SecurityDecision(
+                    request.Id,
+                    SecurityAction.Quarantine,
+                    false,
+                    DateTimeOffset.UtcNow));
+
+            Assert.Equal(
+                script,
+                quarantine.QuarantinedPath);
+
+            Assert.Equal(
+                SecurityModuleKind.AlgorithmGuard,
+                quarantine.SourceModule);
+
+            Assert.Equal(
+                "Blocked by AlgorithmGuard decision",
+                quarantine.Reason);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(
+                    root,
+                    true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Delete_removes_script_file()
+    {
+        var root =
+            Path.Combine(
+                Path.GetTempPath(),
+                "SecurityGuard.AlgorithmGuard.Tests",
+                Guid.NewGuid().ToString("N"));
+
+        Directory.CreateDirectory(root);
+
+        try
+        {
+            var factory =
+                new SqliteConnectionFactory(
+                    new StorageOptions(
+                        Path.Combine(
+                            root,
+                            "test.db")));
+
+            await new DatabaseInitializer(
+                factory).InitializeAsync();
+
+            var script =
+                Path.Combine(
+                    root,
+                    "delete.ps1");
+
+            await File.WriteAllTextAsync(
+                script,
+                "Write-Host test");
+
+            var handler =
+                new AlgorithmDecisionHandler(
+                    new Sha256FileHashService(),
+                    new SqliteRuleRepository(
+                        factory),
+                    new FakeQuarantineService(),
+                    new AlgorithmTemporaryDecisionStore(),
+                    new FakeEnforcementService(),
+                    new AlgorithmGuardOptions(),
+                    new FakeRuntimeController());
+
+            var request =
+                new SecurityDecisionRequest(
+                    Guid.NewGuid(),
+                    SecurityModuleKind.AlgorithmGuard,
+                    SecurityEventType.AlgorithmExecution,
+                    "Unknown",
+                    script,
+                    script,
+                    "powershell.exe",
+                    [
+                        SecurityAction.Delete
+                    ],
+                    DateTimeOffset.UtcNow);
+
+            await handler.HandleAsync(
+                request,
+                new SecurityDecision(
+                    request.Id,
+                    SecurityAction.Delete,
+                    false,
+                    DateTimeOffset.UtcNow));
+
+            Assert.False(
+                File.Exists(
+                    script));
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(
+                    root,
+                    true);
+            }
+        }
+    }
+
     private sealed class FakeQuarantineService
         : SecurityGuard.Core.Contracts.IQuarantineService
     {
+        public string? QuarantinedPath { get; private set; }
+
+        public SecurityModuleKind? SourceModule { get; private set; }
+
+        public string? Reason { get; private set; }
+
         public Task<QuarantineRecord> QuarantineAsync(
             string filePath,
             SecurityModuleKind sourceModule,
             string reason,
             CancellationToken cancellationToken = default)
         {
-            throw new NotSupportedException();
+            QuarantinedPath =
+                filePath;
+
+            SourceModule =
+                sourceModule;
+
+            Reason =
+                reason;
+
+            return Task.FromResult<QuarantineRecord>(
+                null!);
         }
 
         public Task<string> RestoreAsync(
