@@ -11,7 +11,8 @@ public sealed class AdaptiveAlgorithmEnforcementServiceTests
     public async Task Uses_process_fallback_when_applocker_management_is_unavailable()
     {
         var health =
-            new FakeAppLockerHealthService();
+            new FakeAppLockerHealthService(
+                CreateManagementUnavailableHealth());
 
         var processFallback =
             new ProcessExecutionEnforcementService(
@@ -47,7 +48,7 @@ public sealed class AdaptiveAlgorithmEnforcementServiceTests
                 await service.AddBlockAsync(
                     ruleId,
                     path,
-                    "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB");
+                    FakeFileHashService.Hash);
 
             Assert.True(
                 result.Applied);
@@ -73,33 +74,138 @@ public sealed class AdaptiveAlgorithmEnforcementServiceTests
         }
     }
 
+    [Fact]
+    public async Task Process_fallback_remains_selected_when_applocker_becomes_available()
+    {
+        var health =
+            new FakeAppLockerHealthService(
+                CreateManagementUnavailableHealth());
+
+        var service =
+            CreateService(
+                health);
+
+        Assert.True(
+            await service.UsesProcessFallbackAsync());
+
+        health.SetSnapshot(
+            CreateHealthyHealth());
+
+        Assert.True(
+            await service.UsesProcessFallbackAsync());
+
+        Assert.Equal(
+            1,
+            health.EnsureReadyCalls);
+    }
+
+    [Fact]
+    public async Task AppLocker_remains_selected_when_health_becomes_unavailable()
+    {
+        var health =
+            new FakeAppLockerHealthService(
+                CreateHealthyHealth());
+
+        var service =
+            CreateService(
+                health);
+
+        Assert.False(
+            await service.UsesProcessFallbackAsync());
+
+        health.SetSnapshot(
+            CreateManagementUnavailableHealth());
+
+        Assert.False(
+            await service.UsesProcessFallbackAsync());
+
+        Assert.Equal(
+            1,
+            health.EnsureReadyCalls);
+    }
+
+    private static AdaptiveAlgorithmEnforcementService CreateService(
+        IAppLockerHealthService health)
+    {
+        var processFallback =
+            new ProcessExecutionEnforcementService(
+                new FakeFileHashService(),
+                new FakeProcessTerminationService());
+
+        var appLocker =
+            new AppLockerAlgorithmEnforcementService(
+                new PowerShellProcessRunner(),
+                health);
+
+        return new AdaptiveAlgorithmEnforcementService(
+            appLocker,
+            processFallback,
+            health);
+    }
+
+    private static AppLockerHealthSnapshot CreateManagementUnavailableHealth()
+    {
+        return new AppLockerHealthSnapshot(
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            false,
+            false,
+            "AppLocker management cmdlets are unavailable.");
+    }
+
+    private static AppLockerHealthSnapshot CreateHealthyHealth()
+    {
+        return new AppLockerHealthSnapshot(
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            null);
+    }
+
     private sealed class FakeAppLockerHealthService
         : IAppLockerHealthService
     {
-        private static readonly AppLockerHealthSnapshot Snapshot =
-            new(
-                true,
-                true,
-                true,
-                true,
-                true,
-                true,
-                false,
-                false,
-                "AppLocker management cmdlets are unavailable.");
+        private AppLockerHealthSnapshot _snapshot;
+
+        public FakeAppLockerHealthService(
+            AppLockerHealthSnapshot snapshot)
+        {
+            _snapshot =
+                snapshot;
+        }
+
+        public int EnsureReadyCalls { get; private set; }
+
+        public void SetSnapshot(
+            AppLockerHealthSnapshot snapshot)
+        {
+            _snapshot =
+                snapshot;
+        }
 
         public Task<AppLockerHealthSnapshot> GetHealthAsync(
             CancellationToken cancellationToken = default)
         {
             return Task.FromResult(
-                Snapshot);
+                _snapshot);
         }
 
         public Task<AppLockerHealthSnapshot> EnsureReadyAsync(
             CancellationToken cancellationToken = default)
         {
+            EnsureReadyCalls++;
+
             return Task.FromResult(
-                Snapshot);
+                _snapshot);
         }
     }
 
