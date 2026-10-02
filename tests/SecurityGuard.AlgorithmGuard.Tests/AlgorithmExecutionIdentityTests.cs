@@ -66,6 +66,28 @@ public sealed class AlgorithmExecutionIdentityTests
                 second));
     }
 
+    [Fact]
+    public void Different_script_hash_has_different_identity()
+    {
+        var first =
+            Create(
+                @"DESKTOP\User",
+                "explorer.exe");
+
+        var second =
+            first with
+            {
+                ScriptSha256 =
+                    "DEF456"
+            };
+
+        Assert.NotEqual(
+            AlgorithmExecutionIdentity.Create(
+                first),
+            AlgorithmExecutionIdentity.Create(
+                second));
+    }
+
     private static AlgorithmExecutionAttempt Create(
         string user,
         string parent)
