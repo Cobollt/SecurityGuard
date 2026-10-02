@@ -90,10 +90,109 @@ public sealed class AlgorithmPolicyServiceTests
                     "Blocked algorithm process termination failed");
     }
 
+    [Fact]
+    public async Task Runtime_enforcement_not_required_does_not_degrade_module()
+    {
+        var moduleRegistry =
+            new FakeModuleRegistry();
+
+        var audit =
+            new FakeAuditService();
+
+        var settings =
+            new FakeSettingsService(
+                new AlgorithmGuardSettings(
+                    true,
+                    AlgorithmGuardMode.Enforce,
+                    EnforcementFailurePolicy.FailClosed));
+
+        var service =
+            CreateService(
+                settings,
+                moduleRegistry,
+                audit,
+                new AlgorithmRuntimeEnforcementResult(
+                    false,
+                    false,
+                    "Runtime enforcement not required"));
+
+        await service.HandleAsync(
+            CreateAttempt());
+
+        Assert.Null(
+            moduleRegistry.LastState);
+
+        Assert.DoesNotContain(
+            audit.Entries,
+            entry =>
+                entry.Title ==
+                "Blocked algorithm process terminated");
+
+        Assert.DoesNotContain(
+            audit.Entries,
+            entry =>
+                entry.Title ==
+                "Blocked algorithm process termination failed");
+
+        Assert.Contains(
+            audit.Entries,
+            entry =>
+                entry.Title ==
+                "Algorithm matched block rule");
+    }
+
+    [Fact]
+    public async Task Runtime_termination_success_does_not_degrade_module()
+    {
+        var moduleRegistry =
+            new FakeModuleRegistry();
+
+        var audit =
+            new FakeAuditService();
+
+        var settings =
+            new FakeSettingsService(
+                new AlgorithmGuardSettings(
+                    true,
+                    AlgorithmGuardMode.Enforce,
+                    EnforcementFailurePolicy.FailClosed));
+
+        var service =
+            CreateService(
+                settings,
+                moduleRegistry,
+                audit,
+                new AlgorithmRuntimeEnforcementResult(
+                    true,
+                    true,
+                    "Terminated"));
+
+        await service.HandleAsync(
+            CreateAttempt());
+
+        Assert.Null(
+            moduleRegistry.LastState);
+
+        Assert.Contains(
+            audit.Entries,
+            entry =>
+                entry.Severity ==
+                    SecuritySeverity.High &&
+                entry.Title ==
+                    "Blocked algorithm process terminated");
+
+        Assert.DoesNotContain(
+            audit.Entries,
+            entry =>
+                entry.Title ==
+                "Blocked algorithm process termination failed");
+    }
+
     private static AlgorithmPolicyService CreateService(
         IAlgorithmGuardSettingsService settingsService,
         IModuleRegistry moduleRegistry,
-        IAuditService auditService)
+        IAuditService auditService,
+        AlgorithmRuntimeEnforcementResult? runtimeResult = null)
     {
         return new AlgorithmPolicyService(
             new AlgorithmObservationService(
@@ -103,7 +202,12 @@ public sealed class AlgorithmPolicyServiceTests
             new AlgorithmRuleContextFactory(),
             new FakeTemporaryDecisionStore(),
             new FakeRuleEngine(),
-            new FakeRuntimeEnforcer(),
+            new FakeRuntimeEnforcer(
+                runtimeResult ??
+                new AlgorithmRuntimeEnforcementResult(
+                    true,
+                    false,
+                    "Termination failed")),
             settingsService,
             moduleRegistry,
             new FakeDecisionRequestRepository(),
@@ -130,15 +234,21 @@ public sealed class AlgorithmPolicyServiceTests
     private sealed class FakeRuntimeEnforcer
         : IAlgorithmRuntimeEnforcer
     {
+        private readonly AlgorithmRuntimeEnforcementResult _result;
+
+        public FakeRuntimeEnforcer(
+            AlgorithmRuntimeEnforcementResult result)
+        {
+            _result =
+                result;
+        }
+
         public Task<AlgorithmRuntimeEnforcementResult> EnforceAsync(
             AlgorithmExecutionAttempt attempt,
             CancellationToken cancellationToken = default)
         {
             return Task.FromResult(
-                new AlgorithmRuntimeEnforcementResult(
-                    true,
-                    false,
-                    "Termination failed"));
+                _result);
         }
     }
 
