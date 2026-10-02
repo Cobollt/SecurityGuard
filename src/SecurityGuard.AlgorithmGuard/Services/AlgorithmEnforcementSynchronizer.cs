@@ -53,7 +53,7 @@ public sealed class AlgorithmEnforcementSynchronizer : IAlgorithmEnforcementSync
         catch (Exception exception)
         {
             warnings.Add(
-                $"AppLocker inspection failed: {exception.Message}");
+                $"Enforcement inspection failed: {exception.Message}");
 
             await WriteResultAsync(
                 false,
@@ -112,7 +112,7 @@ public sealed class AlgorithmEnforcementSynchronizer : IAlgorithmEnforcementSync
             catch (Exception exception)
             {
                 warnings.Add(
-                    $"Unable to remove stale AppLocker rule {staleId}: {exception.Message}");
+                    $"Unable to remove stale enforcement rule {staleId}: {exception.Message}");
             }
         }
 
@@ -172,13 +172,13 @@ public sealed class AlgorithmEnforcementSynchronizer : IAlgorithmEnforcementSync
                 else
                 {
                     warnings.Add(
-                        $"Unable to restore AppLocker rule {rule.Id}: {result.Message}");
+                        $"Unable to restore enforcement rule {rule.Id}: {result.Message}");
                 }
             }
             catch (Exception exception)
             {
                 warnings.Add(
-                    $"Unable to restore AppLocker rule {rule.Id}: {exception.Message}");
+                    $"Unable to restore enforcement rule {rule.Id}: {exception.Message}");
             }
         }
 
@@ -193,7 +193,7 @@ public sealed class AlgorithmEnforcementSynchronizer : IAlgorithmEnforcementSync
         catch (Exception exception)
         {
             warnings.Add(
-                $"Final AppLocker inspection failed: {exception.Message}");
+                $"Final enforcement inspection failed: {exception.Message}");
 
             await WriteResultAsync(
                 false,
@@ -230,7 +230,7 @@ public sealed class AlgorithmEnforcementSynchronizer : IAlgorithmEnforcementSync
                     rule.Id))
             {
                 warnings.Add(
-                    $"Rule {rule.Id} is missing from local AppLocker policy.");
+                    $"Rule {rule.Id} is missing from local enforcement state.");
 
                 continue;
             }
@@ -239,7 +239,7 @@ public sealed class AlgorithmEnforcementSynchronizer : IAlgorithmEnforcementSync
                     rule.Id))
             {
                 warnings.Add(
-                    $"Rule {rule.Id} is not present in effective AppLocker policy.");
+                    $"Rule {rule.Id} is not present in effective enforcement state.");
             }
         }
 
@@ -247,7 +247,7 @@ public sealed class AlgorithmEnforcementSynchronizer : IAlgorithmEnforcementSync
             finalSnapshot.UnmanagedScriptRulesPresent)
         {
             warnings.Add(
-                "SecurityGuard baseline and unmanaged local Script rules coexist.");
+                "SecurityGuard baseline and unmanaged local script rules coexist.");
         }
 
         var healthy =
@@ -282,7 +282,7 @@ public sealed class AlgorithmEnforcementSynchronizer : IAlgorithmEnforcementSync
 
         var details =
             healthy
-                ? "SQLite rules and AppLocker enforcement are synchronized."
+                ? "SQLite rules and local enforcement state are synchronized."
                 : string.Join(
                     Environment.NewLine,
                     warnings);
@@ -307,7 +307,7 @@ public sealed class AlgorithmEnforcementSynchronizer : IAlgorithmEnforcementSync
             0;
 
         foreach (var ruleId in
-                snapshot.LocalManagedRuleIds)
+                 snapshot.LocalManagedRuleIds)
         {
             await _enforcementService.RemoveBlockAsync(
                 ruleId,
@@ -323,7 +323,7 @@ public sealed class AlgorithmEnforcementSynchronizer : IAlgorithmEnforcementSync
                 SecurityEventType.System,
                 SecuritySeverity.Info,
                 "AlgorithmGuard enforcement disabled",
-                $"Removed managed AppLocker rules: {removed}",
+                $"Removed managed enforcement rules: {removed}",
                 cancellationToken: cancellationToken);
         }
 
