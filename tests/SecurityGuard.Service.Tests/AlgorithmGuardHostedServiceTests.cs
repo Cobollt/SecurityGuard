@@ -189,6 +189,10 @@ public sealed class AlgorithmGuardHostedServiceTests
             new(
                 TaskCreationOptions.RunContinuationsAsynchronously);
 
+        public TaskCompletionSource<bool> Stopped { get; } =
+            new(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+
         public async Task RunAsync(
             CancellationToken cancellationToken = default)
         {
@@ -197,9 +201,17 @@ public sealed class AlgorithmGuardHostedServiceTests
             Started.TrySetResult(
                 true);
 
-            await Task.Delay(
-                Timeout.InfiniteTimeSpan,
-                cancellationToken);
+            try
+            {
+                await Task.Delay(
+                    Timeout.InfiniteTimeSpan,
+                    cancellationToken);
+            }
+            finally
+            {
+                Stopped.TrySetResult(
+                    true);
+            }
         }
     }
 
@@ -497,5 +509,148 @@ public sealed class AlgorithmGuardHostedServiceTests
         Assert.Equal(
             "AlgorithmGuard fail-closed",
             audit.LastTitle);
+    }
+
+    [Fact]
+    public async Task Enforcement_failure_with_fail_open_keeps_monitor_running()
+    {
+        var monitor =
+            new FakeAlgorithmGuardMonitor();
+
+        var settings =
+            new AlgorithmGuardSettings(
+                true,
+                AlgorithmGuardMode.Enforce,
+                EnforcementFailurePolicy.FailOpen);
+
+        var registry =
+            new FakeModuleRegistry();
+
+        var audit =
+            new FakeAuditService();
+
+        var service =
+            new AlgorithmGuardHostedService(
+                monitor,
+                new FakeAlgorithmEnforcementSynchronizer(),
+                new FakeAppLockerHealthService(
+                    CreateManagementUnavailableHealth()),
+                new FakeAlgorithmGuardSettingsService(
+                    settings),
+                registry,
+                audit);
+
+        await service.ApplyAsync(
+            settings);
+
+        await monitor.Started.Task.WaitAsync(
+            TimeSpan.FromSeconds(2));
+
+        try
+        {
+            await service.ReportEnforcementFailureAsync(
+                "Runtime enforcement failed");
+
+            Assert.Equal(
+                1,
+                monitor.RunCalls);
+
+            Assert.False(
+                monitor.Stopped.Task.IsCompleted);
+
+            Assert.Equal(
+                ModuleOperationalState.Degraded,
+                registry.LastState);
+
+            Assert.Equal(
+                "Enforcement failure; monitoring remains active",
+                registry.LastMessage);
+
+            Assert.Equal(
+                SecuritySeverity.Critical,
+                audit.LastSeverity);
+
+            Assert.Equal(
+                "AlgorithmGuard enforcement failure",
+                audit.LastTitle);
+
+            Assert.Equal(
+                "Runtime enforcement failed",
+                audit.LastDetails);
+        }
+        finally
+        {
+            await service.ApplyAsync(
+                new AlgorithmGuardSettings(
+                    false,
+                    AlgorithmGuardMode.Monitor,
+                    EnforcementFailurePolicy.FailOpen));
+        }
+    }
+
+    [Fact]
+    public async Task Enforcement_failure_with_fail_closed_stops_monitor_and_faults_module()
+    {
+        var monitor =
+            new FakeAlgorithmGuardMonitor();
+
+        var settings =
+            new AlgorithmGuardSettings(
+                true,
+                AlgorithmGuardMode.Enforce,
+                EnforcementFailurePolicy.FailClosed);
+
+        var registry =
+            new FakeModuleRegistry();
+
+        var audit =
+            new FakeAuditService();
+
+        var service =
+            new AlgorithmGuardHostedService(
+                monitor,
+                new FakeAlgorithmEnforcementSynchronizer(),
+                new FakeAppLockerHealthService(
+                    CreateManagementUnavailableHealth()),
+                new FakeAlgorithmGuardSettingsService(
+                    settings),
+                registry,
+                audit);
+
+        await service.ApplyAsync(
+            settings);
+
+        await monitor.Started.Task.WaitAsync(
+            TimeSpan.FromSeconds(2));
+
+        await service.ReportEnforcementFailureAsync(
+            "Runtime enforcement failed");
+
+        await monitor.Stopped.Task.WaitAsync(
+            TimeSpan.FromSeconds(2));
+
+        Assert.Equal(
+            1,
+            monitor.RunCalls);
+
+        Assert.Equal(
+            ModuleOperationalState.Faulted,
+            registry.LastState);
+
+        Assert.Equal(
+            "Enforcement failure",
+            registry.LastMessage);
+
+        Assert.Equal(
+            SecuritySeverity.Critical,
+            audit.LastSeverity);
+
+        Assert.Equal(
+            "AlgorithmGuard enforcement failure",
+            audit.LastTitle);
+
+        Assert.Equal(
+            "Runtime enforcement failed",
+            audit.LastDetails);
     }
 }
