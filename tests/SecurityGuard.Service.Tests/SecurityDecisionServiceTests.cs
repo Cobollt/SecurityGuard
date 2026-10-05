@@ -1,4 +1,5 @@
 using SecurityGuard.Core.Enums;
+using SecurityGuard.Core.Contracts;
 using SecurityGuard.Core.Models;
 using SecurityGuard.Infrastructure.Audit;
 using SecurityGuard.Service.Application;
@@ -500,5 +501,266 @@ public sealed class SecurityDecisionServiceTests
                 TransferActivityKind:
                     "NetworkConnection"),
             identity);
+    }
+
+    [Fact]
+    public async Task Concurrent_decisions_for_same_request_are_handled_once()
+    {
+        await using var environment =
+            await TestEnvironment.CreateAsync();
+
+        var initializer =
+            new DatabaseInitializer(
+                environment.ConnectionFactory);
+
+        await initializer.InitializeAsync();
+
+        var eventRepository =
+            new SqliteSecurityEventRepository(
+                environment.ConnectionFactory);
+
+        var request =
+            new SecurityDecisionRequest(
+                Guid.NewGuid(),
+                SecurityModuleKind.AlgorithmGuard,
+                SecurityEventType.AlgorithmExecution,
+                "Concurrent",
+                "Concurrent",
+                null,
+                "powershell.exe",
+                [
+                    SecurityAction.AllowOnce
+                ],
+                DateTimeOffset.UtcNow);
+
+        var requestRepository =
+            new SingleDecisionRequestRepository(
+                request);
+
+        var handler =
+            new BlockingSecurityDecisionHandler();
+
+        var service =
+            new SecurityDecisionService(
+                requestRepository,
+                [handler],
+                new AuditService(
+                    eventRepository));
+
+        var decision =
+            new SecurityDecision(
+                request.Id,
+                SecurityAction.AllowOnce,
+                false,
+                DateTimeOffset.UtcNow);
+
+        var firstTask =
+            service.ApplyAsync(
+                decision);
+
+        Assert.Equal(
+            1,
+            handler.CallCount);
+
+        var secondTask =
+            service.ApplyAsync(
+                decision);
+
+        var callsBeforeRelease =
+            handler.CallCount;
+
+        handler.ReleaseFirst();
+
+        Exception? secondException =
+            null;
+
+        await firstTask;
+
+        try
+        {
+            await secondTask;
+        }
+        catch (Exception exception)
+        {
+            secondException =
+                exception;
+        }
+
+        Assert.Equal(
+            1,
+            callsBeforeRelease);
+
+        Assert.IsType<InvalidOperationException>(
+            secondException);
+
+        Assert.Equal(
+            1,
+            handler.CallCount);
+    }
+
+    private sealed class SingleDecisionRequestRepository
+        : IDecisionRequestRepository
+    {
+        private readonly object _sync =
+            new();
+
+        private SecurityDecisionRequest? _request;
+
+        public SingleDecisionRequestRepository(
+            SecurityDecisionRequest request)
+        {
+            _request =
+                request;
+        }
+
+        public Task AddAsync(
+            SecurityDecisionRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            lock (_sync)
+            {
+                _request =
+                    request;
+            }
+
+            return Task.CompletedTask;
+        }
+
+        public Task<bool> TryAddAsync(
+            SecurityDecisionRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            lock (_sync)
+            {
+                if (_request is not null)
+                {
+                    return Task.FromResult(
+                        false);
+                }
+
+                _request =
+                    request;
+
+                return Task.FromResult(
+                    true);
+            }
+        }
+
+        public Task<IReadOnlyList<SecurityDecisionRequest>> GetPendingAsync(
+            CancellationToken cancellationToken = default)
+        {
+            lock (_sync)
+            {
+                IReadOnlyList<SecurityDecisionRequest> result =
+                    _request is null
+                        ? []
+                        : [_request];
+
+                return Task.FromResult(
+                    result);
+            }
+        }
+
+        public Task<SecurityDecisionRequest?> GetByIdAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            lock (_sync)
+            {
+                return Task.FromResult(
+                    _request?.Id == id
+                        ? _request
+                        : null);
+            }
+        }
+
+        public Task<SecurityDecisionRequest?> GetByIdentityAsync(
+            string identity,
+            CancellationToken cancellationToken = default)
+        {
+            lock (_sync)
+            {
+                return Task.FromResult(
+                    string.Equals(
+                        _request?.Identity,
+                        identity,
+                        StringComparison.Ordinal)
+                        ? _request
+                        : null);
+            }
+        }
+
+        public Task<int> RemoveOlderThanAsync(
+            DateTimeOffset cutoffUtc,
+            CancellationToken cancellationToken = default)
+        {
+            lock (_sync)
+            {
+                if (_request is null ||
+                    _request.CreatedAtUtc >= cutoffUtc)
+                {
+                    return Task.FromResult(
+                        0);
+                }
+
+                _request =
+                    null;
+
+                return Task.FromResult(
+                    1);
+            }
+        }
+
+        public Task RemoveAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            lock (_sync)
+            {
+                if (_request?.Id == id)
+                {
+                    _request =
+                        null;
+                }
+            }
+
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class BlockingSecurityDecisionHandler
+        : ISecurityDecisionHandler
+    {
+        private readonly TaskCompletionSource _releaseFirst =
+            new(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+
+        private int _callCount;
+
+        public SecurityModuleKind Module =>
+            SecurityModuleKind.AlgorithmGuard;
+
+        public int CallCount =>
+            Volatile.Read(
+                ref _callCount);
+
+        public Task HandleAsync(
+            SecurityDecisionRequest request,
+            SecurityDecision decision,
+            CancellationToken cancellationToken = default)
+        {
+            var call =
+                Interlocked.Increment(
+                    ref _callCount);
+
+            return call == 1
+                ? _releaseFirst.Task
+                : Task.CompletedTask;
+        }
+
+        public void ReleaseFirst()
+        {
+            _releaseFirst.TrySetResult();
+        }
     }
 }

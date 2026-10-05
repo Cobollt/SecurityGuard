@@ -15,6 +15,11 @@ public sealed class SecurityDecisionService
 
     private readonly IAuditService _auditService;
 
+    private readonly SemaphoreSlim _applyGate =
+    new(
+        1,
+        1);
+
     public SecurityDecisionService(
         IDecisionRequestRepository requestRepository,
         IEnumerable<ISecurityDecisionHandler> handlers,
@@ -39,60 +44,70 @@ public sealed class SecurityDecisionService
         ArgumentNullException.ThrowIfNull(
             decision);
 
-        var request =
-            await _requestRepository.GetByIdAsync(
-                decision.RequestId,
-                cancellationToken);
-
-        if (request is null)
-        {
-            throw new InvalidOperationException(
-                $"Decision request '{decision.RequestId}' was not found.");
-        }
-
-        if (!request.AvailableActions.Contains(
-                decision.Action))
-        {
-            throw new InvalidOperationException(
-                $"Action '{decision.Action}' is not allowed for this request.");
-        }
-
-        if (!_handlers.TryGetValue(
-                request.Module,
-                out var handler))
-        {
-            throw new InvalidOperationException(
-                $"No decision handler is registered for module '{request.Module}'.");
-        }
-
-        await handler.HandleAsync(
-            request,
-            decision,
+        await _applyGate.WaitAsync(
             cancellationToken);
 
-        if (decision.Action ==
-                SecurityAction.AllowApplication ||
-            decision.Action ==
-                SecurityAction.BlockApplication)
+        try
         {
-            await RemoveApplicationPendingRequestsAsync(
+            var request =
+                await _requestRepository.GetByIdAsync(
+                    decision.RequestId,
+                    cancellationToken);
+
+            if (request is null)
+            {
+                throw new InvalidOperationException(
+                    $"Decision request '{decision.RequestId}' was not found.");
+            }
+
+            if (!request.AvailableActions.Contains(
+                    decision.Action))
+            {
+                throw new InvalidOperationException(
+                    $"Action '{decision.Action}' is not allowed for this request.");
+            }
+
+            if (!_handlers.TryGetValue(
+                    request.Module,
+                    out var handler))
+            {
+                throw new InvalidOperationException(
+                    $"No decision handler is registered for module '{request.Module}'.");
+            }
+
+            await handler.HandleAsync(
                 request,
+                decision,
                 cancellationToken);
+
+            if (decision.Action ==
+                    SecurityAction.AllowApplication ||
+                decision.Action ==
+                    SecurityAction.BlockApplication)
+            {
+                await RemoveApplicationPendingRequestsAsync(
+                    request,
+                    cancellationToken);
+            }
+
+            await _requestRepository.RemoveAsync(
+                request.Id,
+                cancellationToken);
+
+            await _auditService.WriteAsync(
+                request.Module,
+                SecurityEventType.Audit,
+                SecuritySeverity.Info,
+                "Security decision applied",
+                $"{request.Title}: {decision.Action}",
+                decision.Action,
+                cancellationToken:
+                    cancellationToken);
         }
-
-        await _requestRepository.RemoveAsync(
-            request.Id,
-            cancellationToken);
-
-        await _auditService.WriteAsync(
-            request.Module,
-            SecurityEventType.Audit,
-            SecuritySeverity.Info,
-            "Security decision applied",
-            $"{request.Title}: {decision.Action}",
-            decision.Action,
-            cancellationToken:
-                cancellationToken);
+        finally
+        {
+            _applyGate.Release();
+        }
     }
 
     private async Task RemoveApplicationPendingRequestsAsync(
