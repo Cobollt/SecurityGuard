@@ -190,6 +190,21 @@ public sealed class ArchiveGuardDecisionExecutorTests
         }
     }
 
+    private sealed class ThrowingAuditSink
+        : IArchiveGuardAuditSink
+    {
+        public Task WriteAsync(
+            SecurityEventType eventType,
+            SecuritySeverity severity,
+            string title,
+            string details,
+            CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException(
+                "Simulated audit failure.");
+        }
+    }
+
     private sealed class FakeAuditSink
         : IArchiveGuardAuditSink
     {
@@ -674,6 +689,44 @@ public sealed class ArchiveGuardDecisionExecutorTests
             result.Success);
 
         Assert.NotNull(
+            await repository.GetByIdAsync(
+                request.Id));
+    }
+
+    [Fact]
+    public async Task Audit_failure_does_not_fail_completed_delete()
+    {
+        var request =
+            CreateRequest();
+
+        var repository =
+            new FakeDecisionRepository(
+                request);
+
+        var actions =
+            new FakeFileActions();
+
+        var executor =
+            new ArchiveGuardDecisionExecutor(
+                repository,
+                actions,
+                new FakeExceptionService(),
+                new ThrowingAuditSink(),
+                new FakeQuarantineRepository());
+
+        var result =
+            await executor.ExecuteAsync(
+                request.Id,
+                SecurityAction.Delete);
+
+        Assert.True(
+            result.Success);
+
+        Assert.Equal(
+            request.FilePath,
+            actions.DeletedFile);
+
+        Assert.Null(
             await repository.GetByIdAsync(
                 request.Id));
     }

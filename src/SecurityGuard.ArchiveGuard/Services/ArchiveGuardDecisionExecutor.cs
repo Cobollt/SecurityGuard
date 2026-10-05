@@ -95,7 +95,7 @@ public sealed class ArchiveGuardDecisionExecutor
                 request.Id,
                 cancellationToken);
 
-            await _audit.WriteAsync(
+            await WriteAuditSafelyAsync(
                 SecurityEventType.ArchiveScan,
                 GetSeverity(
                     action),
@@ -115,7 +115,7 @@ public sealed class ArchiveGuardDecisionExecutor
         }
         catch (Exception exception)
         {
-            await _audit.WriteAsync(
+            await WriteAuditSafelyAsync(
                 SecurityEventType.ArchiveScan,
                 SecuritySeverity.High,
                 "ArchiveGuard decision failed",
@@ -126,6 +126,32 @@ public sealed class ArchiveGuardDecisionExecutor
                 false,
                 action,
                 exception.Message);
+        }
+    }
+
+    private async Task WriteAuditSafelyAsync(
+        SecurityEventType eventType,
+        SecuritySeverity severity,
+        string title,
+        string details,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _audit.WriteAsync(
+                eventType,
+                severity,
+                title,
+                details,
+                cancellationToken);
+        }
+        catch (OperationCanceledException)
+            when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
         }
     }
 
