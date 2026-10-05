@@ -13,12 +13,14 @@ public sealed class ArchiveGuardDecisionExecutor
     private readonly IArchiveGuardFileActionService _fileActions;
     private readonly IArchiveGuardExceptionService _exceptionService;
     private readonly IArchiveGuardAuditSink _audit;
+    private readonly IQuarantineRepository _quarantineRepository;
 
     public ArchiveGuardDecisionExecutor(
         IDecisionRequestRepository decisionRepository,
         IArchiveGuardFileActionService fileActions,
         IArchiveGuardExceptionService exceptionService,
-        IArchiveGuardAuditSink audit)
+        IArchiveGuardAuditSink audit,
+        IQuarantineRepository quarantineRepository)
     {
         _decisionRepository =
             decisionRepository;
@@ -31,6 +33,9 @@ public sealed class ArchiveGuardDecisionExecutor
 
         _audit =
             audit;
+
+        _quarantineRepository =
+            quarantineRepository;
     }
 
     public async Task<ArchiveGuardDecisionExecutionResult> ExecuteAsync(
@@ -86,7 +91,7 @@ public sealed class ArchiveGuardDecisionExecutor
                     action,
                     cancellationToken);
 
-            await _decisionRepository.RemoveAsync(
+            await RemoveDecisionRequestAsync(
                 request.Id,
                 cancellationToken);
 
@@ -124,6 +129,40 @@ public sealed class ArchiveGuardDecisionExecutor
         }
     }
 
+    private async Task RemoveDecisionRequestAsync(
+        Guid requestId,
+        CancellationToken cancellationToken)
+    {
+        var retryCount =
+            0;
+
+        while (true)
+        {
+            try
+            {
+                await _decisionRepository.RemoveAsync(
+                    requestId,
+                    cancellationToken);
+
+                return;
+            }
+            catch (OperationCanceledException)
+                when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch when (retryCount < 2)
+            {
+                retryCount++;
+
+                await Task.Delay(
+                    TimeSpan.FromMilliseconds(
+                        50 * retryCount),
+                    cancellationToken);
+            }
+        }
+    }
+
     private async Task<string> ExecuteActionAsync(
         SecurityDecisionRequest request,
         SecurityAction action,
@@ -150,6 +189,13 @@ public sealed class ArchiveGuardDecisionExecutor
                 return "File was kept and a SHA-256 exception was added.";
 
             case SecurityAction.Quarantine:
+                if (await IsAlreadyQuarantinedAsync(
+                        request,
+                        cancellationToken))
+                {
+                    return "File was already moved to quarantine.";
+                }
+
                 await _fileActions.QuarantineAsync(
                     request.FilePath!,
                     BuildQuarantineReason(
@@ -169,6 +215,61 @@ public sealed class ArchiveGuardDecisionExecutor
                 throw new InvalidOperationException(
                     $"Unsupported ArchiveGuard action: {action}.");
         }
+    }
+
+    private async Task<bool> IsAlreadyQuarantinedAsync(
+        SecurityDecisionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var filePath =
+            Path.GetFullPath(
+                request.FilePath!);
+
+        if (File.Exists(
+                filePath))
+        {
+            return false;
+        }
+
+        var sha256 =
+            request.RuleContext?.FileHash;
+
+        if (string.IsNullOrWhiteSpace(
+                sha256))
+        {
+            return false;
+        }
+
+        var reason =
+            BuildQuarantineReason(
+                request);
+
+        var records =
+            await _quarantineRepository.GetAllAsync(
+                cancellationToken);
+
+        return records.Any(
+            record =>
+                string.Equals(
+                    record.OriginalPath,
+                    filePath,
+                    StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(
+                    record.Sha256,
+                    sha256,
+                    StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(
+                    record.SourceModule,
+                    SecurityModuleKind.ArchiveGuard.ToString(),
+                    StringComparison.Ordinal) &&
+                string.Equals(
+                    record.Reason,
+                    reason,
+                    StringComparison.Ordinal) &&
+                record.QuarantinedAtUtc >=
+                    request.CreatedAtUtc &&
+                File.Exists(
+                    record.StoredPath));
     }
 
     private async Task AddExceptionAsync(

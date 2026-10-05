@@ -137,14 +137,20 @@ public sealed class QuarantineManager
                 throw;
             }
 
-            await _auditService.WriteAsync(
-                sourceModule,
-                SecurityEventType.Quarantine,
-                SecuritySeverity.High,
-                "File quarantined",
-                $"{sourcePath} -> {storedPath}",
-                SecurityAction.Quarantine,
-                cancellationToken: cancellationToken);
+            try
+            {
+                await _auditService.WriteAsync(
+                    sourceModule,
+                    SecurityEventType.Quarantine,
+                    SecuritySeverity.High,
+                    "File quarantined",
+                    $"{sourcePath} -> {storedPath}",
+                    SecurityAction.Quarantine,
+                    cancellationToken: cancellationToken);
+            }
+            catch
+            {
+            }
 
             return record;
         }

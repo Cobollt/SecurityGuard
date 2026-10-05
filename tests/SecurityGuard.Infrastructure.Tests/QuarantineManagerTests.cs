@@ -3,6 +3,7 @@ using SecurityGuard.Infrastructure.Audit;
 using SecurityGuard.Infrastructure.Hashing;
 using SecurityGuard.Infrastructure.Quarantine;
 using SecurityGuard.Storage.Repositories;
+using SecurityGuard.Core.Contracts;
 
 namespace SecurityGuard.Infrastructure.Tests;
 
@@ -177,5 +178,69 @@ public sealed class QuarantineManagerTests
                 record.Id);
 
         Assert.Null(stored);
+    }
+
+    [Fact]
+    public async Task Audit_failure_does_not_fail_completed_quarantine()
+    {
+        await using var environment =
+            await TestEnvironment.CreateAsync();
+
+        var quarantineRepository =
+            new SqliteQuarantineRepository(
+                environment.ConnectionFactory);
+
+        var manager =
+            new QuarantineManager(
+                environment.Paths,
+                new Sha256FileHashService(),
+                quarantineRepository,
+                new ThrowingAuditService(),
+                new NoOpFileAccessProtectionService());
+
+        var source =
+            Path.Combine(
+                environment.RootDirectory,
+                "audit-failure.ps1");
+
+        await File.WriteAllTextAsync(
+            source,
+            "Write-Host audit");
+
+        var record =
+            await manager.QuarantineAsync(
+                source,
+                SecurityModuleKind.AlgorithmGuard,
+                "Test");
+
+        Assert.False(
+            File.Exists(
+                source));
+
+        Assert.True(
+            File.Exists(
+                record.StoredPath));
+
+        Assert.NotNull(
+            await quarantineRepository.GetByIdAsync(
+                record.Id));
+    }
+
+    private sealed class ThrowingAuditService
+        : IAuditService
+    {
+        public Task WriteAsync(
+            SecurityModuleKind module,
+            SecurityEventType type,
+            SecuritySeverity severity,
+            string title,
+            string details,
+            SecurityAction action = SecurityAction.None,
+            Guid? correlationId = null,
+            CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException(
+                "Simulated audit failure.");
+        }
     }
 }

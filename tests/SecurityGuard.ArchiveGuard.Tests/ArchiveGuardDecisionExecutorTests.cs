@@ -27,7 +27,8 @@ public sealed class ArchiveGuardDecisionExecutorTests
                 repository,
                 actions,
                 new FakeExceptionService(),
-                new FakeAuditSink());
+                new FakeAuditSink(),
+                new FakeQuarantineRepository());
 
         var result =
             await executor.ExecuteAsync(
@@ -64,7 +65,8 @@ public sealed class ArchiveGuardDecisionExecutorTests
                 repository,
                 actions,
                 new FakeExceptionService(),
-                new FakeAuditSink());
+                new FakeAuditSink(),
+                new FakeQuarantineRepository());
 
         var result =
             await executor.ExecuteAsync(
@@ -97,7 +99,8 @@ public sealed class ArchiveGuardDecisionExecutorTests
                 repository,
                 actions,
                 new FakeExceptionService(),
-                new FakeAuditSink());
+                new FakeAuditSink(),
+                new FakeQuarantineRepository());
 
         var result =
             await executor.ExecuteAsync(
@@ -150,6 +153,8 @@ public sealed class ArchiveGuardDecisionExecutorTests
 
         public string? QuarantinedFile { get; private set; }
 
+        public int QuarantineCallCount { get; private set; }
+
         public string? DeletedFile { get; private set; }
 
         public Task KeepAsync(
@@ -167,6 +172,7 @@ public sealed class ArchiveGuardDecisionExecutorTests
             string reason,
             CancellationToken cancellationToken = default)
         {
+            QuarantineCallCount++;
             QuarantinedFile =
                 filePath;
 
@@ -201,13 +207,21 @@ public sealed class ArchiveGuardDecisionExecutorTests
     private sealed class FakeDecisionRepository
         : IDecisionRequestRepository
     {
+        private int _remainingRemoveFailures;
+
+        public int RemoveCallCount { get; private set; }
+
         private SecurityDecisionRequest? _request;
 
         public FakeDecisionRepository(
-            SecurityDecisionRequest request)
+            SecurityDecisionRequest request,
+            int removeFailures = 0)
         {
             _request =
                 request;
+
+            _remainingRemoveFailures =
+                removeFailures;
         }
 
         public Task AddAsync(
@@ -323,12 +337,96 @@ public sealed class ArchiveGuardDecisionExecutorTests
         {
             cancellationToken.ThrowIfCancellationRequested();
 
+            RemoveCallCount++;
+
+            if (_remainingRemoveFailures > 0)
+            {
+                _remainingRemoveFailures--;
+
+                throw new InvalidOperationException(
+                    "Simulated decision cleanup failure.");
+            }
+
             if (_request?.Id ==
                 id)
             {
                 _request =
                     null;
             }
+
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeQuarantineRepository
+        : IQuarantineRepository
+    {
+        private readonly List<QuarantineRecord> _records =
+            [];
+
+        public void Add(
+            QuarantineRecord record)
+        {
+            _records.Add(
+                record);
+        }
+
+        public Task AddAsync(
+            QuarantineRecord record,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            _records.Add(
+                record);
+
+            return Task.CompletedTask;
+        }
+
+        public Task<IReadOnlyList<QuarantineRecord>> GetAllAsync(
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            IReadOnlyList<QuarantineRecord> result =
+                _records.ToArray();
+
+            return Task.FromResult(
+                result);
+        }
+
+        public Task<QuarantineRecord?> GetByIdAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return Task.FromResult(
+                _records.FirstOrDefault(
+                    record =>
+                        record.Id ==
+                        id));
+        }
+
+        public Task<int> CountAsync(
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return Task.FromResult(
+                _records.Count);
+        }
+
+        public Task DeleteAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            _records.RemoveAll(
+                record =>
+                    record.Id ==
+                    id);
 
             return Task.CompletedTask;
         }
@@ -352,6 +450,143 @@ public sealed class ArchiveGuardDecisionExecutorTests
     }
 
     [Fact]
+    public async Task Persistent_cleanup_failure_does_not_repeat_quarantine()
+    {
+        var request =
+            CreateRequest();
+
+        var repository =
+            new FakeDecisionRepository(
+                request,
+                removeFailures:
+                    3);
+
+        var actions =
+            new FakeFileActions();
+
+        var quarantineRepository =
+            new FakeQuarantineRepository();
+
+        var executor =
+            new ArchiveGuardDecisionExecutor(
+                repository,
+                actions,
+                new FakeExceptionService(),
+                new FakeAuditSink(),
+                quarantineRepository);
+
+        var firstResult =
+            await executor.ExecuteAsync(
+                request.Id,
+                SecurityAction.Quarantine);
+
+        Assert.False(
+            firstResult.Success);
+
+        Assert.Equal(
+            1,
+            actions.QuarantineCallCount);
+
+        Assert.Equal(
+            3,
+            repository.RemoveCallCount);
+
+        Assert.NotNull(
+            await repository.GetByIdAsync(
+                request.Id));
+
+        var storedPath =
+            Path.GetTempFileName();
+
+        try
+        {
+            quarantineRepository.Add(
+                new QuarantineRecord(
+                    Guid.NewGuid(),
+                    Path.GetFullPath(
+                        request.FilePath!),
+                    storedPath,
+                    Path.GetFileName(
+                        request.FilePath!),
+                    request.RuleContext!.FileHash!,
+                    1,
+                    SecurityModuleKind.ArchiveGuard.ToString(),
+                    $"ArchiveGuard decision {request.Id}: {request.Title}",
+                    request.CreatedAtUtc.AddMilliseconds(
+                        1)));
+
+            var secondResult =
+                await executor.ExecuteAsync(
+                    request.Id,
+                    SecurityAction.Quarantine);
+
+            Assert.True(
+                secondResult.Success);
+
+            Assert.Equal(
+                1,
+                actions.QuarantineCallCount);
+
+            Assert.Equal(
+                4,
+                repository.RemoveCallCount);
+
+            Assert.Null(
+                await repository.GetByIdAsync(
+                    request.Id));
+        }
+        finally
+        {
+            if (File.Exists(
+                    storedPath))
+            {
+                File.Delete(
+                    storedPath);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Cleanup_failure_does_not_repeat_successful_quarantine()
+    {
+        var request =
+            CreateRequest();
+
+        var repository =
+            new FakeDecisionRepository(
+                request,
+                removeFailures:
+                    1);
+
+        var actions =
+            new FakeFileActions();
+
+        var executor =
+            new ArchiveGuardDecisionExecutor(
+                repository,
+                actions,
+                new FakeExceptionService(),
+                new FakeAuditSink(),
+                new FakeQuarantineRepository());
+
+        await executor.ExecuteAsync(
+            request.Id,
+            SecurityAction.Quarantine);
+
+        Assert.Equal(
+            1,
+            actions.QuarantineCallCount);
+
+        await executor.ExecuteAsync(
+            request.Id,
+            SecurityAction.Quarantine);
+
+        Assert.Equal(
+            1,
+            actions.QuarantineCallCount);
+    }
+
+    [Fact]
     public async Task Allow_action_creates_sha256_exception()
     {
         var request =
@@ -372,7 +607,8 @@ public sealed class ArchiveGuardDecisionExecutorTests
                 repository,
                 actions,
                 exceptions,
-                new FakeAuditSink());
+                new FakeAuditSink(),
+                new FakeQuarantineRepository());
 
         var result =
             await executor.ExecuteAsync(
@@ -426,7 +662,8 @@ public sealed class ArchiveGuardDecisionExecutorTests
                 repository,
                 new FakeFileActions(),
                 new FakeExceptionService(),
-                new FakeAuditSink());
+                new FakeAuditSink(),
+                new FakeQuarantineRepository());
 
         var result =
             await executor.ExecuteAsync(
