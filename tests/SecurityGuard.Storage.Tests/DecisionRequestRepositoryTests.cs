@@ -355,4 +355,89 @@ public sealed class DecisionRequestRepositoryTests
             "ALG:REUSED",
             stored.Identity);
     }
+
+    [Fact]
+    public async Task Concurrent_duplicate_identity_adds_only_one_request()
+    {
+        await using var database =
+            await TestDatabase.CreateAsync();
+
+        var repository =
+            new SqliteDecisionRequestRepository(
+                database.ConnectionFactory);
+
+        var first =
+            new SecurityDecisionRequest(
+                Guid.NewGuid(),
+                SecurityModuleKind.AlgorithmGuard,
+                SecurityEventType.AlgorithmExecution,
+                "First",
+                "First",
+                null,
+                "powershell.exe",
+                [
+                    SecurityAction.AllowOnce
+                ],
+                DateTimeOffset.UtcNow,
+                null,
+                "ALG:CONCURRENT");
+
+        var second =
+            first with
+            {
+                Id =
+                    Guid.NewGuid(),
+
+                Title =
+                    "Second",
+
+                Description =
+                    "Second"
+            };
+
+        var start =
+            new TaskCompletionSource(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var firstTask =
+            Task.Run(
+                async () =>
+                {
+                    await start.Task;
+
+                    return await repository.TryAddAsync(
+                        first);
+                });
+
+        var secondTask =
+            Task.Run(
+                async () =>
+                {
+                    await start.Task;
+
+                    return await repository.TryAddAsync(
+                        second);
+                });
+
+        start.SetResult();
+
+        var results =
+            await Task.WhenAll(
+                firstTask,
+                secondTask);
+
+        Assert.NotEqual(
+            results[0],
+            results[1]);
+
+        var pending =
+            await repository.GetPendingAsync();
+
+        Assert.Single(
+            pending);
+
+        Assert.Equal(
+            "ALG:CONCURRENT",
+            pending[0].Identity);
+    }
 }
