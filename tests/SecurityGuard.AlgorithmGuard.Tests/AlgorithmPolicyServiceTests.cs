@@ -188,11 +188,64 @@ public sealed class AlgorithmPolicyServiceTests
                 "Blocked algorithm process termination failed");
     }
 
+    [Fact]
+    public async Task Pending_request_preserves_execution_identity()
+    {
+        var moduleRegistry =
+            new FakeModuleRegistry();
+
+        var audit =
+            new FakeAuditService();
+
+        var settings =
+            new FakeSettingsService(
+                new AlgorithmGuardSettings(
+                    true,
+                    AlgorithmGuardMode.Enforce,
+                    EnforcementFailurePolicy.FailClosed));
+
+        var decisionRepository =
+            new FakeDecisionRequestRepository();
+
+        var attempt =
+            CreateAttempt();
+
+        var expectedIdentity =
+            AlgorithmExecutionIdentity.Create(
+                attempt);
+
+        var service =
+            CreateService(
+                settings,
+                moduleRegistry,
+                audit,
+                ruleResult:
+                    RuleEvaluationResult.NoMatch(),
+                decisionRepository:
+                    decisionRepository);
+
+        await service.HandleAsync(
+            attempt);
+
+        Assert.NotNull(
+            decisionRepository.LastRequest);
+
+        Assert.Equal(
+            expectedIdentity,
+            decisionRepository.LastRequest.Identity);
+
+        Assert.StartsWith(
+            "ALG:",
+            decisionRepository.LastRequest.Identity);
+    }
+
     private static AlgorithmPolicyService CreateService(
         IAlgorithmGuardSettingsService settingsService,
         IModuleRegistry moduleRegistry,
         IAuditService auditService,
-        AlgorithmRuntimeEnforcementResult? runtimeResult = null)
+        AlgorithmRuntimeEnforcementResult? runtimeResult = null,
+        RuleEvaluationResult? ruleResult = null,
+        FakeDecisionRequestRepository? decisionRepository = null)
     {
         return new AlgorithmPolicyService(
             new AlgorithmObservationService(
@@ -201,7 +254,8 @@ public sealed class AlgorithmPolicyServiceTests
                 new FakeSignatureService()),
             new AlgorithmRuleContextFactory(),
             new FakeTemporaryDecisionStore(),
-            new FakeRuleEngine(),
+            new FakeRuleEngine(
+                ruleResult),
             new FakeRuntimeEnforcer(
                 runtimeResult ??
                 new AlgorithmRuntimeEnforcementResult(
@@ -210,6 +264,7 @@ public sealed class AlgorithmPolicyServiceTests
                     "Termination failed")),
             settingsService,
             moduleRegistry,
+            decisionRepository ??
             new FakeDecisionRequestRepository(),
             auditService,
             new AlgorithmGuardOptions());
@@ -255,17 +310,27 @@ public sealed class AlgorithmPolicyServiceTests
     private sealed class FakeRuleEngine
         : IRuleEngine
     {
+        private readonly RuleEvaluationResult _result;
+
+        public FakeRuleEngine(
+            RuleEvaluationResult? result = null)
+        {
+            _result =
+                result ??
+                new RuleEvaluationResult(
+                    true,
+                    RuleDecision.Block,
+                    Guid.NewGuid(),
+                    "Matched test block rule");
+        }
+
         public Task<RuleEvaluationResult> EvaluateAsync(
             SecurityModuleKind module,
             RuleMatchContext context,
             CancellationToken cancellationToken = default)
         {
             return Task.FromResult(
-                new RuleEvaluationResult(
-                    true,
-                    RuleDecision.Block,
-                    Guid.NewGuid(),
-                    "Matched test block rule"));
+                _result);
         }
     }
 
@@ -378,6 +443,8 @@ public sealed class AlgorithmPolicyServiceTests
     private sealed class FakeDecisionRequestRepository
         : IDecisionRequestRepository
     {
+        public SecurityDecisionRequest? LastRequest { get; private set; }
+
         public Task AddAsync(
             SecurityDecisionRequest request,
             CancellationToken cancellationToken = default)
@@ -389,6 +456,9 @@ public sealed class AlgorithmPolicyServiceTests
             SecurityDecisionRequest request,
             CancellationToken cancellationToken = default)
         {
+            LastRequest =
+                request;
+
             return Task.FromResult(
                 true);
         }
