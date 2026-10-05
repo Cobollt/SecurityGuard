@@ -279,4 +279,80 @@ public sealed class DecisionRequestRepositoryTests
             newRequest.Id,
             request.Id);
     }
+
+    [Fact]
+    public async Task Removed_old_request_releases_identity()
+    {
+        await using var database =
+            await TestDatabase.CreateAsync();
+
+        var repository =
+            new SqliteDecisionRequestRepository(
+                database.ConnectionFactory);
+
+        var oldRequest =
+            new SecurityDecisionRequest(
+                Guid.NewGuid(),
+                SecurityModuleKind.AlgorithmGuard,
+                SecurityEventType.AlgorithmExecution,
+                "Old",
+                "Old",
+                null,
+                "powershell.exe",
+                [
+                    SecurityAction.AllowOnce
+                ],
+                DateTimeOffset.UtcNow -
+                TimeSpan.FromHours(1),
+                null,
+                "ALG:REUSED");
+
+        Assert.True(
+            await repository.TryAddAsync(
+                oldRequest));
+
+        var removed =
+            await repository.RemoveOlderThanAsync(
+                DateTimeOffset.UtcNow -
+                TimeSpan.FromMinutes(10));
+
+        Assert.Equal(
+            1,
+            removed);
+
+        var replacement =
+            oldRequest with
+            {
+                Id =
+                    Guid.NewGuid(),
+
+                Title =
+                    "Replacement",
+
+                Description =
+                    "Replacement",
+
+                CreatedAtUtc =
+                    DateTimeOffset.UtcNow
+            };
+
+        Assert.True(
+            await repository.TryAddAsync(
+                replacement));
+
+        var pending =
+            await repository.GetPendingAsync();
+
+        var stored =
+            Assert.Single(
+                pending);
+
+        Assert.Equal(
+            replacement.Id,
+            stored.Id);
+
+        Assert.Equal(
+            "ALG:REUSED",
+            stored.Identity);
+    }
 }
