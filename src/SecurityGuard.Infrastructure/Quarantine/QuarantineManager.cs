@@ -260,9 +260,29 @@ public sealed class QuarantineManager
                 temporaryPath,
                 targetPath);
 
-            await _repository.DeleteAsync(
-                record.Id,
-                cancellationToken);
+            try
+            {
+                await _repository.DeleteAsync(
+                    record.Id,
+                    cancellationToken);
+            }
+            catch
+            {
+                if (File.Exists(
+                        targetPath))
+                {
+                    try
+                    {
+                        File.Delete(
+                            targetPath);
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                throw;
+            }
 
             try
             {

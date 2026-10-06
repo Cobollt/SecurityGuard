@@ -519,4 +519,121 @@ public sealed class QuarantineManagerTests
                 environment.Paths.QuarantineDirectory,
                 "*.sgq"));
     }
+
+    private sealed class DeleteFailingQuarantineRepository
+        : IQuarantineRepository
+    {
+        private readonly IQuarantineRepository _inner;
+
+        public DeleteFailingQuarantineRepository(
+            IQuarantineRepository inner)
+        {
+            _inner =
+                inner;
+        }
+
+        public Task AddAsync(
+            QuarantineRecord record,
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.AddAsync(
+                record,
+                cancellationToken);
+        }
+
+        public Task<IReadOnlyList<QuarantineRecord>> GetAllAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.GetAllAsync(
+                cancellationToken);
+        }
+
+        public Task<QuarantineRecord?> GetByIdAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.GetByIdAsync(
+                id,
+                cancellationToken);
+        }
+
+        public Task<int> CountAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.CountAsync(
+                cancellationToken);
+        }
+
+        public Task DeleteAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException(
+                "Simulated quarantine delete failure.");
+        }
+    }
+
+    [Fact]
+    public async Task Repository_delete_failure_rolls_back_restore_target()
+    {
+        await using var environment =
+            await TestEnvironment.CreateAsync();
+
+        var quarantineRepository =
+            new SqliteQuarantineRepository(
+                environment.ConnectionFactory);
+
+        var source =
+            Path.Combine(
+                environment.RootDirectory,
+                "restore-delete-failure.ps1");
+
+        await File.WriteAllTextAsync(
+            source,
+            "Write-Host restore");
+
+        var setupManager =
+            new QuarantineManager(
+                environment.Paths,
+                new Sha256FileHashService(),
+                quarantineRepository,
+                new AuditService(
+                    new SqliteSecurityEventRepository(
+                        environment.ConnectionFactory)),
+                new NoOpFileAccessProtectionService());
+
+        var record =
+            await setupManager.QuarantineAsync(
+                source,
+                SecurityModuleKind.AlgorithmGuard,
+                "Test");
+
+        var restoreManager =
+            new QuarantineManager(
+                environment.Paths,
+                new Sha256FileHashService(),
+                new DeleteFailingQuarantineRepository(
+                    quarantineRepository),
+                new AuditService(
+                    new SqliteSecurityEventRepository(
+                        environment.ConnectionFactory)),
+                new NoOpFileAccessProtectionService());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () =>
+                restoreManager.RestoreAsync(
+                    record.Id));
+
+        Assert.False(
+            File.Exists(
+                source));
+
+        Assert.True(
+            File.Exists(
+                record.StoredPath));
+
+        Assert.NotNull(
+            await quarantineRepository.GetByIdAsync(
+                record.Id));
+    }
 }
