@@ -497,8 +497,11 @@ public sealed class QuarantineManager
                 record.Id,
                 cancellationToken);
         }
-        catch
+        catch (Exception repositoryDeleteException)
         {
+            Exception? fileRollbackException =
+                null;
+
             if (!string.IsNullOrWhiteSpace(
                     stagedPath) &&
                 File.Exists(
@@ -512,9 +515,50 @@ public sealed class QuarantineManager
                         stagedPath,
                         record.StoredPath);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    fileRollbackException =
+                        ex;
                 }
+            }
+
+            try
+            {
+                var persistedRecord =
+                    await _repository.GetByIdAsync(
+                        record.Id,
+                        CancellationToken.None);
+
+                if (persistedRecord is null)
+                {
+                    await _repository.AddAsync(
+                        record,
+                        CancellationToken.None);
+                }
+            }
+            catch (Exception repositoryRollbackException)
+            {
+                if (fileRollbackException is not null)
+                {
+                    throw new AggregateException(
+                        "Quarantine delete rollback failed.",
+                        repositoryDeleteException,
+                        fileRollbackException,
+                        repositoryRollbackException);
+                }
+
+                throw new AggregateException(
+                    "Quarantine delete repository rollback failed.",
+                    repositoryDeleteException,
+                    repositoryRollbackException);
+            }
+
+            if (fileRollbackException is not null)
+            {
+                throw new AggregateException(
+                    "Quarantine delete file rollback failed.",
+                    repositoryDeleteException,
+                    fileRollbackException);
             }
 
             throw;

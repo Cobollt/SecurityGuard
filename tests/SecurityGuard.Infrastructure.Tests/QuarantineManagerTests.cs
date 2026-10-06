@@ -1658,4 +1658,64 @@ public sealed class QuarantineManagerTests
             await quarantineRepository.GetByIdAsync(
                 record.Id));
     }
+
+    [Fact]
+    public async Task Delete_post_delete_failure_does_not_leave_untracked_quarantine_file()
+    {
+        await using var environment =
+            await TestEnvironment.CreateAsync();
+
+        var quarantineRepository =
+            new SqliteQuarantineRepository(
+                environment.ConnectionFactory);
+
+        var source =
+            Path.Combine(
+                environment.RootDirectory,
+                "delete-post-delete-failure.ps1");
+
+        await File.WriteAllTextAsync(
+            source,
+            "Write-Host delete");
+
+        var setupManager =
+            new QuarantineManager(
+                environment.Paths,
+                new Sha256FileHashService(),
+                quarantineRepository,
+                new AuditService(
+                    new SqliteSecurityEventRepository(
+                        environment.ConnectionFactory)),
+                new NoOpFileAccessProtectionService());
+
+        var record =
+            await setupManager.QuarantineAsync(
+                source,
+                SecurityModuleKind.AlgorithmGuard,
+                "Test");
+
+        var deleteManager =
+            new QuarantineManager(
+                environment.Paths,
+                new Sha256FileHashService(),
+                new DeleteThenThrowQuarantineRepository(
+                    quarantineRepository),
+                new AuditService(
+                    new SqliteSecurityEventRepository(
+                        environment.ConnectionFactory)),
+                new NoOpFileAccessProtectionService());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () =>
+                deleteManager.DeleteAsync(
+                    record.Id));
+
+        Assert.True(
+            File.Exists(
+                record.StoredPath));
+
+        Assert.NotNull(
+            await quarantineRepository.GetByIdAsync(
+                record.Id));
+    }
 }
