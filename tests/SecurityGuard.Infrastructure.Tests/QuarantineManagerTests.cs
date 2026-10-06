@@ -243,4 +243,129 @@ public sealed class QuarantineManagerTests
                 "Simulated audit failure.");
         }
     }
+
+    [Fact]
+    public async Task Audit_failure_does_not_fail_completed_restore()
+    {
+        await using var environment =
+            await TestEnvironment.CreateAsync();
+
+        var eventRepository =
+            new SqliteSecurityEventRepository(
+                environment.ConnectionFactory);
+
+        var quarantineRepository =
+            new SqliteQuarantineRepository(
+                environment.ConnectionFactory);
+
+        var source =
+            Path.Combine(
+                environment.RootDirectory,
+                "restore-audit-failure.ps1");
+
+        await File.WriteAllTextAsync(
+            source,
+            "Write-Host restore");
+
+        var setupManager =
+            new QuarantineManager(
+                environment.Paths,
+                new Sha256FileHashService(),
+                quarantineRepository,
+                new AuditService(
+                    eventRepository),
+                new NoOpFileAccessProtectionService());
+
+        var record =
+            await setupManager.QuarantineAsync(
+                source,
+                SecurityModuleKind.AlgorithmGuard,
+                "Test");
+
+        var restoreManager =
+            new QuarantineManager(
+                environment.Paths,
+                new Sha256FileHashService(),
+                quarantineRepository,
+                new ThrowingAuditService(),
+                new NoOpFileAccessProtectionService());
+
+        var restoredPath =
+            await restoreManager.RestoreAsync(
+                record.Id);
+
+        Assert.Equal(
+            source,
+            restoredPath);
+
+        Assert.True(
+            File.Exists(
+                source));
+
+        Assert.False(
+            File.Exists(
+                record.StoredPath));
+
+        Assert.Null(
+            await quarantineRepository.GetByIdAsync(
+                record.Id));
+    }
+
+    [Fact]
+    public async Task Audit_failure_does_not_fail_completed_delete()
+    {
+        await using var environment =
+            await TestEnvironment.CreateAsync();
+
+        var eventRepository =
+            new SqliteSecurityEventRepository(
+                environment.ConnectionFactory);
+
+        var quarantineRepository =
+            new SqliteQuarantineRepository(
+                environment.ConnectionFactory);
+
+        var source =
+            Path.Combine(
+                environment.RootDirectory,
+                "delete-audit-failure.ps1");
+
+        await File.WriteAllTextAsync(
+            source,
+            "Write-Host delete");
+
+        var setupManager =
+            new QuarantineManager(
+                environment.Paths,
+                new Sha256FileHashService(),
+                quarantineRepository,
+                new AuditService(
+                    eventRepository),
+                new NoOpFileAccessProtectionService());
+
+        var record =
+            await setupManager.QuarantineAsync(
+                source,
+                SecurityModuleKind.AlgorithmGuard,
+                "Test");
+
+        var deleteManager =
+            new QuarantineManager(
+                environment.Paths,
+                new Sha256FileHashService(),
+                quarantineRepository,
+                new ThrowingAuditService(),
+                new NoOpFileAccessProtectionService());
+
+        await deleteManager.DeleteAsync(
+            record.Id);
+
+        Assert.False(
+            File.Exists(
+                record.StoredPath));
+
+        Assert.Null(
+            await quarantineRepository.GetByIdAsync(
+                record.Id));
+    }
 }

@@ -264,14 +264,25 @@ public sealed class QuarantineManager
                 throw;
             }
 
-            await _auditService.WriteAsync(
-                SecurityModuleKind.Core,
-                SecurityEventType.Quarantine,
-                SecuritySeverity.Info,
-                "File restored from quarantine",
-                $"{record.StoredPath} -> {targetPath}",
-                SecurityAction.Allow,
-                cancellationToken: cancellationToken);
+            try
+            {
+                await _auditService.WriteAsync(
+                    SecurityModuleKind.Core,
+                    SecurityEventType.Quarantine,
+                    SecuritySeverity.Info,
+                    "File restored from quarantine",
+                    $"{record.StoredPath} -> {targetPath}",
+                    SecurityAction.Allow,
+                    cancellationToken: cancellationToken);
+            }
+            catch (OperationCanceledException)
+                when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch
+            {
+            }
 
             return targetPath;
         }
@@ -309,13 +320,24 @@ public sealed class QuarantineManager
             record.Id,
             cancellationToken);
 
-        await _auditService.WriteAsync(
-            SecurityModuleKind.Core,
-            SecurityEventType.Quarantine,
-            SecuritySeverity.Info,
-            "Quarantined file deleted",
-            record.OriginalPath,
-            SecurityAction.Delete,
-            cancellationToken: cancellationToken);
+        try
+        {
+            await _auditService.WriteAsync(
+                SecurityModuleKind.Core,
+                SecurityEventType.Quarantine,
+                SecuritySeverity.Info,
+                "Quarantined file deleted",
+                record.OriginalPath,
+                SecurityAction.Delete,
+                cancellationToken: cancellationToken);
+        }
+        catch (OperationCanceledException)
+            when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+        }
     }
 }
