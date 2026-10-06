@@ -327,8 +327,30 @@ public sealed class QuarantineManager
                     record.Id,
                     cancellationToken);
             }
-            catch
+            catch (Exception repositoryDeleteException)
             {
+                try
+                {
+                    var persistedRecord =
+                        await _repository.GetByIdAsync(
+                            record.Id,
+                            CancellationToken.None);
+
+                    if (persistedRecord is null)
+                    {
+                        await _repository.AddAsync(
+                            record,
+                            CancellationToken.None);
+                    }
+                }
+                catch (Exception repositoryRollbackException)
+                {
+                    throw new AggregateException(
+                        "Quarantine restore repository rollback failed.",
+                        repositoryDeleteException,
+                        repositoryRollbackException);
+                }
+
                 if (File.Exists(
                         targetPath))
                 {
@@ -337,8 +359,12 @@ public sealed class QuarantineManager
                         File.Delete(
                             targetPath);
                     }
-                    catch
+                    catch (Exception targetDeleteException)
                     {
+                        throw new AggregateException(
+                            "Quarantine restore target rollback failed.",
+                            repositoryDeleteException,
+                            targetDeleteException);
                     }
                 }
 
