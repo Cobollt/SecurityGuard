@@ -1431,4 +1431,114 @@ public sealed class QuarantineManagerTests
                 FileAttributes.ReadOnly);
         }
     }
+
+    private sealed class PersistThenThrowQuarantineRepository
+        : IQuarantineRepository
+    {
+        private readonly IQuarantineRepository _inner;
+
+        public PersistThenThrowQuarantineRepository(
+            IQuarantineRepository inner)
+        {
+            _inner =
+                inner;
+        }
+
+        public async Task AddAsync(
+            QuarantineRecord record,
+            CancellationToken cancellationToken = default)
+        {
+            await _inner.AddAsync(
+                record,
+                cancellationToken);
+
+            throw new InvalidOperationException(
+                "Simulated failure after persistence.");
+        }
+
+        public Task<IReadOnlyList<QuarantineRecord>> GetAllAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.GetAllAsync(
+                cancellationToken);
+        }
+
+        public Task<QuarantineRecord?> GetByIdAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.GetByIdAsync(
+                id,
+                cancellationToken);
+        }
+
+        public Task<int> CountAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.CountAsync(
+                cancellationToken);
+        }
+
+        public Task DeleteAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.DeleteAsync(
+                id,
+                cancellationToken);
+        }
+    }
+
+    [Fact]
+    public async Task Post_persist_failure_does_not_leave_record_without_quarantine_file()
+    {
+        await using var environment =
+            await TestEnvironment.CreateAsync();
+
+        var quarantineRepository =
+            new SqliteQuarantineRepository(
+                environment.ConnectionFactory);
+
+        var source =
+            Path.Combine(
+                environment.RootDirectory,
+                "post-persist-failure.ps1");
+
+        await File.WriteAllTextAsync(
+            source,
+            "Write-Host quarantine");
+
+        var manager =
+            new QuarantineManager(
+                environment.Paths,
+                new Sha256FileHashService(),
+                new PersistThenThrowQuarantineRepository(
+                    quarantineRepository),
+                new AuditService(
+                    new SqliteSecurityEventRepository(
+                        environment.ConnectionFactory)),
+                new NoOpFileAccessProtectionService());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () =>
+                manager.QuarantineAsync(
+                    source,
+                    SecurityModuleKind.AlgorithmGuard,
+                    "Test"));
+
+        Assert.True(
+            File.Exists(
+                source));
+
+        var records =
+            await quarantineRepository.GetAllAsync();
+
+        var record =
+            Assert.Single(
+                records);
+
+        Assert.True(
+            File.Exists(
+                record.StoredPath));
+    }
 }

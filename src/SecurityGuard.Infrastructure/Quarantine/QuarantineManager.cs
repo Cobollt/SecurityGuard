@@ -118,12 +118,32 @@ public sealed class QuarantineManager
                     reason,
                     DateTimeOffset.UtcNow);
 
-            await _repository.AddAsync(
-                record,
-                cancellationToken);
+            try
+            {
+                await _repository.AddAsync(
+                    record,
+                    cancellationToken);
 
-            recordPersisted =
-            true;
+                recordPersisted =
+                    true;
+            }
+            catch
+            {
+                try
+                {
+                    recordPersisted =
+                        await _repository.GetByIdAsync(
+                            record.Id,
+                            CancellationToken.None) is not null;
+                }
+                catch
+                {
+                    recordPersisted =
+                        true;
+                }
+
+                throw;
+            }
 
             try
             {
