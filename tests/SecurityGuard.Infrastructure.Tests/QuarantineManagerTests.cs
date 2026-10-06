@@ -479,6 +479,87 @@ public sealed class QuarantineManagerTests
     }
 
     [Fact]
+    public async Task Stored_file_cleanup_failure_does_not_leave_untracked_quarantine_file()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        await using var environment =
+            await TestEnvironment.CreateAsync();
+
+        var quarantineRepository =
+            new SqliteQuarantineRepository(
+                environment.ConnectionFactory);
+
+        var source =
+            Path.Combine(
+                environment.RootDirectory,
+                "quarantine-cleanup-failure.ps1");
+
+        await File.WriteAllTextAsync(
+            source,
+            "Write-Host quarantine");
+
+        using var sourceLock =
+            new FileStream(
+                source,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read);
+
+        var manager =
+            new QuarantineManager(
+                environment.Paths,
+                new Sha256FileHashService(),
+                new ReadOnlyStoredFileAfterDeleteRepository(
+                    quarantineRepository,
+                    environment.Paths.QuarantineDirectory),
+                new AuditService(
+                    new SqliteSecurityEventRepository(
+                        environment.ConnectionFactory)),
+                new NoOpFileAccessProtectionService());
+
+        try
+        {
+            await Assert.ThrowsAnyAsync<Exception>(
+                () =>
+                    manager.QuarantineAsync(
+                        source,
+                        SecurityModuleKind.AlgorithmGuard,
+                        "Test"));
+
+            Assert.Equal(
+                1,
+                await quarantineRepository.CountAsync());
+
+            var records =
+                await quarantineRepository.GetAllAsync();
+
+            var record =
+                Assert.Single(
+                    records);
+
+            Assert.True(
+                File.Exists(
+                    record.StoredPath));
+        }
+        finally
+        {
+            foreach (var path in
+                     Directory.EnumerateFiles(
+                         environment.Paths.QuarantineDirectory,
+                         "*.sgq"))
+            {
+                File.SetAttributes(
+                    path,
+                    FileAttributes.Normal);
+            }
+        }
+    }
+
+    [Fact]
     public async Task Repository_failure_does_not_leave_orphan_quarantine_file()
     {
         await using var environment =
@@ -1276,6 +1357,78 @@ public sealed class QuarantineManagerTests
                         FileAttributes.Normal);
                 }
             }
+        }
+    }
+
+    private sealed class ReadOnlyStoredFileAfterDeleteRepository
+        : IQuarantineRepository
+    {
+        private readonly IQuarantineRepository _inner;
+        private readonly string _quarantineDirectory;
+
+        public ReadOnlyStoredFileAfterDeleteRepository(
+            IQuarantineRepository inner,
+            string quarantineDirectory)
+        {
+            _inner =
+                inner;
+
+            _quarantineDirectory =
+                quarantineDirectory;
+        }
+
+        public Task AddAsync(
+            QuarantineRecord record,
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.AddAsync(
+                record,
+                cancellationToken);
+        }
+
+        public Task<IReadOnlyList<QuarantineRecord>> GetAllAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.GetAllAsync(
+                cancellationToken);
+        }
+
+        public Task<QuarantineRecord?> GetByIdAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.GetByIdAsync(
+                id,
+                cancellationToken);
+        }
+
+        public Task<int> CountAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.CountAsync(
+                cancellationToken);
+        }
+
+        public async Task DeleteAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            await _inner.DeleteAsync(
+                id,
+                cancellationToken);
+
+            var storedPath =
+                Directory
+                    .EnumerateFiles(
+                        _quarantineDirectory,
+                        "*.sgq")
+                    .Single();
+
+            File.SetAttributes(
+                storedPath,
+                File.GetAttributes(
+                    storedPath) |
+                FileAttributes.ReadOnly);
         }
     }
 }

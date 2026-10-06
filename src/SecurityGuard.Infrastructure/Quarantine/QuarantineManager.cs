@@ -129,7 +129,7 @@ public sealed class QuarantineManager
             {
                 File.Delete(sourcePath);
             }
-            catch
+            catch (Exception sourceDeleteException)
             {
                 await _repository.DeleteAsync(
                     record.Id,
@@ -138,11 +138,39 @@ public sealed class QuarantineManager
                 recordPersisted =
                     false;
 
-                if (File.Exists(
-                        storedPath))
+                try
                 {
-                    File.Delete(
-                        storedPath);
+                    if (File.Exists(
+                            storedPath))
+                    {
+                        File.Delete(
+                            storedPath);
+                    }
+                }
+                catch (Exception storedDeleteException)
+                {
+                    try
+                    {
+                        await _repository.AddAsync(
+                            record,
+                            CancellationToken.None);
+
+                        recordPersisted =
+                            true;
+                    }
+                    catch (Exception repositoryRestoreException)
+                    {
+                        throw new AggregateException(
+                            "Quarantine creation rollback failed.",
+                            sourceDeleteException,
+                            storedDeleteException,
+                            repositoryRestoreException);
+                    }
+
+                    throw new AggregateException(
+                        "Quarantine file cleanup failed and the quarantine record was restored.",
+                        sourceDeleteException,
+                        storedDeleteException);
                 }
 
                 throw;
