@@ -1194,4 +1194,88 @@ public sealed class QuarantineManagerTests
             }
         }
     }
+
+    [Fact]
+    public async Task Repository_rollback_failure_preserves_quarantined_file()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        await using var environment =
+            await TestEnvironment.CreateAsync();
+
+        var quarantineRepository =
+            new SqliteQuarantineRepository(
+                environment.ConnectionFactory);
+
+        var source =
+            Path.Combine(
+                environment.RootDirectory,
+                "quarantine-rollback-failure.ps1");
+
+        await File.WriteAllTextAsync(
+            source,
+            "Write-Host quarantine");
+
+        using var sourceLock =
+            new FileStream(
+                source,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read);
+
+        var manager =
+            new QuarantineManager(
+                environment.Paths,
+                new Sha256FileHashService(),
+                new DeleteFailingQuarantineRepository(
+                    quarantineRepository),
+                new AuditService(
+                    new SqliteSecurityEventRepository(
+                        environment.ConnectionFactory)),
+                new NoOpFileAccessProtectionService());
+
+        try
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () =>
+                    manager.QuarantineAsync(
+                        source,
+                        SecurityModuleKind.AlgorithmGuard,
+                        "Test"));
+
+            Assert.True(
+                File.Exists(
+                    source));
+
+            var records =
+                await quarantineRepository.GetAllAsync();
+
+            var record =
+                Assert.Single(
+                    records);
+
+            Assert.True(
+                File.Exists(
+                    record.StoredPath));
+        }
+        finally
+        {
+            var records =
+                await quarantineRepository.GetAllAsync();
+
+            foreach (var record in records)
+            {
+                if (File.Exists(
+                        record.StoredPath))
+                {
+                    File.SetAttributes(
+                        record.StoredPath,
+                        FileAttributes.Normal);
+                }
+            }
+        }
+    }
 }

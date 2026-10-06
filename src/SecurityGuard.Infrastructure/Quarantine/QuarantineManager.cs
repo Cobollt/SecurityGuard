@@ -75,6 +75,9 @@ public sealed class QuarantineManager
                 _paths.QuarantineDirectory,
                 $"{id:N}.tmp");
 
+        var recordPersisted =
+            false;
+
         try
         {
             File.Copy(
@@ -119,6 +122,9 @@ public sealed class QuarantineManager
                 record,
                 cancellationToken);
 
+            recordPersisted =
+            true;
+
             try
             {
                 File.Delete(sourcePath);
@@ -127,11 +133,16 @@ public sealed class QuarantineManager
             {
                 await _repository.DeleteAsync(
                     record.Id,
-                    cancellationToken);
+                    CancellationToken.None);
 
-                if (File.Exists(storedPath))
+                recordPersisted =
+                    false;
+
+                if (File.Exists(
+                        storedPath))
                 {
-                    File.Delete(storedPath);
+                    File.Delete(
+                        storedPath);
                 }
 
                 throw;
@@ -168,7 +179,9 @@ public sealed class QuarantineManager
                 }
             }
 
-            if (File.Exists(storedPath))
+            if (!recordPersisted &&
+                File.Exists(
+                    storedPath))
             {
                 try
                 {
