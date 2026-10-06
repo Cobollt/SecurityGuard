@@ -636,4 +636,233 @@ public sealed class QuarantineManagerTests
             await quarantineRepository.GetByIdAsync(
                 record.Id));
     }
+
+    [Fact]
+    public async Task Repository_delete_failure_preserves_quarantined_file()
+    {
+        await using var environment =
+            await TestEnvironment.CreateAsync();
+
+        var quarantineRepository =
+            new SqliteQuarantineRepository(
+                environment.ConnectionFactory);
+
+        var source =
+            Path.Combine(
+                environment.RootDirectory,
+                "delete-repository-failure.ps1");
+
+        await File.WriteAllTextAsync(
+            source,
+            "Write-Host delete");
+
+        var setupManager =
+            new QuarantineManager(
+                environment.Paths,
+                new Sha256FileHashService(),
+                quarantineRepository,
+                new AuditService(
+                    new SqliteSecurityEventRepository(
+                        environment.ConnectionFactory)),
+                new NoOpFileAccessProtectionService());
+
+        var record =
+            await setupManager.QuarantineAsync(
+                source,
+                SecurityModuleKind.AlgorithmGuard,
+                "Test");
+
+        var deleteManager =
+            new QuarantineManager(
+                environment.Paths,
+                new Sha256FileHashService(),
+                new DeleteFailingQuarantineRepository(
+                    quarantineRepository),
+                new AuditService(
+                    new SqliteSecurityEventRepository(
+                        environment.ConnectionFactory)),
+                new NoOpFileAccessProtectionService());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () =>
+                deleteManager.DeleteAsync(
+                    record.Id));
+
+        Assert.True(
+            File.Exists(
+                record.StoredPath));
+
+        Assert.NotNull(
+            await quarantineRepository.GetByIdAsync(
+                record.Id));
+    }
+
+    private sealed class ReadOnlyStagedFileQuarantineRepository
+    : IQuarantineRepository
+    {
+        private readonly IQuarantineRepository _inner;
+        private readonly string _storedPath;
+
+        public ReadOnlyStagedFileQuarantineRepository(
+            IQuarantineRepository inner,
+            string storedPath)
+        {
+            _inner =
+                inner;
+
+            _storedPath =
+                storedPath;
+        }
+
+        public Task AddAsync(
+            QuarantineRecord record,
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.AddAsync(
+                record,
+                cancellationToken);
+        }
+
+        public Task<IReadOnlyList<QuarantineRecord>> GetAllAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.GetAllAsync(
+                cancellationToken);
+        }
+
+        public Task<QuarantineRecord?> GetByIdAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.GetByIdAsync(
+                id,
+                cancellationToken);
+        }
+
+        public Task<int> CountAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.CountAsync(
+                cancellationToken);
+        }
+
+        public async Task DeleteAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var directory =
+                Path.GetDirectoryName(
+                    _storedPath)!;
+
+            var fileName =
+                Path.GetFileName(
+                    _storedPath);
+
+            var stagedPath =
+                Directory
+                    .EnumerateFiles(
+                        directory,
+                        $"{fileName}.*.delete")
+                    .Single();
+
+            File.SetAttributes(
+                stagedPath,
+                File.GetAttributes(
+                    stagedPath) |
+                FileAttributes.ReadOnly);
+
+            await _inner.DeleteAsync(
+                id,
+                cancellationToken);
+        }
+    }
+
+    [Fact]
+    public async Task Final_delete_failure_does_not_leave_untracked_quarantine_file()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        await using var environment =
+            await TestEnvironment.CreateAsync();
+
+        var quarantineRepository =
+            new SqliteQuarantineRepository(
+                environment.ConnectionFactory);
+
+        var source =
+            Path.Combine(
+                environment.RootDirectory,
+                "final-delete-failure.ps1");
+
+        await File.WriteAllTextAsync(
+            source,
+            "Write-Host delete");
+
+        var setupManager =
+            new QuarantineManager(
+                environment.Paths,
+                new Sha256FileHashService(),
+                quarantineRepository,
+                new AuditService(
+                    new SqliteSecurityEventRepository(
+                        environment.ConnectionFactory)),
+                new NoOpFileAccessProtectionService());
+
+        var record =
+            await setupManager.QuarantineAsync(
+                source,
+                SecurityModuleKind.AlgorithmGuard,
+                "Test");
+
+        var deleteManager =
+            new QuarantineManager(
+                environment.Paths,
+                new Sha256FileHashService(),
+                new ReadOnlyStagedFileQuarantineRepository(
+                    quarantineRepository,
+                    record.StoredPath),
+                new AuditService(
+                    new SqliteSecurityEventRepository(
+                        environment.ConnectionFactory)),
+                new NoOpFileAccessProtectionService());
+
+        try
+        {
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(
+                () =>
+                    deleteManager.DeleteAsync(
+                        record.Id));
+
+            Assert.NotNull(
+                await quarantineRepository.GetByIdAsync(
+                    record.Id));
+
+            Assert.True(
+                File.Exists(
+                    record.StoredPath));
+        }
+        finally
+        {
+            var directory =
+                Path.GetDirectoryName(
+                    record.StoredPath)!;
+
+            var fileName =
+                Path.GetFileName(
+                    record.StoredPath);
+
+            foreach (var path in
+                     Directory.EnumerateFiles(
+                         directory,
+                         $"{fileName}*"))
+            {
+                File.SetAttributes(
+                    path,
+                    FileAttributes.Normal);
+            }
+        }
+    }
 }

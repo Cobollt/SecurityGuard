@@ -350,14 +350,95 @@ public sealed class QuarantineManager
             return;
         }
 
-        if (File.Exists(record.StoredPath))
+        string? stagedPath =
+    null;
+
+        if (File.Exists(
+                record.StoredPath))
         {
-            File.Delete(record.StoredPath);
+            stagedPath =
+                $"{record.StoredPath}.{Guid.NewGuid():N}.delete";
+
+            File.Move(
+                record.StoredPath,
+                stagedPath);
         }
 
-        await _repository.DeleteAsync(
-            record.Id,
-            cancellationToken);
+        try
+        {
+            await _repository.DeleteAsync(
+                record.Id,
+                cancellationToken);
+        }
+        catch
+        {
+            if (!string.IsNullOrWhiteSpace(
+                    stagedPath) &&
+                File.Exists(
+                    stagedPath) &&
+                !File.Exists(
+                    record.StoredPath))
+            {
+                try
+                {
+                    File.Move(
+                        stagedPath,
+                        record.StoredPath);
+                }
+                catch
+                {
+                }
+            }
+
+            throw;
+        }
+
+        if (!string.IsNullOrWhiteSpace(
+                stagedPath) &&
+            File.Exists(
+                stagedPath))
+        {
+            try
+            {
+                File.Delete(
+                    stagedPath);
+            }
+            catch (Exception deleteException)
+            {
+                try
+                {
+                    if (!File.Exists(
+                            record.StoredPath) &&
+                        File.Exists(
+                            stagedPath))
+                    {
+                        File.Move(
+                            stagedPath,
+                            record.StoredPath);
+                    }
+
+                    if (!File.Exists(
+                            record.StoredPath))
+                    {
+                        throw new IOException(
+                            "Failed to restore the quarantined file after delete failure.");
+                    }
+
+                    await _repository.AddAsync(
+                        record,
+                        CancellationToken.None);
+                }
+                catch (Exception rollbackException)
+                {
+                    throw new AggregateException(
+                        "Quarantine delete failed and rollback could not restore a consistent state.",
+                        deleteException,
+                        rollbackException);
+                }
+
+                throw;
+            }
+        }
 
         try
         {
