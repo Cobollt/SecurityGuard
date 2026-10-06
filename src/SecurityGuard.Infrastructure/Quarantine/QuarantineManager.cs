@@ -298,7 +298,7 @@ public sealed class QuarantineManager
 
                 await _repository.AddAsync(
                     record,
-                    cancellationToken);
+                    CancellationToken.None);
 
                 throw;
             }
