@@ -158,7 +158,26 @@ public sealed class QuarantineManager
         {
             if (File.Exists(temporaryPath))
             {
-                File.Delete(temporaryPath);
+                try
+                {
+                    File.Delete(
+                        temporaryPath);
+                }
+                catch
+                {
+                }
+            }
+
+            if (File.Exists(storedPath))
+            {
+                try
+                {
+                    File.Delete(
+                        storedPath);
+                }
+                catch
+                {
+                }
             }
 
             throw;

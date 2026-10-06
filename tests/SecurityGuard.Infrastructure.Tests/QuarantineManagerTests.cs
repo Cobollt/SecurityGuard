@@ -4,6 +4,8 @@ using SecurityGuard.Infrastructure.Hashing;
 using SecurityGuard.Infrastructure.Quarantine;
 using SecurityGuard.Storage.Repositories;
 using SecurityGuard.Core.Contracts;
+using SecurityGuard.Infrastructure.FileSystem;
+using SecurityGuard.Core.Models;
 
 namespace SecurityGuard.Infrastructure.Tests;
 
@@ -367,5 +369,154 @@ public sealed class QuarantineManagerTests
         Assert.Null(
             await quarantineRepository.GetByIdAsync(
                 record.Id));
+    }
+
+    private sealed class ThrowingFileAccessProtectionService
+        : IFileAccessProtectionService
+    {
+        public void ProtectDirectory(
+            string path)
+        {
+        }
+
+        public void ProtectFile(
+            string path)
+        {
+            throw new InvalidOperationException(
+                "Simulated file protection failure.");
+        }
+    }
+
+    [Fact]
+    public async Task Protection_failure_does_not_leave_orphan_quarantine_file()
+    {
+        await using var environment =
+            await TestEnvironment.CreateAsync();
+
+        var quarantineRepository =
+            new SqliteQuarantineRepository(
+                environment.ConnectionFactory);
+
+        var source =
+            Path.Combine(
+                environment.RootDirectory,
+                "protection-failure.ps1");
+
+        await File.WriteAllTextAsync(
+            source,
+            "Write-Host protection");
+
+        var manager =
+            new QuarantineManager(
+                environment.Paths,
+                new Sha256FileHashService(),
+                quarantineRepository,
+                new AuditService(
+                    new SqliteSecurityEventRepository(
+                        environment.ConnectionFactory)),
+                new ThrowingFileAccessProtectionService());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () =>
+                manager.QuarantineAsync(
+                    source,
+                    SecurityModuleKind.AlgorithmGuard,
+                    "Test"));
+
+        Assert.True(
+            File.Exists(
+                source));
+
+        Assert.Equal(
+            0,
+            await quarantineRepository.CountAsync());
+
+        Assert.Empty(
+            Directory.GetFiles(
+                environment.Paths.QuarantineDirectory,
+                "*.sgq"));
+    }
+
+    private sealed class ThrowingQuarantineRepository
+        : IQuarantineRepository
+    {
+        public Task AddAsync(
+            QuarantineRecord record,
+            CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException(
+                "Simulated quarantine repository failure.");
+        }
+
+        public Task<IReadOnlyList<QuarantineRecord>> GetAllAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<QuarantineRecord>>(
+                []);
+        }
+
+        public Task<QuarantineRecord?> GetByIdAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<QuarantineRecord?>(
+                null);
+        }
+
+        public Task<int> CountAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(
+                0);
+        }
+
+        public Task DeleteAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+    }
+
+    [Fact]
+    public async Task Repository_failure_does_not_leave_orphan_quarantine_file()
+    {
+        await using var environment =
+            await TestEnvironment.CreateAsync();
+
+        var source =
+            Path.Combine(
+                environment.RootDirectory,
+                "repository-failure.ps1");
+
+        await File.WriteAllTextAsync(
+            source,
+            "Write-Host repository");
+
+        var manager =
+            new QuarantineManager(
+                environment.Paths,
+                new Sha256FileHashService(),
+                new ThrowingQuarantineRepository(),
+                new AuditService(
+                    new SqliteSecurityEventRepository(
+                        environment.ConnectionFactory)),
+                new NoOpFileAccessProtectionService());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () =>
+                manager.QuarantineAsync(
+                    source,
+                    SecurityModuleKind.AlgorithmGuard,
+                    "Test"));
+
+        Assert.True(
+            File.Exists(
+                source));
+
+        Assert.Empty(
+            Directory.GetFiles(
+                environment.Paths.QuarantineDirectory,
+                "*.sgq"));
     }
 }
