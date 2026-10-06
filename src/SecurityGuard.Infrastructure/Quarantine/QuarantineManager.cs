@@ -289,16 +289,56 @@ public sealed class QuarantineManager
                 File.Delete(
                     record.StoredPath);
             }
-            catch
+            catch (Exception storedDeleteException)
             {
-                if (File.Exists(targetPath))
+                Exception? targetDeleteException =
+                    null;
+
+                if (File.Exists(
+                        targetPath))
                 {
-                    File.Delete(targetPath);
+                    try
+                    {
+                        File.Delete(
+                            targetPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        targetDeleteException =
+                            ex;
+                    }
                 }
 
-                await _repository.AddAsync(
-                    record,
-                    CancellationToken.None);
+                try
+                {
+                    await _repository.AddAsync(
+                        record,
+                        CancellationToken.None);
+                }
+                catch (Exception repositoryException)
+                {
+                    if (targetDeleteException is not null)
+                    {
+                        throw new AggregateException(
+                            "Quarantine restore rollback failed.",
+                            storedDeleteException,
+                            targetDeleteException,
+                            repositoryException);
+                    }
+
+                    throw new AggregateException(
+                        "Quarantine restore rollback failed.",
+                        storedDeleteException,
+                        repositoryException);
+                }
+
+                if (targetDeleteException is not null)
+                {
+                    throw new AggregateException(
+                        "Quarantine restore cleanup failed.",
+                        storedDeleteException,
+                        targetDeleteException);
+                }
 
                 throw;
             }

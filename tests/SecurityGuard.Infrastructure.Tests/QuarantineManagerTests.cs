@@ -1026,4 +1026,172 @@ public sealed class QuarantineManagerTests
             }
         }
     }
+
+    private sealed class ReadOnlyRestoreFilesAfterDeleteRepository
+        : IQuarantineRepository
+    {
+        private readonly IQuarantineRepository _inner;
+        private readonly string _storedPath;
+        private readonly string _targetPath;
+
+        public ReadOnlyRestoreFilesAfterDeleteRepository(
+            IQuarantineRepository inner,
+            string storedPath,
+            string targetPath)
+        {
+            _inner =
+                inner;
+
+            _storedPath =
+                storedPath;
+
+            _targetPath =
+                targetPath;
+        }
+
+        public Task AddAsync(
+            QuarantineRecord record,
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.AddAsync(
+                record,
+                cancellationToken);
+        }
+
+        public Task<IReadOnlyList<QuarantineRecord>> GetAllAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.GetAllAsync(
+                cancellationToken);
+        }
+
+        public Task<QuarantineRecord?> GetByIdAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.GetByIdAsync(
+                id,
+                cancellationToken);
+        }
+
+        public Task<int> CountAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.CountAsync(
+                cancellationToken);
+        }
+
+        public async Task DeleteAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            await _inner.DeleteAsync(
+                id,
+                cancellationToken);
+
+            File.SetAttributes(
+                _storedPath,
+                File.GetAttributes(
+                    _storedPath) |
+                FileAttributes.ReadOnly);
+
+            File.SetAttributes(
+                _targetPath,
+                File.GetAttributes(
+                    _targetPath) |
+                FileAttributes.ReadOnly);
+        }
+    }
+
+    [Fact]
+    public async Task Restore_rollback_cleanup_failure_does_not_lose_quarantine_record()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        await using var environment =
+            await TestEnvironment.CreateAsync();
+
+        var quarantineRepository =
+            new SqliteQuarantineRepository(
+                environment.ConnectionFactory);
+
+        var source =
+            Path.Combine(
+                environment.RootDirectory,
+                "restore-double-failure.ps1");
+
+        await File.WriteAllTextAsync(
+            source,
+            "Write-Host restore");
+
+        var setupManager =
+            new QuarantineManager(
+                environment.Paths,
+                new Sha256FileHashService(),
+                quarantineRepository,
+                new AuditService(
+                    new SqliteSecurityEventRepository(
+                        environment.ConnectionFactory)),
+                new NoOpFileAccessProtectionService());
+
+        var record =
+            await setupManager.QuarantineAsync(
+                source,
+                SecurityModuleKind.AlgorithmGuard,
+                "Test");
+
+        var restoreManager =
+            new QuarantineManager(
+                environment.Paths,
+                new Sha256FileHashService(),
+                new ReadOnlyRestoreFilesAfterDeleteRepository(
+                    quarantineRepository,
+                    record.StoredPath,
+                    source),
+                new AuditService(
+                    new SqliteSecurityEventRepository(
+                        environment.ConnectionFactory)),
+                new NoOpFileAccessProtectionService());
+
+        try
+        {
+            await Assert.ThrowsAnyAsync<Exception>(
+                () =>
+                    restoreManager.RestoreAsync(
+                        record.Id));
+
+            Assert.True(
+                File.Exists(
+                    record.StoredPath));
+
+            Assert.True(
+                File.Exists(
+                    source));
+
+            Assert.NotNull(
+                await quarantineRepository.GetByIdAsync(
+                    record.Id));
+        }
+        finally
+        {
+            if (File.Exists(
+                    record.StoredPath))
+            {
+                File.SetAttributes(
+                    record.StoredPath,
+                    FileAttributes.Normal);
+            }
+
+            if (File.Exists(
+                    source))
+            {
+                File.SetAttributes(
+                    source,
+                    FileAttributes.Normal);
+            }
+        }
+    }
 }
