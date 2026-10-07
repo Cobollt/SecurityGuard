@@ -1793,6 +1793,11 @@ public sealed class QuarantineManagerTests
                 () =>
                     restoreManager.RestoreAsync(
                         record.Id));
+
+            Assert.Empty(
+                Directory.EnumerateFiles(
+                    environment.RootDirectory,
+                    ".sg_restore_*.tmp"));
         }
         finally
         {
