@@ -1879,4 +1879,99 @@ public sealed class QuarantineManagerTests
         Assert.Single(
             records);
     }
+
+    private sealed class ReadOnlyThrowingFileAccessProtectionService
+        : IFileAccessProtectionService
+    {
+        public void ProtectDirectory(
+            string path)
+        {
+        }
+
+        public void ProtectFile(
+            string path)
+        {
+            File.SetAttributes(
+                path,
+                File.GetAttributes(
+                    path) |
+                FileAttributes.ReadOnly);
+
+            throw new InvalidOperationException(
+                "Simulated protection failure after file modification.");
+        }
+    }
+
+    [Fact]
+    public async Task Protection_partial_failure_does_not_leave_untracked_quarantine_file()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        await using var environment =
+            await TestEnvironment.CreateAsync();
+
+        var quarantineRepository =
+            new SqliteQuarantineRepository(
+                environment.ConnectionFactory);
+
+        var source =
+            Path.Combine(
+                environment.RootDirectory,
+                "partial-protection-failure.ps1");
+
+        await File.WriteAllTextAsync(
+            source,
+            "Write-Host protection");
+
+        var manager =
+            new QuarantineManager(
+                environment.Paths,
+                new Sha256FileHashService(),
+                quarantineRepository,
+                new AuditService(
+                    new SqliteSecurityEventRepository(
+                        environment.ConnectionFactory)),
+                new ReadOnlyThrowingFileAccessProtectionService());
+
+        try
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () =>
+                    manager.QuarantineAsync(
+                        source,
+                        SecurityModuleKind.AlgorithmGuard,
+                        "Test"));
+
+            Assert.True(
+                File.Exists(
+                    source));
+
+            Assert.Equal(
+                0,
+                await quarantineRepository.CountAsync());
+
+            Assert.Empty(
+                Directory.EnumerateFiles(
+                    environment.Paths.QuarantineDirectory,
+                    "*.sgq"));
+        }
+        finally
+        {
+            foreach (var path in
+                     Directory.EnumerateFiles(
+                         environment.Paths.QuarantineDirectory,
+                         "*.sgq"))
+            {
+                File.SetAttributes(
+                    path,
+                    FileAttributes.Normal);
+
+                File.Delete(
+                    path);
+            }
+        }
+    }
 }

@@ -269,6 +269,19 @@ public sealed class QuarantineManager
             {
                 try
                 {
+                    var attributes =
+                        File.GetAttributes(
+                            storedPath);
+
+                    if ((attributes &
+                         FileAttributes.ReadOnly) != 0)
+                    {
+                        File.SetAttributes(
+                            storedPath,
+                            attributes &
+                            ~FileAttributes.ReadOnly);
+                    }
+
                     File.Delete(
                         storedPath);
                 }
