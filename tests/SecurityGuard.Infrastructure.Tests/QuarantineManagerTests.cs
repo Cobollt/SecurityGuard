@@ -1718,4 +1718,96 @@ public sealed class QuarantineManagerTests
             await quarantineRepository.GetByIdAsync(
                 record.Id));
     }
+
+    private sealed class ReadOnlyThrowingRestoreHashService
+        : IFileHashService
+    {
+        public Task<string> ComputeSha256Async(
+            string filePath,
+            CancellationToken cancellationToken = default)
+        {
+            File.SetAttributes(
+                filePath,
+                File.GetAttributes(
+                    filePath) |
+                FileAttributes.ReadOnly);
+
+            throw new InvalidOperationException(
+                "Simulated restore hash failure.");
+        }
+    }
+
+    [Fact]
+    public async Task Restore_cleanup_failure_does_not_mask_original_exception()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        await using var environment =
+            await TestEnvironment.CreateAsync();
+
+        var quarantineRepository =
+            new SqliteQuarantineRepository(
+                environment.ConnectionFactory);
+
+        var source =
+            Path.Combine(
+                environment.RootDirectory,
+                "restore-cleanup-failure.ps1");
+
+        await File.WriteAllTextAsync(
+            source,
+            "Write-Host restore");
+
+        var setupManager =
+            new QuarantineManager(
+                environment.Paths,
+                new Sha256FileHashService(),
+                quarantineRepository,
+                new AuditService(
+                    new SqliteSecurityEventRepository(
+                        environment.ConnectionFactory)),
+                new NoOpFileAccessProtectionService());
+
+        var record =
+            await setupManager.QuarantineAsync(
+                source,
+                SecurityModuleKind.AlgorithmGuard,
+                "Test");
+
+        var restoreManager =
+            new QuarantineManager(
+                environment.Paths,
+                new ReadOnlyThrowingRestoreHashService(),
+                quarantineRepository,
+                new AuditService(
+                    new SqliteSecurityEventRepository(
+                        environment.ConnectionFactory)),
+                new NoOpFileAccessProtectionService());
+
+        try
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () =>
+                    restoreManager.RestoreAsync(
+                        record.Id));
+        }
+        finally
+        {
+            foreach (var path in
+                     Directory.EnumerateFiles(
+                         environment.RootDirectory,
+                         ".sg_restore_*.tmp"))
+            {
+                File.SetAttributes(
+                    path,
+                    FileAttributes.Normal);
+
+                File.Delete(
+                    path);
+            }
+        }
+    }
 }
