@@ -658,8 +658,69 @@ public sealed class QuarantineManager
                 }
                 catch (Exception rollbackException)
                 {
+                    try
+                    {
+                        var persistedRecord =
+                            await _repository.GetByIdAsync(
+                                record.Id,
+                                CancellationToken.None);
+
+                        if (persistedRecord is null)
+                        {
+                            if (File.Exists(
+                                    record.StoredPath))
+                            {
+                                var attributes =
+                                    File.GetAttributes(
+                                        record.StoredPath);
+
+                                if ((attributes &
+                                     FileAttributes.ReadOnly) != 0)
+                                {
+                                    File.SetAttributes(
+                                        record.StoredPath,
+                                        attributes &
+                                        ~FileAttributes.ReadOnly);
+                                }
+
+                                File.Delete(
+                                    record.StoredPath);
+                            }
+
+                            if (!string.IsNullOrWhiteSpace(
+                                    stagedPath) &&
+                                File.Exists(
+                                    stagedPath))
+                            {
+                                var stagedAttributes =
+                                    File.GetAttributes(
+                                        stagedPath);
+
+                                if ((stagedAttributes &
+                                     FileAttributes.ReadOnly) != 0)
+                                {
+                                    File.SetAttributes(
+                                        stagedPath,
+                                        stagedAttributes &
+                                        ~FileAttributes.ReadOnly);
+                                }
+
+                                File.Delete(
+                                    stagedPath);
+                            }
+                        }
+                    }
+                    catch (Exception cleanupException)
+                    {
+                        throw new AggregateException(
+                            "Quarantine delete failed and rollback cleanup could not restore a consistent state.",
+                            deleteException,
+                            rollbackException,
+                            cleanupException);
+                    }
+
                     throw new AggregateException(
-                        "Quarantine delete failed and rollback could not restore a consistent state.",
+                        "Quarantine delete failed and repository rollback did not complete.",
                         deleteException,
                         rollbackException);
                 }
