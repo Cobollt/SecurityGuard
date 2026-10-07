@@ -1810,4 +1810,73 @@ public sealed class QuarantineManagerTests
             }
         }
     }
+
+    [Fact]
+    public async Task Quarantine_post_delete_rollback_failure_does_not_leave_untracked_quarantine_file()
+    {
+        await using var environment =
+            await TestEnvironment.CreateAsync();
+
+        var quarantineRepository =
+            new SqliteQuarantineRepository(
+                environment.ConnectionFactory);
+
+        var source =
+            Path.Combine(
+                environment.RootDirectory,
+                "quarantine-post-delete-rollback-failure.ps1");
+
+        await File.WriteAllTextAsync(
+            source,
+            "Write-Host quarantine");
+
+        using var sourceLock =
+            new FileStream(
+                source,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read);
+
+        var manager =
+            new QuarantineManager(
+                environment.Paths,
+                new Sha256FileHashService(),
+                new DeleteThenThrowQuarantineRepository(
+                    quarantineRepository),
+                new AuditService(
+                    new SqliteSecurityEventRepository(
+                        environment.ConnectionFactory)),
+                new NoOpFileAccessProtectionService());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () =>
+                manager.QuarantineAsync(
+                    source,
+                    SecurityModuleKind.AlgorithmGuard,
+                    "Test"));
+
+        Assert.True(
+            File.Exists(
+                source));
+
+        var files =
+            Directory.EnumerateFiles(
+                    environment.Paths.QuarantineDirectory,
+                    "*.sgq")
+                .ToArray();
+
+        var storedPath =
+            Assert.Single(
+                files);
+
+        Assert.True(
+            File.Exists(
+                storedPath));
+
+        var records =
+            await quarantineRepository.GetAllAsync();
+
+        Assert.Single(
+            records);
+    }
 }

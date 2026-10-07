@@ -151,12 +151,48 @@ public sealed class QuarantineManager
             }
             catch (Exception sourceDeleteException)
             {
-                await _repository.DeleteAsync(
-                    record.Id,
-                    CancellationToken.None);
+                try
+                {
+                    await _repository.DeleteAsync(
+                        record.Id,
+                        CancellationToken.None);
 
-                recordPersisted =
-                    false;
+                    recordPersisted =
+                        false;
+                }
+                catch (Exception repositoryDeleteException)
+                {
+                    try
+                    {
+                        var persistedRecord =
+                            await _repository.GetByIdAsync(
+                                record.Id,
+                                CancellationToken.None);
+
+                        if (persistedRecord is null)
+                        {
+                            await _repository.AddAsync(
+                                record,
+                                CancellationToken.None);
+                        }
+
+                        recordPersisted =
+                            true;
+                    }
+                    catch (Exception repositoryRollbackException)
+                    {
+                        recordPersisted =
+                            true;
+
+                        throw new AggregateException(
+                            "Quarantine creation repository rollback failed.",
+                            sourceDeleteException,
+                            repositoryDeleteException,
+                            repositoryRollbackException);
+                    }
+
+                    throw;
+                }
 
                 try
                 {
