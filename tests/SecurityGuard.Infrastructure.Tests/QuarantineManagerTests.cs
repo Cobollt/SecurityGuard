@@ -2146,4 +2146,177 @@ public sealed class QuarantineManagerTests
             }
         }
     }
+
+    private sealed class SecondAddPersistThenThrowQuarantineRepository
+        : IQuarantineRepository
+    {
+        private readonly IQuarantineRepository _inner;
+        private readonly string _quarantineDirectory;
+        private int _addCount;
+
+        public SecondAddPersistThenThrowQuarantineRepository(
+            IQuarantineRepository inner,
+            string quarantineDirectory)
+        {
+            _inner =
+                inner;
+
+            _quarantineDirectory =
+                quarantineDirectory;
+        }
+
+        public async Task AddAsync(
+            QuarantineRecord record,
+            CancellationToken cancellationToken = default)
+        {
+            _addCount++;
+
+            await _inner.AddAsync(
+                record,
+                cancellationToken);
+
+            if (_addCount > 1)
+            {
+                throw new InvalidOperationException(
+                    "Simulated failure after rollback persistence.");
+            }
+        }
+
+        public Task<IReadOnlyList<QuarantineRecord>> GetAllAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.GetAllAsync(
+                cancellationToken);
+        }
+
+        public Task<QuarantineRecord?> GetByIdAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.GetByIdAsync(
+                id,
+                cancellationToken);
+        }
+
+        public Task<int> CountAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.CountAsync(
+                cancellationToken);
+        }
+
+        public async Task DeleteAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            await _inner.DeleteAsync(
+                id,
+                cancellationToken);
+
+            var storedPath =
+                Directory
+                    .EnumerateFiles(
+                        _quarantineDirectory,
+                        "*.sgq")
+                    .Single();
+
+            File.SetAttributes(
+                storedPath,
+                File.GetAttributes(
+                    storedPath) |
+                FileAttributes.ReadOnly);
+        }
+    }
+
+    [Fact]
+    public async Task Quarantine_rollback_post_persist_failure_does_not_leave_record_without_file()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        await using var environment =
+            await TestEnvironment.CreateAsync();
+
+        var quarantineRepository =
+            new SqliteQuarantineRepository(
+                environment.ConnectionFactory);
+
+        var source =
+            Path.Combine(
+                environment.RootDirectory,
+                "rollback-post-persist-failure.ps1");
+
+        await File.WriteAllTextAsync(
+            source,
+            "Write-Host quarantine");
+
+        using var sourceLock =
+            new FileStream(
+                source,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read);
+
+        var storedPath =
+            string.Empty;
+
+        var repository =
+            new SecondAddPersistThenThrowQuarantineRepository(
+                quarantineRepository,
+                environment.Paths.QuarantineDirectory);
+
+        try
+        {
+            var manager =
+                new QuarantineManager(
+                    environment.Paths,
+                    new Sha256FileHashService(),
+                    repository,
+                    new AuditService(
+                        new SqliteSecurityEventRepository(
+                            environment.ConnectionFactory)),
+                    new NoOpFileAccessProtectionService());
+
+            await Assert.ThrowsAsync<AggregateException>(
+                () =>
+                    manager.QuarantineAsync(
+                        source,
+                        SecurityModuleKind.AlgorithmGuard,
+                        "Test"));
+
+            var records =
+                await quarantineRepository.GetAllAsync();
+
+            var record =
+                Assert.Single(
+                    records);
+
+            storedPath =
+                record.StoredPath;
+
+            Assert.True(
+                File.Exists(
+                    record.StoredPath));
+        }
+        finally
+        {
+            if (Directory.Exists(
+                    environment.Paths.QuarantineDirectory))
+            {
+                foreach (var path in
+                         Directory.EnumerateFiles(
+                             environment.Paths.QuarantineDirectory))
+                {
+                    File.SetAttributes(
+                        path,
+                        FileAttributes.Normal);
+
+                    File.Delete(
+                        path);
+                }
+            }
+        }
+    }
 }
