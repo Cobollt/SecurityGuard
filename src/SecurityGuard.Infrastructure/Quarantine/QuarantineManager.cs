@@ -181,8 +181,18 @@ public sealed class QuarantineManager
                     }
                     catch (Exception repositoryRollbackException)
                     {
-                        recordPersisted =
-                            true;
+                        try
+                        {
+                            recordPersisted =
+                                await _repository.GetByIdAsync(
+                                    record.Id,
+                                    CancellationToken.None) is not null;
+                        }
+                        catch
+                        {
+                            recordPersisted =
+                                true;
+                        }
 
                         throw new AggregateException(
                             "Quarantine creation repository rollback failed.",
