@@ -17,18 +17,14 @@ public sealed class AlgorithmGuardHostedService
     private readonly IAlgorithmGuardSettingsService _settingsService;
     private readonly IModuleRegistry _moduleRegistry;
     private readonly IAuditService _auditService;
-
+    private readonly IAlgorithmEnforcementBackendState _backendState;
     private readonly SemaphoreSlim _gate =
         new(1, 1);
-
     private CancellationTokenSource? _monitorCancellation;
     private Task? _monitorTask;
-
     private CancellationToken _hostStoppingToken;
-
     private AlgorithmGuardSettings _currentSettings =
         AlgorithmGuardSettings.Default;
-
     public AlgorithmGuardSettings CurrentSettings =>
         _currentSettings;
 
@@ -36,6 +32,7 @@ public sealed class AlgorithmGuardHostedService
         IAlgorithmGuardMonitor monitor,
         IAlgorithmEnforcementSynchronizer synchronizer,
         IAppLockerHealthService appLockerHealthService,
+        IAlgorithmEnforcementBackendState backendState,
         IAlgorithmGuardSettingsService settingsService,
         IModuleRegistry moduleRegistry,
         IAuditService auditService)
@@ -48,6 +45,9 @@ public sealed class AlgorithmGuardHostedService
 
         _appLockerHealthService =
             appLockerHealthService;
+
+        _backendState =
+            backendState;
 
         _settingsService =
             settingsService;
@@ -243,15 +243,16 @@ public sealed class AlgorithmGuardHostedService
                 return;
             }
 
-            var usingProcessFallback =
-                !health.EnforcementReady;
-
             var sync =
                 await _synchronizer.SynchronizeAsync(
                     cancellationToken);
 
             if (sync.Healthy)
             {
+                var usingProcessFallback =
+                    await _backendState.UsesProcessFallbackAsync(
+                        cancellationToken);
+
                 StartMonitor();
 
                 _moduleRegistry.Set(

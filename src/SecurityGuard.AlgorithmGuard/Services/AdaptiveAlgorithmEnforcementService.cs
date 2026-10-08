@@ -6,7 +6,8 @@ namespace SecurityGuard.AlgorithmGuard.Services;
 
 public sealed class AdaptiveAlgorithmEnforcementService
     : IAlgorithmEnforcementService,
-      IAlgorithmRuntimeEnforcer
+      IAlgorithmRuntimeEnforcer,
+      IAlgorithmEnforcementBackendState
 {
     private readonly AppLockerAlgorithmEnforcementService _appLocker;
     private readonly ProcessExecutionEnforcementService _processFallback;

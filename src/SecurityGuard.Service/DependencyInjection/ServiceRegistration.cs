@@ -221,6 +221,12 @@ public static class ServiceRegistration
             AdaptiveAlgorithmEnforcementService>();
 
         services.AddSingleton<
+            IAlgorithmEnforcementBackendState>(
+                provider =>
+                    provider.GetRequiredService<
+                        AdaptiveAlgorithmEnforcementService>());
+
+        services.AddSingleton<
             IAlgorithmRuntimeEnforcer>(
                 provider =>
                     provider.GetRequiredService<

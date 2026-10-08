@@ -40,6 +40,8 @@ public sealed class AlgorithmGuardHostedServiceTests
                 monitor,
                 synchronizer,
                 health,
+                new FakeAlgorithmEnforcementBackendState(
+                    true),
                 new FakeAlgorithmGuardSettingsService(
                     settings),
                 registry,
@@ -118,6 +120,8 @@ public sealed class AlgorithmGuardHostedServiceTests
                 monitor,
                 synchronizer,
                 health,
+                new FakeAlgorithmEnforcementBackendState(
+                    true),
                 new FakeAlgorithmGuardSettingsService(
                     settings),
                 registry,
@@ -164,6 +168,20 @@ public sealed class AlgorithmGuardHostedServiceTests
                     AlgorithmGuardMode.Monitor,
                     EnforcementFailurePolicy.FailOpen));
         }
+    }
+
+    private static AppLockerHealthSnapshot CreateHealthyHealth()
+    {
+        return new AppLockerHealthSnapshot(
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            null);
     }
 
     private static AppLockerHealthSnapshot CreateManagementUnavailableHealth()
@@ -414,6 +432,8 @@ public sealed class AlgorithmGuardHostedServiceTests
                 synchronizer,
                 new FakeAppLockerHealthService(
                     CreateManagementUnavailableHealth()),
+                new FakeAlgorithmEnforcementBackendState(
+                    true),
                 new FakeAlgorithmGuardSettingsService(
                     settings),
                 registry,
@@ -482,6 +502,8 @@ public sealed class AlgorithmGuardHostedServiceTests
                 synchronizer,
                 new FakeAppLockerHealthService(
                     CreateManagementUnavailableHealth()),
+                new FakeAlgorithmEnforcementBackendState(
+                    true),
                 new FakeAlgorithmGuardSettingsService(
                     settings),
                 registry,
@@ -535,6 +557,8 @@ public sealed class AlgorithmGuardHostedServiceTests
                 new FakeAlgorithmEnforcementSynchronizer(),
                 new FakeAppLockerHealthService(
                     CreateManagementUnavailableHealth()),
+                new FakeAlgorithmEnforcementBackendState(
+                    true),
                 new FakeAlgorithmGuardSettingsService(
                     settings),
                 registry,
@@ -612,6 +636,8 @@ public sealed class AlgorithmGuardHostedServiceTests
                 new FakeAlgorithmEnforcementSynchronizer(),
                 new FakeAppLockerHealthService(
                     CreateManagementUnavailableHealth()),
+                new FakeAlgorithmEnforcementBackendState(
+                    true),
                 new FakeAlgorithmGuardSettingsService(
                     settings),
                 registry,
@@ -652,5 +678,87 @@ public sealed class AlgorithmGuardHostedServiceTests
         Assert.Equal(
             "Runtime enforcement failed",
             audit.LastDetails);
+    }
+
+    private sealed class FakeAlgorithmEnforcementBackendState
+        : IAlgorithmEnforcementBackendState
+    {
+        private readonly bool _usesProcessFallback;
+
+        public FakeAlgorithmEnforcementBackendState(
+            bool usesProcessFallback)
+        {
+            _usesProcessFallback =
+                usesProcessFallback;
+        }
+
+        public Task<bool> UsesProcessFallbackAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(
+                _usesProcessFallback);
+        }
+    }
+
+    [Fact]
+    public async Task Enforce_status_uses_selected_process_fallback_when_applocker_is_healthy()
+    {
+        var monitor =
+            new FakeAlgorithmGuardMonitor();
+
+        var synchronizer =
+            new FakeAlgorithmEnforcementSynchronizer();
+
+        var settings =
+            new AlgorithmGuardSettings(
+                true,
+                AlgorithmGuardMode.Enforce,
+                EnforcementFailurePolicy.FailOpen);
+
+        var registry =
+            new FakeModuleRegistry();
+
+        var service =
+            new AlgorithmGuardHostedService(
+                monitor,
+                synchronizer,
+                new FakeAppLockerHealthService(
+                    CreateHealthyHealth()),
+                new FakeAlgorithmEnforcementBackendState(
+                    true),
+                new FakeAlgorithmGuardSettingsService(
+                    settings),
+                registry,
+                new FakeAuditService());
+
+        await service.ApplyAsync(
+            settings);
+
+        await monitor.Started.Task.WaitAsync(
+            TimeSpan.FromSeconds(2));
+
+        try
+        {
+            Assert.Equal(
+                ModuleOperationalState.Active,
+                registry.LastState);
+
+            Assert.Contains(
+                "process runtime fallback",
+                registry.LastMessage,
+                StringComparison.OrdinalIgnoreCase);
+
+            Assert.Equal(
+                1,
+                synchronizer.SynchronizeCalls);
+        }
+        finally
+        {
+            await service.ApplyAsync(
+                new AlgorithmGuardSettings(
+                    false,
+                    AlgorithmGuardMode.Monitor,
+                    EnforcementFailurePolicy.FailOpen));
+        }
     }
 }
