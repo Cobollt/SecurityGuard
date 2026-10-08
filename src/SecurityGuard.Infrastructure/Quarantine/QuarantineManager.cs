@@ -723,7 +723,7 @@ public sealed class QuarantineManager
         }
 
         string? stagedPath =
-    null;
+            null;
 
         if (File.Exists(
                 record.StoredPath))
@@ -845,6 +845,100 @@ public sealed class QuarantineManager
             }
             catch (Exception repositoryRollbackException)
             {
+                QuarantineRecord? persistedRecord;
+
+                try
+                {
+                    persistedRecord =
+                        await _repository.GetByIdAsync(
+                            record.Id,
+                            CancellationToken.None);
+                }
+                catch (Exception repositoryStateException)
+                {
+                    if (fileRollbackException is not null)
+                    {
+                        throw new AggregateException(
+                            "Quarantine delete rollback state could not be determined.",
+                            repositoryDeleteException,
+                            fileRollbackException,
+                            repositoryRollbackException,
+                            repositoryStateException);
+                    }
+
+                    throw new AggregateException(
+                        "Quarantine delete rollback state could not be determined.",
+                        repositoryDeleteException,
+                        repositoryRollbackException,
+                        repositoryStateException);
+                }
+
+                if (persistedRecord is null)
+                {
+                    try
+                    {
+                        if (File.Exists(
+                                record.StoredPath))
+                        {
+                            var attributes =
+                                File.GetAttributes(
+                                    record.StoredPath);
+
+                            if ((attributes &
+                                 FileAttributes.ReadOnly) != 0)
+                            {
+                                File.SetAttributes(
+                                    record.StoredPath,
+                                    attributes &
+                                    ~FileAttributes.ReadOnly);
+                            }
+
+                            File.Delete(
+                                record.StoredPath);
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(
+                                stagedPath) &&
+                            File.Exists(
+                                stagedPath))
+                        {
+                            var stagedAttributes =
+                                File.GetAttributes(
+                                    stagedPath);
+
+                            if ((stagedAttributes &
+                                 FileAttributes.ReadOnly) != 0)
+                            {
+                                File.SetAttributes(
+                                    stagedPath,
+                                    stagedAttributes &
+                                    ~FileAttributes.ReadOnly);
+                            }
+
+                            File.Delete(
+                                stagedPath);
+                        }
+                    }
+                    catch (Exception cleanupException)
+                    {
+                        if (fileRollbackException is not null)
+                        {
+                            throw new AggregateException(
+                                "Quarantine delete rollback cleanup failed.",
+                                repositoryDeleteException,
+                                fileRollbackException,
+                                repositoryRollbackException,
+                                cleanupException);
+                        }
+
+                        throw new AggregateException(
+                            "Quarantine delete repository rollback cleanup failed.",
+                            repositoryDeleteException,
+                            repositoryRollbackException,
+                            cleanupException);
+                    }
+                }
+
                 if (fileRollbackException is not null)
                 {
                     throw new AggregateException(
