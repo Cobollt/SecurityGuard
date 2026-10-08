@@ -767,6 +767,68 @@ public sealed class QuarantineManager
                 }
             }
 
+            if (fileRollbackException is not null)
+            {
+                QuarantineRecord? persistedRecord;
+
+                try
+                {
+                    persistedRecord =
+                        await _repository.GetByIdAsync(
+                            record.Id,
+                            CancellationToken.None);
+                }
+                catch (Exception repositoryStateException)
+                {
+                    throw new AggregateException(
+                        "Quarantine delete rollback state could not be determined.",
+                        repositoryDeleteException,
+                        fileRollbackException,
+                        repositoryStateException);
+                }
+
+                if (persistedRecord is null)
+                {
+                    try
+                    {
+                        if (!string.IsNullOrWhiteSpace(
+                                stagedPath) &&
+                            File.Exists(
+                                stagedPath))
+                        {
+                            var stagedAttributes =
+                                File.GetAttributes(
+                                    stagedPath);
+
+                            if ((stagedAttributes &
+                                 FileAttributes.ReadOnly) != 0)
+                            {
+                                File.SetAttributes(
+                                    stagedPath,
+                                    stagedAttributes &
+                                    ~FileAttributes.ReadOnly);
+                            }
+
+                            File.Delete(
+                                stagedPath);
+                        }
+                    }
+                    catch (Exception stagedCleanupException)
+                    {
+                        throw new AggregateException(
+                            "Quarantine delete file rollback failed and the staged file could not be cleaned up.",
+                            repositoryDeleteException,
+                            fileRollbackException,
+                            stagedCleanupException);
+                    }
+
+                    throw new AggregateException(
+                        "Quarantine delete file rollback failed after the repository record was removed.",
+                        repositoryDeleteException,
+                        fileRollbackException);
+                }
+            }
+
             try
             {
                 var persistedRecord =

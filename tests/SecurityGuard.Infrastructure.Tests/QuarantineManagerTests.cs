@@ -2713,4 +2713,172 @@ public sealed class QuarantineManagerTests
             persistedRecord is not null,
             storedFileExists);
     }
+
+    private sealed class DeleteThenBlockFileRollbackQuarantineRepository
+        : IQuarantineRepository
+    {
+        private readonly IQuarantineRepository _inner;
+        private readonly string _storedPath;
+
+        public DeleteThenBlockFileRollbackQuarantineRepository(
+            IQuarantineRepository inner,
+            string storedPath)
+        {
+            _inner =
+                inner;
+
+            _storedPath =
+                storedPath;
+        }
+
+        public Task AddAsync(
+            QuarantineRecord record,
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.AddAsync(
+                record,
+                cancellationToken);
+        }
+
+        public Task<IReadOnlyList<QuarantineRecord>> GetAllAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.GetAllAsync(
+                cancellationToken);
+        }
+
+        public Task<QuarantineRecord?> GetByIdAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.GetByIdAsync(
+                id,
+                cancellationToken);
+        }
+
+        public Task<int> CountAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.CountAsync(
+                cancellationToken);
+        }
+
+        public async Task DeleteAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            await _inner.DeleteAsync(
+                id,
+                cancellationToken);
+
+            Directory.CreateDirectory(
+                _storedPath);
+
+            throw new InvalidOperationException(
+                "Simulated failure after repository deletion.");
+        }
+    }
+
+    [Fact]
+    public async Task Delete_file_rollback_failure_does_not_restore_record_without_file()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        await using var environment =
+            await TestEnvironment.CreateAsync();
+
+        var quarantineRepository =
+            new SqliteQuarantineRepository(
+                environment.ConnectionFactory);
+
+        var source =
+            Path.Combine(
+                environment.RootDirectory,
+                "delete-file-rollback-failure.ps1");
+
+        await File.WriteAllTextAsync(
+            source,
+            "Write-Host delete");
+
+        var setupManager =
+            new QuarantineManager(
+                environment.Paths,
+                new Sha256FileHashService(),
+                quarantineRepository,
+                new AuditService(
+                    new SqliteSecurityEventRepository(
+                        environment.ConnectionFactory)),
+                new NoOpFileAccessProtectionService());
+
+        var record =
+            await setupManager.QuarantineAsync(
+                source,
+                SecurityModuleKind.AlgorithmGuard,
+                "Test");
+
+        var deleteManager =
+            new QuarantineManager(
+                environment.Paths,
+                new Sha256FileHashService(),
+                new DeleteThenBlockFileRollbackQuarantineRepository(
+                    quarantineRepository,
+                    record.StoredPath),
+                new AuditService(
+                    new SqliteSecurityEventRepository(
+                        environment.ConnectionFactory)),
+                new NoOpFileAccessProtectionService());
+
+        try
+        {
+            await Assert.ThrowsAsync<AggregateException>(
+                () =>
+                    deleteManager.DeleteAsync(
+                        record.Id));
+
+            var persistedRecord =
+                await quarantineRepository.GetByIdAsync(
+                    record.Id);
+
+            var stagedFiles =
+                Directory
+                    .EnumerateFiles(
+                        environment.Paths.QuarantineDirectory,
+                        "*.delete")
+                    .ToArray();
+
+            Assert.Equal(
+                persistedRecord is not null,
+                File.Exists(
+                    record.StoredPath));
+
+            Assert.Empty(
+                stagedFiles);
+        }
+        finally
+        {
+            if (Directory.Exists(
+                    record.StoredPath))
+            {
+                Directory.Delete(
+                    record.StoredPath,
+                    true);
+            }
+
+            foreach (var path in
+                     Directory.EnumerateFiles(
+                         environment.Paths.QuarantineDirectory,
+                         "*.delete"))
+            {
+                File.SetAttributes(
+                    path,
+                    FileAttributes.Normal);
+
+                File.Delete(
+                    path);
+            }
+        }
+    }
 }
