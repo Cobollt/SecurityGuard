@@ -2319,4 +2319,105 @@ public sealed class QuarantineManagerTests
             }
         }
     }
+
+    private sealed class ReadOnlyThrowingQuarantineHashService
+        : IFileHashService
+    {
+        private readonly Sha256FileHashService _inner =
+            new();
+
+        private int _callCount;
+
+        public async Task<string> ComputeSha256Async(
+            string filePath,
+            CancellationToken cancellationToken = default)
+        {
+            _callCount++;
+
+            if (_callCount > 1)
+            {
+                File.SetAttributes(
+                    filePath,
+                    File.GetAttributes(
+                        filePath) |
+                    FileAttributes.ReadOnly);
+
+                throw new InvalidOperationException(
+                    "Simulated quarantine hash failure.");
+            }
+
+            return await _inner.ComputeSha256Async(
+                filePath,
+                cancellationToken);
+        }
+    }
+
+    [Fact]
+    public async Task Quarantine_temporary_cleanup_failure_does_not_leave_temporary_file()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        await using var environment =
+            await TestEnvironment.CreateAsync();
+
+        var quarantineRepository =
+            new SqliteQuarantineRepository(
+                environment.ConnectionFactory);
+
+        var source =
+            Path.Combine(
+                environment.RootDirectory,
+                "quarantine-temp-cleanup.ps1");
+
+        await File.WriteAllTextAsync(
+            source,
+            "Write-Host quarantine");
+
+        var manager =
+            new QuarantineManager(
+                environment.Paths,
+                new ReadOnlyThrowingQuarantineHashService(),
+                quarantineRepository,
+                new AuditService(
+                    new SqliteSecurityEventRepository(
+                        environment.ConnectionFactory)),
+                new NoOpFileAccessProtectionService());
+
+        try
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () =>
+                    manager.QuarantineAsync(
+                        source,
+                        SecurityModuleKind.AlgorithmGuard,
+                        "Test"));
+
+            Assert.True(
+                File.Exists(
+                    source));
+
+            Assert.Empty(
+                Directory.EnumerateFiles(
+                    environment.Paths.QuarantineDirectory,
+                    "*.tmp"));
+        }
+        finally
+        {
+            foreach (var path in
+                     Directory.EnumerateFiles(
+                         environment.Paths.QuarantineDirectory,
+                         "*.tmp"))
+            {
+                File.SetAttributes(
+                    path,
+                    FileAttributes.Normal);
+
+                File.Delete(
+                    path);
+            }
+        }
+    }
 }
