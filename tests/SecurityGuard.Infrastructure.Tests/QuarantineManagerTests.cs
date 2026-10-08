@@ -3136,4 +3136,216 @@ public sealed class QuarantineManagerTests
         Assert.Empty(
             storedFiles);
     }
+
+    private sealed class ConcurrentRestoreTrackingRepository
+        : IQuarantineRepository
+    {
+        private readonly IQuarantineRepository _inner;
+        private int _activeDeletes;
+        private int _maxConcurrentDeletes;
+
+        public ConcurrentRestoreTrackingRepository(
+            IQuarantineRepository inner)
+        {
+            _inner =
+                inner;
+        }
+
+        public int MaxConcurrentDeletes =>
+            _maxConcurrentDeletes;
+
+        public Task AddAsync(
+            QuarantineRecord record,
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.AddAsync(
+                record,
+                cancellationToken);
+        }
+
+        public Task<IReadOnlyList<QuarantineRecord>> GetAllAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.GetAllAsync(
+                cancellationToken);
+        }
+
+        public Task<QuarantineRecord?> GetByIdAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.GetByIdAsync(
+                id,
+                cancellationToken);
+        }
+
+        public Task<int> CountAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.CountAsync(
+                cancellationToken);
+        }
+
+        public async Task DeleteAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var active =
+                Interlocked.Increment(
+                    ref _activeDeletes);
+
+            while (true)
+            {
+                var current =
+                    Volatile.Read(
+                        ref _maxConcurrentDeletes);
+
+                if (active <= current)
+                {
+                    break;
+                }
+
+                if (Interlocked.CompareExchange(
+                        ref _maxConcurrentDeletes,
+                        active,
+                        current) == current)
+                {
+                    break;
+                }
+            }
+
+            try
+            {
+                await Task.Delay(
+                    300,
+                    cancellationToken);
+
+                await _inner.DeleteAsync(
+                    id,
+                    cancellationToken);
+            }
+            finally
+            {
+                Interlocked.Decrement(
+                    ref _activeDeletes);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Concurrent_restore_does_not_restore_same_quarantine_item_twice()
+    {
+        await using var environment =
+            await TestEnvironment.CreateAsync();
+
+        var quarantineRepository =
+            new SqliteQuarantineRepository(
+                environment.ConnectionFactory);
+
+        var source =
+            Path.Combine(
+                environment.RootDirectory,
+                "concurrent-restore.ps1");
+
+        await File.WriteAllTextAsync(
+            source,
+            "Write-Host restore");
+
+        var setupManager =
+            new QuarantineManager(
+                environment.Paths,
+                new Sha256FileHashService(),
+                quarantineRepository,
+                new AuditService(
+                    new SqliteSecurityEventRepository(
+                        environment.ConnectionFactory)),
+                new NoOpFileAccessProtectionService());
+
+        var record =
+            await setupManager.QuarantineAsync(
+                source,
+                SecurityModuleKind.AlgorithmGuard,
+                "Test");
+
+        var repository =
+            new ConcurrentRestoreTrackingRepository(
+                quarantineRepository);
+
+        var restoreManager =
+            new QuarantineManager(
+                environment.Paths,
+                new Sha256FileHashService(),
+                repository,
+                new AuditService(
+                    new SqliteSecurityEventRepository(
+                        environment.ConnectionFactory)),
+                new NoOpFileAccessProtectionService());
+
+        var firstTarget =
+            Path.Combine(
+                environment.RootDirectory,
+                "restore-first.ps1");
+
+        var secondTarget =
+            Path.Combine(
+                environment.RootDirectory,
+                "restore-second.ps1");
+
+        var start =
+            new TaskCompletionSource<bool>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+
+        async Task<bool> RestoreAsync(
+            string target)
+        {
+            await start.Task;
+
+            try
+            {
+                await restoreManager.RestoreAsync(
+                    record.Id,
+                    target);
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        var firstRestore =
+            RestoreAsync(
+                firstTarget);
+
+        var secondRestore =
+            RestoreAsync(
+                secondTarget);
+
+        start.SetResult(
+            true);
+
+        var results =
+            await Task.WhenAll(
+                firstRestore,
+                secondRestore);
+
+        Assert.Equal(
+            1,
+            results.Count(
+                result => result));
+
+        Assert.Equal(
+            1,
+            new[]
+            {
+            firstTarget,
+            secondTarget
+            }.Count(
+                File.Exists));
+
+        Assert.Equal(
+            1,
+            repository.MaxConcurrentDeletes);
+    }
 }

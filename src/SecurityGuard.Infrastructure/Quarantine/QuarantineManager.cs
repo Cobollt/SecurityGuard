@@ -14,6 +14,8 @@ public sealed class QuarantineManager
     private readonly IQuarantineRepository _repository;
     private readonly IAuditService _auditService;
     private readonly IFileAccessProtectionService _protectionService;
+    private readonly SemaphoreSlim _mutationLock =
+        new(1, 1);
 
     public QuarantineManager(
         SecurityGuardPaths paths,
@@ -334,6 +336,27 @@ public sealed class QuarantineManager
         Guid quarantineId,
         string? destinationPath = null,
         CancellationToken cancellationToken = default)
+    {
+        await _mutationLock.WaitAsync(
+            cancellationToken);
+
+        try
+        {
+            return await RestoreCoreAsync(
+                quarantineId,
+                destinationPath,
+                cancellationToken);
+        }
+        finally
+        {
+            _mutationLock.Release();
+        }
+    }
+
+    private async Task<string> RestoreCoreAsync(
+        Guid quarantineId,
+        string? destinationPath,
+        CancellationToken cancellationToken)
     {
         var record =
             await _repository.GetByIdAsync(
@@ -721,6 +744,25 @@ public sealed class QuarantineManager
     public async Task DeleteAsync(
         Guid quarantineId,
         CancellationToken cancellationToken = default)
+    {
+        await _mutationLock.WaitAsync(
+            cancellationToken);
+
+        try
+        {
+            await DeleteCoreAsync(
+                quarantineId,
+                cancellationToken);
+        }
+        finally
+        {
+            _mutationLock.Release();
+        }
+    }
+
+    private async Task DeleteCoreAsync(
+        Guid quarantineId,
+        CancellationToken cancellationToken)
     {
         var record =
             await _repository.GetByIdAsync(
