@@ -2584,4 +2584,133 @@ public sealed class QuarantineManagerTests
             }
         }
     }
+
+    private sealed class RestoreDeleteThenThrowAddFailingQuarantineRepository
+        : IQuarantineRepository
+    {
+        private readonly IQuarantineRepository _inner;
+
+        public RestoreDeleteThenThrowAddFailingQuarantineRepository(
+            IQuarantineRepository inner)
+        {
+            _inner =
+                inner;
+        }
+
+        public Task AddAsync(
+            QuarantineRecord record,
+            CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException(
+                "Simulated restore repository rollback failure.");
+        }
+
+        public Task<IReadOnlyList<QuarantineRecord>> GetAllAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.GetAllAsync(
+                cancellationToken);
+        }
+
+        public Task<QuarantineRecord?> GetByIdAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.GetByIdAsync(
+                id,
+                cancellationToken);
+        }
+
+        public Task<int> CountAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return _inner.CountAsync(
+                cancellationToken);
+        }
+
+        public async Task DeleteAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            await _inner.DeleteAsync(
+                id,
+                cancellationToken);
+
+            throw new InvalidOperationException(
+                "Simulated failure after repository deletion.");
+        }
+    }
+
+    [Fact]
+    public async Task Restore_delete_rollback_add_failure_does_not_leave_untracked_quarantine_file()
+    {
+        await using var environment =
+            await TestEnvironment.CreateAsync();
+
+        var quarantineRepository =
+            new SqliteQuarantineRepository(
+                environment.ConnectionFactory);
+
+        var source =
+            Path.Combine(
+                environment.RootDirectory,
+                "restore-delete-rollback-add-failure.ps1");
+
+        await File.WriteAllTextAsync(
+            source,
+            "Write-Host restore");
+
+        var setupManager =
+            new QuarantineManager(
+                environment.Paths,
+                new Sha256FileHashService(),
+                quarantineRepository,
+                new AuditService(
+                    new SqliteSecurityEventRepository(
+                        environment.ConnectionFactory)),
+                new NoOpFileAccessProtectionService());
+
+        var record =
+            await setupManager.QuarantineAsync(
+                source,
+                SecurityModuleKind.AlgorithmGuard,
+                "Test");
+
+        var restoreManager =
+            new QuarantineManager(
+                environment.Paths,
+                new Sha256FileHashService(),
+                new RestoreDeleteThenThrowAddFailingQuarantineRepository(
+                    quarantineRepository),
+                new AuditService(
+                    new SqliteSecurityEventRepository(
+                        environment.ConnectionFactory)),
+                new NoOpFileAccessProtectionService());
+
+        await Assert.ThrowsAsync<AggregateException>(
+            () =>
+                restoreManager.RestoreAsync(
+                    record.Id));
+
+        var persistedRecord =
+            await quarantineRepository.GetByIdAsync(
+                record.Id);
+
+        var restoredFileExists =
+            File.Exists(
+                source);
+
+        var storedFileExists =
+            File.Exists(
+                record.StoredPath);
+
+        Assert.True(
+            restoredFileExists ||
+            (persistedRecord is not null &&
+             storedFileExists));
+
+        Assert.Equal(
+            persistedRecord is not null,
+            storedFileExists);
+    }
 }

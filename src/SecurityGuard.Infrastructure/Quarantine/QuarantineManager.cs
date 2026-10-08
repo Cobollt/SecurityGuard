@@ -404,6 +404,12 @@ public sealed class QuarantineManager
             }
             catch (Exception repositoryDeleteException)
             {
+                Exception? repositoryRestoreException =
+                    null;
+
+                var repositoryRestored =
+                    false;
+
                 try
                 {
                     var persistedRecord =
@@ -417,13 +423,69 @@ public sealed class QuarantineManager
                             record,
                             CancellationToken.None);
                     }
+
+                    repositoryRestored =
+                        true;
                 }
-                catch (Exception repositoryRollbackException)
+                catch (Exception ex)
                 {
+                    repositoryRestoreException =
+                        ex;
+
+                    try
+                    {
+                        repositoryRestored =
+                            await _repository.GetByIdAsync(
+                                record.Id,
+                                CancellationToken.None) is not null;
+                    }
+                    catch (Exception repositoryLookupException)
+                    {
+                        throw new AggregateException(
+                            "Quarantine restore rollback state could not be determined.",
+                            repositoryDeleteException,
+                            repositoryRestoreException,
+                            repositoryLookupException);
+                    }
+                }
+
+                if (!repositoryRestored)
+                {
+                    try
+                    {
+                        if (File.Exists(
+                                record.StoredPath))
+                        {
+                            var attributes =
+                                File.GetAttributes(
+                                    record.StoredPath);
+
+                            if ((attributes &
+                                 FileAttributes.ReadOnly) != 0)
+                            {
+                                File.SetAttributes(
+                                    record.StoredPath,
+                                    attributes &
+                                    ~FileAttributes.ReadOnly);
+                            }
+
+                            File.Delete(
+                                record.StoredPath);
+                        }
+                    }
+                    catch (Exception storedCleanupException)
+                    {
+                        throw new AggregateException(
+                            "Quarantine restore repository rollback failed and the orphaned quarantine file could not be removed.",
+                            repositoryDeleteException,
+                            repositoryRestoreException!,
+                            storedCleanupException);
+                    }
+
                     throw new AggregateException(
-                        "Quarantine restore repository rollback failed.",
+                        "Quarantine restore repository rollback failed; restored target was preserved.",
                         repositoryDeleteException,
-                        repositoryRollbackException);
+                        repositoryRestoreException!);
                 }
 
                 if (File.Exists(
@@ -436,11 +498,28 @@ public sealed class QuarantineManager
                     }
                     catch (Exception targetDeleteException)
                     {
+                        if (repositoryRestoreException is not null)
+                        {
+                            throw new AggregateException(
+                                "Quarantine restore rollback failed.",
+                                repositoryDeleteException,
+                                repositoryRestoreException,
+                                targetDeleteException);
+                        }
+
                         throw new AggregateException(
                             "Quarantine restore target rollback failed.",
                             repositoryDeleteException,
                             targetDeleteException);
                     }
+                }
+
+                if (repositoryRestoreException is not null)
+                {
+                    throw new AggregateException(
+                        "Quarantine restore rollback persistence reported a failure after the record was restored.",
+                        repositoryDeleteException,
+                        repositoryRestoreException);
                 }
 
                 throw;
