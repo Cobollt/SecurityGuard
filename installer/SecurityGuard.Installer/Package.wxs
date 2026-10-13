@@ -2,133 +2,144 @@
      xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
 
 	<Package Id="Cobollt.SecurityGuard"
-		   Name="SecurityGuard"
-		   Manufacturer="Cobollt"
-		   Version="$(var.ProductVersion)"
-		   Scope="perMachine"
-		   Codepage="1251">
+			 Name="SecurityGuard"
+			 Manufacturer="Cobollt"
+			 Version="$(var.ProductVersion)"
+			 Scope="perMachine"
+			 Codepage="1251">
 
-    <MajorUpgrade DowngradeErrorMessage="На компьютере уже установлена более новая версия SecurityGuard." />
+		<MajorUpgrade DowngradeErrorMessage="На компьютере уже установлена более новая версия SecurityGuard." />
 
-    <MediaTemplate EmbedCab="yes" />
+		<MediaTemplate EmbedCab="yes" />
 
-    <util:QueryWindowsWellKnownSIDs />
-		
-	<util:CloseApplication Id="CloseSecurityGuardUi"
-                       Target="SecurityGuard.UI.exe"
-                       CloseMessage="yes"
-                       ElevatedCloseMessage="yes"
-                       Timeout="3"
-                       TerminateProcess="0"
-                       RebootPrompt="no"
-                       Condition="Installed OR WIX_UPGRADE_DETECTED" />
+		<util:QueryWindowsWellKnownSIDs />
 
-    <StandardDirectory Id="ProgramFiles64Folder">
+		<util:CloseApplication Id="CloseSecurityGuardUi"
+							   Target="SecurityGuard.UI.exe"
+							   CloseMessage="yes"
+							   ElevatedCloseMessage="yes"
+							   Timeout="3"
+							   TerminateProcess="0"
+							   RebootPrompt="no"
+							   Condition="Installed OR WIX_UPGRADE_DETECTED" />
 
-      <Directory Id="INSTALLFOLDER"
-                 Name="SecurityGuard">
+		<StandardDirectory Id="ProgramFiles64Folder">
 
-		  <Directory Id="SERVICEFOLDER"
-			 Name="Service">
+			<Directory Id="INSTALLFOLDER"
+					   Name="SecurityGuard">
 
-			  <Component Id="SecurityGuardServiceComponent"
-						 Guid="*">
+				<Directory Id="SERVICEFOLDER"
+						   Name="Service">
 
-				  <File Id="SecurityGuardServiceExecutable"
-						Source="!(bindpath.ServicePublish)\SecurityGuard.Service.exe"
-						KeyPath="yes" />
+					<Component Id="SecurityGuardServiceComponent"
+							   Guid="*">
 
-				  <ServiceInstall Id="SecurityGuardServiceInstall"
-								  Name="SecurityGuard"
-								  DisplayName="SecurityGuard"
-								  Description="SecurityGuard protection service"
-								  Type="ownProcess"
-								  Start="auto"
-								  ErrorControl="normal"
-								  Account="[WIX_ACCOUNT_LOCALSYSTEM]"
-								  Vital="yes">
+						<File Id="SecurityGuardServiceExecutable"
+							  Source="!(bindpath.ServicePublish)\SecurityGuard.Service.exe"
+							  KeyPath="yes" />
 
-					  <util:ServiceConfig FirstFailureActionType="restart"
-										  SecondFailureActionType="restart"
-										  ThirdFailureActionType="restart"
-										  RestartServiceDelayInSeconds="5"
-										  ResetPeriodInDays="1" />
+						<ServiceInstall Id="SecurityGuardServiceInstall"
+										Name="SecurityGuard"
+										DisplayName="SecurityGuard"
+										Description="SecurityGuard protection service"
+										Type="ownProcess"
+										Start="auto"
+										ErrorControl="normal"
+										Account="[WIX_ACCOUNT_LOCALSYSTEM]"
+										Vital="yes">
 
-				  </ServiceInstall>
+							<util:ServiceConfig FirstFailureActionType="restart"
+												SecondFailureActionType="restart"
+												ThirdFailureActionType="restart"
+												RestartServiceDelayInSeconds="5"
+												ResetPeriodInDays="1" />
 
-				  <ServiceControl Id="SecurityGuardServiceControl"
-								  Name="SecurityGuard"
-								  Start="install"
-								  Stop="both"
-								  Remove="uninstall"
-								  Wait="yes" />
+						</ServiceInstall>
 
-			  </Component>
+						<ServiceControl Id="SecurityGuardServiceControl"
+										Name="SecurityGuard"
+										Start="install"
+										Stop="both"
+										Remove="uninstall"
+										Wait="yes" />
 
-		  </Directory>
+					</Component>
 
-        <Directory Id="UIFOLDER"
-                   Name="UI">
+				</Directory>
 
-          <Component Id="SecurityGuardUiExecutableComponent"
-                     Guid="*">
+				<Directory Id="UIFOLDER"
+						   Name="UI">
 
-            <File Id="SecurityGuardUiExecutable"
-                  Source="!(bindpath.UiPublish)\SecurityGuard.UI.exe"
-                  KeyPath="yes">
+					<Component Id="SecurityGuardUiExecutableComponent"
+							   Guid="*">
 
-              <Shortcut Id="SecurityGuardStartMenuShortcut"
-                        Directory="SecurityGuardProgramsFolder"
-                        Name="SecurityGuard"
-                        Description="SecurityGuard"
-                        WorkingDirectory="UIFOLDER"
-                        Advertise="yes" />
+						<File Id="SecurityGuardUiExecutable"
+							  Source="!(bindpath.UiPublish)\SecurityGuard.UI.exe"
+							  KeyPath="yes">
 
-            </File>
+							<Shortcut Id="SecurityGuardStartMenuShortcut"
+									  Directory="SecurityGuardProgramsFolder"
+									  Name="SecurityGuard"
+									  Description="SecurityGuard"
+									  WorkingDirectory="UIFOLDER"
+									  Advertise="yes" />
 
-			<RegistryValue Id="SecurityGuardUiAutoStart"
-               Root="HKLM"
-               Key="Software\Microsoft\Windows\CurrentVersion\Run"
-               Name="SecurityGuard"
-               Value="&quot;[UIFOLDER]SecurityGuard.UI.exe&quot; --background"
-               Type="string" />
+						</File>
 
-            <RemoveFolder Id="RemoveSecurityGuardProgramsFolder"
-                          Directory="SecurityGuardProgramsFolder"
-                          On="uninstall" />
+						<RegistryValue Id="SecurityGuardUiAutoStart"
+									   Root="HKLM"
+									   Key="Software\Microsoft\Windows\CurrentVersion\Run"
+									   Name="SecurityGuard"
+									   Value="&quot;[UIFOLDER]SecurityGuard.UI.exe&quot; --background"
+									   Type="string" />
 
-          </Component>
+						<RemoveFolder Id="RemoveSecurityGuardProgramsFolder"
+									  Directory="SecurityGuardProgramsFolder"
+									  On="uninstall" />
 
-          <Files Include="!(bindpath.UiPublish)\**">
+					</Component>
 
-            <Exclude Files="!(bindpath.UiPublish)\SecurityGuard.UI.exe" />
+				</Directory>
 
-            <Exclude Files="!(bindpath.UiPublish)\**\*.pdb" />
+			</Directory>
 
-          </Files>
+		</StandardDirectory>
 
-        </Directory>
+		<StandardDirectory Id="ProgramMenuFolder">
 
-      </Directory>
+			<Directory Id="SecurityGuardProgramsFolder"
+					   Name="SecurityGuard" />
 
-    </StandardDirectory>
+		</StandardDirectory>
 
-		<Files Directory="SERVICEFOLDER"
-       Include="!(bindpath.ServicePublish)\**">
+		<Feature Id="Main"
+				 Title="SecurityGuard"
+				 Level="1">
 
-			<Exclude Files="!(bindpath.ServicePublish)\SecurityGuard.Service.exe" />
+			<ComponentRef Id="SecurityGuardServiceComponent" />
 
-			<Exclude Files="!(bindpath.ServicePublish)\**\*.pdb" />
+			<ComponentRef Id="SecurityGuardUiExecutableComponent" />
 
-		</Files>
+			<Files Directory="SERVICEFOLDER"
+				   Include="!(bindpath.ServicePublish)\**">
 
-    <StandardDirectory Id="ProgramMenuFolder">
+				<Exclude Files="!(bindpath.ServicePublish)\SecurityGuard.Service.exe" />
 
-      <Directory Id="SecurityGuardProgramsFolder"
-                 Name="SecurityGuard" />
+				<Exclude Files="!(bindpath.ServicePublish)\**\*.pdb" />
 
-    </StandardDirectory>
+			</Files>
 
-  </Package>
+			<Files Directory="UIFOLDER"
+				   Include="!(bindpath.UiPublish)\**">
+
+				<Exclude Files="!(bindpath.UiPublish)\SecurityGuard.UI.exe" />
+
+				<Exclude Files="!(bindpath.UiPublish)\**\*.pdb" />
+
+			</Files>
+
+		</Feature>
+
+	</Package>
 
 </Wix>
