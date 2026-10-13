@@ -21,6 +21,11 @@ public sealed class MainViewModel
 {
     private readonly ISecurityGuardClient _client;
 
+    private readonly IDecisionNotificationService? _decisionNotificationService;
+
+    private readonly HashSet<Guid> _notifiedDecisionRequestIds =
+        [];
+
     private int _selectedPageIndex;
     private bool _isBusy;
     private bool _isConnected;
@@ -92,6 +97,12 @@ public sealed class MainViewModel
         [];
 
     public ObservableCollection<DecisionRequestViewModel> PendingRequests { get; } =
+        [];
+
+    public ObservableCollection<DecisionRequestViewModel> AlgorithmPendingRequests { get; } =
+        [];
+
+    public ObservableCollection<DecisionRequestViewModel> TransferPendingRequests { get; } =
         [];
 
     public ObservableCollection<SecurityRuleViewModel> Rules { get; } =
@@ -391,10 +402,14 @@ public sealed class MainViewModel
     }
 
     public MainViewModel(
-        ISecurityGuardClient client)
+        ISecurityGuardClient client,
+        IDecisionNotificationService? decisionNotificationService = null)
     {
         _client =
             client;
+
+        _decisionNotificationService =
+            decisionNotificationService;
 
         NavigateCommand =
             new RelayCommand(
@@ -637,44 +652,123 @@ public sealed class MainViewModel
             Modules,
             snapshot.Modules);
 
+        var orderedEvents =
+            snapshot.RecentEvents
+                .OrderByDescending(
+                    item =>
+                        item.CreatedAtUtc)
+                .ToArray();
+
         Replace(
             RecentEvents,
-            snapshot.RecentEvents);
+            orderedEvents);
 
         Replace(
             AlgorithmEvents,
-            snapshot.RecentEvents.Where(
+            orderedEvents.Where(
                 item =>
                     item.Module ==
                     SecurityModuleKind.AlgorithmGuard));
 
         Replace(
             TransferEvents,
-            snapshot.RecentEvents.Where(
+            orderedEvents.Where(
                 item =>
                     item.Module ==
                     SecurityModuleKind.TransferGuard));
 
         Replace(
             ArchiveEvents,
-            snapshot.RecentEvents.Where(
+            orderedEvents.Where(
                 item =>
                     item.Module ==
                     SecurityModuleKind.ArchiveGuard));
 
-        PendingRequests.Clear();
+        var requests =
+            snapshot.PendingRequests
+                .OrderByDescending(
+                    item =>
+                        item.CreatedAtUtc)
+                .Select(
+                    request =>
+                        new DecisionRequestViewModel(
+                            request,
+                            SubmitDecisionAsync))
+                .ToArray();
 
-        foreach (var request in
-                 snapshot.PendingRequests)
-        {
-            PendingRequests.Add(
-                new DecisionRequestViewModel(
-                    request,
-                    SubmitDecisionAsync));
-        }
+        Replace(
+            PendingRequests,
+            requests);
+
+        Replace(
+            AlgorithmPendingRequests,
+            requests.Where(
+                request =>
+                    request.ModuleKind ==
+                    SecurityModuleKind.AlgorithmGuard));
+
+        Replace(
+            TransferPendingRequests,
+            requests.Where(
+                request =>
+                    request.ModuleKind ==
+                    SecurityModuleKind.TransferGuard));
+
+        UpdateDecisionNotifications(
+            requests);
 
         QuarantineCount =
             snapshot.QuarantineCount;
+    }
+
+    private void UpdateDecisionNotifications(
+        IReadOnlyCollection<DecisionRequestViewModel> requests)
+    {
+        var actionableRequests =
+            requests
+                .Where(
+                    request =>
+                        request.ModuleKind ==
+                            SecurityModuleKind.AlgorithmGuard ||
+                        request.ModuleKind ==
+                            SecurityModuleKind.TransferGuard)
+                .ToArray();
+
+        var activeIds =
+            actionableRequests
+                .Select(
+                    request =>
+                        request.Id)
+                .ToHashSet();
+
+        var removedIds =
+            _notifiedDecisionRequestIds
+                .Where(
+                    id =>
+                        !activeIds.Contains(
+                            id))
+                .ToArray();
+
+        foreach (var id in removedIds)
+        {
+            _decisionNotificationService?.Dismiss(
+                id);
+
+            _notifiedDecisionRequestIds.Remove(
+                id);
+        }
+
+        foreach (var request in actionableRequests)
+        {
+            if (!_notifiedDecisionRequestIds.Add(
+                    request.Id))
+            {
+                continue;
+            }
+
+            _decisionNotificationService?.Show(
+                request);
+        }
     }
 
     private async Task SubmitDecisionAsync(

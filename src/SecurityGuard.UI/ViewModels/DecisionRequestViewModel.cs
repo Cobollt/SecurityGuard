@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using SecurityGuard.Core.Enums;
 using SecurityGuard.Core.Models;
 
 namespace SecurityGuard.UI.ViewModels;
@@ -7,7 +8,10 @@ public sealed class DecisionRequestViewModel
 {
     public Guid Id { get; }
 
-    public string Module { get; }
+    public SecurityModuleKind ModuleKind { get; }
+
+    public string Module =>
+        ModuleKind.ToString();
 
     public string Title { get; }
 
@@ -23,15 +27,28 @@ public sealed class DecisionRequestViewModel
 
     public DecisionRequestViewModel(
         SecurityDecisionRequest request,
-        Func<Guid, SecurityGuard.Core.Enums.SecurityAction, Task> submitAsync)
+        Func<Guid, SecurityAction, Task> submitAsync)
     {
-        Id = request.Id;
-        Module = request.Module.ToString();
-        Title = request.Title;
-        Description = request.Description;
-        FilePath = request.FilePath;
-        ProcessName = request.ProcessName;
-        CreatedAtUtc = request.CreatedAtUtc;
+        Id =
+            request.Id;
+
+        ModuleKind =
+            request.Module;
+
+        Title =
+            request.Title;
+
+        Description =
+            request.Description;
+
+        FilePath =
+            request.FilePath;
+
+        ProcessName =
+            request.ProcessName;
+
+        CreatedAtUtc =
+            request.CreatedAtUtc;
 
         Actions =
             new ObservableCollection<DecisionActionViewModel>(

@@ -15,9 +15,13 @@ public partial class MainWindow
     {
         InitializeComponent();
 
+        var notificationService =
+            new DecisionNotificationService();
+
         _viewModel =
             new MainViewModel(
-                new SecurityGuardClient());
+                new SecurityGuardClient(),
+                notificationService);
 
         DataContext =
             _viewModel;
@@ -32,20 +36,16 @@ public partial class MainWindow
         _refreshTimer.Tick +=
             RefreshTimerOnTick;
 
-        Loaded +=
-            MainWindowOnLoaded;
+        _refreshTimer.Start();
+
+        Dispatcher.BeginInvoke(
+            DispatcherPriority.Background,
+            new Action(
+                async () =>
+                    await _viewModel.RefreshAsync()));
 
         Closed +=
             MainWindowOnClosed;
-    }
-
-    private async void MainWindowOnLoaded(
-        object sender,
-        RoutedEventArgs e)
-    {
-        await _viewModel.RefreshAsync();
-
-        _refreshTimer.Start();
     }
 
     private async void RefreshTimerOnTick(

@@ -130,6 +130,271 @@ public sealed class MainViewModelTests
             viewModel.SelectedPageIndex);
     }
 
+    [Fact]
+    public async Task Refresh_orders_recent_events_newest_first()
+    {
+        var now =
+            DateTimeOffset.UtcNow;
+
+        var oldest =
+            new SecurityEvent(
+                Guid.NewGuid(),
+                now.AddMinutes(-10),
+                SecurityModuleKind.AlgorithmGuard,
+                SecurityEventType.AlgorithmExecution,
+                SecuritySeverity.Info,
+                "Oldest",
+                "oldest",
+                SecurityAction.None,
+                null);
+
+        var newest =
+            new SecurityEvent(
+                Guid.NewGuid(),
+                now,
+                SecurityModuleKind.TransferGuard,
+                SecurityEventType.NetworkConnection,
+                SecuritySeverity.Medium,
+                "Newest",
+                "newest",
+                SecurityAction.None,
+                null);
+
+        var middle =
+            new SecurityEvent(
+                Guid.NewGuid(),
+                now.AddMinutes(-5),
+                SecurityModuleKind.ArchiveGuard,
+                SecurityEventType.ArchiveScan,
+                SecuritySeverity.Low,
+                "Middle",
+                "middle",
+                SecurityAction.None,
+                null);
+
+        var client =
+            new FakeSecurityGuardClient
+            {
+                Snapshot =
+                    new SecuritySnapshot(
+                        [],
+                        [
+                            oldest,
+                        newest,
+                        middle
+                        ],
+                        [],
+                        0,
+                        now)
+            };
+
+        var viewModel =
+            new MainViewModel(
+                client);
+
+        await viewModel.RefreshAsync();
+
+        Assert.Equal(
+            "Newest",
+            viewModel.RecentEvents[0].Title);
+
+        Assert.Equal(
+            "Middle",
+            viewModel.RecentEvents[1].Title);
+
+        Assert.Equal(
+            "Oldest",
+            viewModel.RecentEvents[2].Title);
+    }
+
+    [Fact]
+    public async Task Refresh_splits_pending_requests_by_module()
+    {
+        var algorithmRequest =
+            new SecurityDecisionRequest(
+                Guid.NewGuid(),
+                SecurityModuleKind.AlgorithmGuard,
+                SecurityEventType.AlgorithmExecution,
+                "Algorithm",
+                "Algorithm request",
+                @"C:\Temp\test.ps1",
+                "powershell.exe",
+                [
+                    SecurityAction.AllowOnce,
+                SecurityAction.Block
+                ],
+                DateTimeOffset.UtcNow);
+
+        var transferRequest =
+            new SecurityDecisionRequest(
+                Guid.NewGuid(),
+                SecurityModuleKind.TransferGuard,
+                SecurityEventType.NetworkConnection,
+                "Transfer",
+                "Transfer request",
+                null,
+                "curl.exe",
+                [
+                    SecurityAction.Allow,
+                SecurityAction.Block
+                ],
+                DateTimeOffset.UtcNow);
+
+        var client =
+            new FakeSecurityGuardClient
+            {
+                Snapshot =
+                    new SecuritySnapshot(
+                        [],
+                        [],
+                        [
+                            algorithmRequest,
+                        transferRequest
+                        ],
+                        0,
+                        DateTimeOffset.UtcNow)
+            };
+
+        var viewModel =
+            new MainViewModel(
+                client);
+
+        await viewModel.RefreshAsync();
+
+        Assert.Equal(
+            2,
+            viewModel.PendingRequests.Count);
+
+        Assert.Single(
+            viewModel.AlgorithmPendingRequests);
+
+        Assert.Single(
+            viewModel.TransferPendingRequests);
+
+        Assert.Equal(
+            algorithmRequest.Id,
+            viewModel.AlgorithmPendingRequests[0].Id);
+
+        Assert.Equal(
+            transferRequest.Id,
+            viewModel.TransferPendingRequests[0].Id);
+    }
+
+    [Fact]
+    public async Task Refresh_shows_each_decision_notification_only_once()
+    {
+        var request =
+            new SecurityDecisionRequest(
+                Guid.NewGuid(),
+                SecurityModuleKind.AlgorithmGuard,
+                SecurityEventType.AlgorithmExecution,
+                "Algorithm",
+                "Algorithm request",
+                @"C:\Temp\test.ps1",
+                "powershell.exe",
+                [
+                    SecurityAction.AllowOnce,
+                SecurityAction.Block
+                ],
+                DateTimeOffset.UtcNow);
+
+        var client =
+            new FakeSecurityGuardClient
+            {
+                Snapshot =
+                    new SecuritySnapshot(
+                        [],
+                        [],
+                        [
+                            request
+                        ],
+                        0,
+                        DateTimeOffset.UtcNow)
+            };
+
+        var notificationService =
+            new FakeDecisionNotificationService();
+
+        var viewModel =
+            new MainViewModel(
+                client,
+                notificationService);
+
+        await viewModel.RefreshAsync();
+        await viewModel.RefreshAsync();
+        await viewModel.RefreshAsync();
+
+        Assert.Single(
+            notificationService.ShownRequestIds);
+
+        Assert.Equal(
+            request.Id,
+            notificationService.ShownRequestIds[0]);
+    }
+
+    [Fact]
+    public async Task Refresh_dismisses_notification_when_request_disappears()
+    {
+        var request =
+            new SecurityDecisionRequest(
+                Guid.NewGuid(),
+                SecurityModuleKind.TransferGuard,
+                SecurityEventType.NetworkConnection,
+                "Transfer",
+                "Transfer request",
+                null,
+                "curl.exe",
+                [
+                    SecurityAction.Allow,
+                SecurityAction.Block
+                ],
+                DateTimeOffset.UtcNow);
+
+        var client =
+            new FakeSecurityGuardClient
+            {
+                Snapshot =
+                    new SecuritySnapshot(
+                        [],
+                        [],
+                        [
+                            request
+                        ],
+                        0,
+                        DateTimeOffset.UtcNow)
+            };
+
+        var notificationService =
+            new FakeDecisionNotificationService();
+
+        var viewModel =
+            new MainViewModel(
+                client,
+                notificationService);
+
+        await viewModel.RefreshAsync();
+
+        client.Snapshot =
+            new SecuritySnapshot(
+                [],
+                [],
+                [],
+                0,
+                DateTimeOffset.UtcNow);
+
+        await viewModel.RefreshAsync();
+
+        Assert.Single(
+            notificationService.ShownRequestIds);
+
+        Assert.Single(
+            notificationService.DismissedRequestIds);
+
+        Assert.Equal(
+            request.Id,
+            notificationService.DismissedRequestIds[0]);
+    }
+
     private static SecuritySnapshot CreateSnapshot()
     {
         var modules =

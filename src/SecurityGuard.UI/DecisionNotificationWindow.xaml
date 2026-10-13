@@ -1,0 +1,113 @@
+<Window x:Class="SecurityGuard.UI.DecisionNotificationWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Width="420"
+        SizeToContent="Height"
+        MaxHeight="520"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        Topmost="True"
+        WindowStartupLocation="Manual"
+        AllowsTransparency="True"
+        Background="Transparent">
+
+    <Border Background="White"
+            BorderBrush="#B8B8B8"
+            BorderThickness="1"
+            CornerRadius="8"
+            Padding="16">
+
+        <Grid>
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0">
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           Text="SecurityGuard"
+                           FontSize="16"
+                           FontWeight="Bold" />
+
+                <Button Grid.Column="1"
+                        Content="×"
+                        Width="30"
+                        Height="30"
+                        Padding="0"
+                        Margin="8,0,0,0"
+                        Click="DismissButtonOnClick" />
+
+            </Grid>
+
+            <TextBlock Grid.Row="1"
+                       Text="{Binding Module}"
+                       FontWeight="SemiBold"
+                       Margin="0,8,0,0" />
+
+            <TextBlock Grid.Row="2"
+                       Text="{Binding Title}"
+                       FontSize="15"
+                       FontWeight="SemiBold"
+                       TextWrapping="Wrap"
+                       Margin="0,6,0,0" />
+
+            <StackPanel Grid.Row="3"
+                        Margin="0,6,0,0">
+
+                <TextBlock Text="{Binding Description}"
+                           TextWrapping="Wrap" />
+
+                <TextBlock Text="{Binding FilePath}"
+                           TextWrapping="Wrap"
+                           Margin="0,4,0,0" />
+
+                <TextBlock Text="{Binding ProcessName}"
+                           TextWrapping="Wrap"
+                           Margin="0,4,0,0" />
+
+            </StackPanel>
+
+            <ItemsControl Grid.Row="4"
+                          ItemsSource="{Binding Actions}"
+                          Margin="0,12,0,0">
+
+                <ItemsControl.ItemsPanel>
+
+                    <ItemsPanelTemplate>
+                        <WrapPanel />
+                    </ItemsPanelTemplate>
+
+                </ItemsControl.ItemsPanel>
+
+                <ItemsControl.ItemTemplate>
+
+                    <DataTemplate>
+
+                        <Button Content="{Binding DisplayName}"
+                                Margin="0,0,8,6"
+                                Padding="10,6"
+                                Click="ActionButtonOnClick" />
+
+                    </DataTemplate>
+
+                </ItemsControl.ItemTemplate>
+
+            </ItemsControl>
+
+        </Grid>
+
+    </Border>
+
+</Window>
