@@ -1,4 +1,4 @@
-<Window x:Class="SecurityGuard.UI.MainWindow"
+ï»¿<Window x:Class="SecurityGuard.UI.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:converters="clr-namespace:SecurityGuard.UI.Converters"
@@ -136,42 +136,42 @@
                                Margin="18,20,18,20" />
 
                     <Button Style="{StaticResource NavigationButton}"
-                            Content="„O„q„x„€„‚"
+                            Content="ÐžÐ±Ð·Ð¾Ñ€"
                             Command="{Binding NavigateCommand}"
                             CommandParameter="0" />
 
                     <Button Style="{StaticResource NavigationButton}"
-                            Content="„K„€„~„„„‚„€„|„Ž „p„|„s„€„‚„y„„„}„€„r"
+                            Content="ÐšÐ¾Ð½Ñ‚Ñ€Ð¾Ð»ÑŒ Ð°Ð»Ð³Ð¾Ñ€Ð¸Ñ‚Ð¼Ð¾Ð²"
                             Command="{Binding NavigateCommand}"
                             CommandParameter="1" />
 
                     <Button Style="{StaticResource NavigationButton}"
-                            Content="„P„u„‚„u„t„p„‰„p „†„p„z„|„€„r"
+                            Content="ÐŸÐµÑ€ÐµÐ´Ð°Ñ‡Ð° Ñ„Ð°Ð¹Ð»Ð¾Ð²"
                             Command="{Binding NavigateCommand}"
                             CommandParameter="2" />
 
                     <Button Style="{StaticResource NavigationButton}"
-                            Content="„P„‚„€„r„u„‚„{„p „†„p„z„|„€„r „y „p„‚„‡„y„r„€„r"
+                            Content="ÐŸÑ€Ð¾Ð²ÐµÑ€ÐºÐ° Ñ„Ð°Ð¹Ð»Ð¾Ð² Ð¸ Ð°Ñ€Ñ…Ð¸Ð²Ð¾Ð²"
                             Command="{Binding NavigateCommand}"
                             CommandParameter="3" />
 
                     <Button Style="{StaticResource NavigationButton}"
-                            Content="„K„p„‚„p„~„„„y„~"
+                            Content="ÐšÐ°Ñ€Ð°Ð½Ñ‚Ð¸Ð½"
                             Command="{Binding NavigateCommand}"
                             CommandParameter="4" />
 
                     <Button Style="{StaticResource NavigationButton}"
-                            Content="„P„‚„p„r„y„|„p"
+                            Content="ÐŸÑ€Ð°Ð²Ð¸Ð»Ð°"
                             Command="{Binding NavigateCommand}"
                             CommandParameter="5" />
 
                     <Button Style="{StaticResource NavigationButton}"
-                            Content="„G„…„‚„~„p„|"
+                            Content="Ð–ÑƒÑ€Ð½Ð°Ð»"
                             Command="{Binding NavigateCommand}"
                             CommandParameter="6" />
 
                     <Button Style="{StaticResource NavigationButton}"
-                            Content="„N„p„ƒ„„„‚„€„z„{„y"
+                            Content="ÐÐ°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸"
                             Command="{Binding NavigateCommand}"
                             CommandParameter="7" />
 
@@ -185,7 +185,7 @@
                                FontWeight="SemiBold"
                                Margin="4" />
 
-                    <Button Content="„O„q„~„€„r„y„„„Ž"
+                    <Button Content="ÐžÐ±Ð½Ð¾Ð²Ð¸Ñ‚ÑŒ"
                             Command="{Binding RefreshCommand}" />
 
                 </StackPanel>
@@ -227,12 +227,12 @@
 
                         <StackPanel>
 
-                            <TextBlock Text="„O„q„x„€„‚"
+                            <TextBlock Text="ÐžÐ±Ð·Ð¾Ñ€"
                                        FontSize="28"
                                        FontWeight="SemiBold"
                                        Margin="0,0,0,14" />
 
-                            <TextBlock Text="„R„€„ƒ„„„€„‘„~„y„u „}„€„t„…„|„u„z"
+                            <TextBlock Text="Ð¡Ð¾ÑÑ‚Ð¾ÑÐ½Ð¸Ðµ Ð¼Ð¾Ð´ÑƒÐ»ÐµÐ¹"
                                        FontSize="18"
                                        FontWeight="SemiBold" />
 
@@ -277,7 +277,7 @@
 
                             </ItemsControl>
 
-                            <TextBlock Text="„H„p„„‚„€„ƒ„ „q„u„x„€„„p„ƒ„~„€„ƒ„„„y"
+                            <TextBlock Text="Ð—Ð°Ð¿Ñ€Ð¾ÑÑ‹ Ð±ÐµÐ·Ð¾Ð¿Ð°ÑÐ½Ð¾ÑÑ‚Ð¸"
                                        FontSize="18"
                                        FontWeight="SemiBold"
                                        Margin="0,20,0,4" />
@@ -285,7 +285,7 @@
 							<ItemsControl ItemsSource="{Binding PendingRequests}"
 										  ItemTemplate="{StaticResource DecisionRequestCardTemplate}" />
 
-							<TextBlock Text="„P„€„ƒ„|„u„t„~„y„u „ƒ„€„q„„„„y„‘"
+							<TextBlock Text="ÐŸÐ¾ÑÐ»ÐµÐ´Ð½Ð¸Ðµ ÑÐ¾Ð±Ñ‹Ñ‚Ð¸Ñ"
                                        FontSize="18"
                                        FontWeight="SemiBold"
                                        Margin="0,20,0,4" />
@@ -297,20 +297,20 @@
 
                                     <GridView>
 
-                                        <GridViewColumn Header="„B„‚„u„}„‘"
+                                        <GridViewColumn Header="Ð’Ñ€ÐµÐ¼Ñ"
                                                         Width="160"
                                                         DisplayMemberBinding="{Binding CreatedAtUtc,
                                                             Converter={StaticResource LocalDateTimeConverter}}" />
 
-                                        <GridViewColumn Header="„M„€„t„…„|„Ž"
+                                        <GridViewColumn Header="ÐœÐ¾Ð´ÑƒÐ»ÑŒ"
                                                         Width="130"
                                                         DisplayMemberBinding="{Binding Module}" />
 
-                                        <GridViewColumn Header="„R„€„q„„„„y„u"
+                                        <GridViewColumn Header="Ð¡Ð¾Ð±Ñ‹Ñ‚Ð¸Ðµ"
                                                         Width="220"
                                                         DisplayMemberBinding="{Binding Title}" />
 
-                                        <GridViewColumn Header="„D„u„z„ƒ„„„r„y„u"
+                                        <GridViewColumn Header="Ð”ÐµÐ¹ÑÑ‚Ð²Ð¸Ðµ"
                                                         Width="120"
                                                         DisplayMemberBinding="{Binding Action}" />
 
@@ -338,11 +338,11 @@
 
 					<StackPanel Grid.Row="0">
 
-						<TextBlock Text="„K„€„~„„„‚„€„|„Ž „p„|„s„€„‚„y„„„}„€„r"
+						<TextBlock Text="ÐšÐ¾Ð½Ñ‚Ñ€Ð¾Ð»ÑŒ Ð°Ð»Ð³Ð¾Ñ€Ð¸Ñ‚Ð¼Ð¾Ð²"
 								   FontSize="28"
 								   FontWeight="SemiBold" />
 
-						<TextBlock Text="„K„€„~„„„‚„€„|„Ž „x„p„„…„ƒ„{„p „~„u„ƒ„p„~„{„ˆ„y„€„~„y„‚„€„r„p„~„~„„‡ „ƒ„{„‚„y„„„„€„r, „y„~„„„u„‚„„‚„u„„„y„‚„…„u„}„„‡ „{„€„}„p„~„t „y „ƒ„r„‘„x„p„~„~„„‡ „„‚„€„ˆ„u„ƒ„ƒ„€„r."
+						<TextBlock Text="ÐšÐ¾Ð½Ñ‚Ñ€Ð¾Ð»ÑŒ Ð·Ð°Ð¿ÑƒÑÐºÐ° Ð½ÐµÑÐ°Ð½ÐºÑ†Ð¸Ð¾Ð½Ð¸Ñ€Ð¾Ð²Ð°Ð½Ð½Ñ‹Ñ… ÑÐºÑ€Ð¸Ð¿Ñ‚Ð¾Ð², Ð¸Ð½Ñ‚ÐµÑ€Ð¿Ñ€ÐµÑ‚Ð¸Ñ€ÑƒÐµÐ¼Ñ‹Ñ… ÐºÐ¾Ð¼Ð°Ð½Ð´ Ð¸ ÑÐ²ÑÐ·Ð°Ð½Ð½Ñ‹Ñ… Ð¿Ñ€Ð¾Ñ†ÐµÑÑÐ¾Ð²."
 								   TextWrapping="Wrap"
 								   Margin="0,6,0,10" />
 
@@ -351,7 +351,7 @@
 					<StackPanel Grid.Row="1"
 								Margin="0,0,0,12">
 
-						<TextBlock Text="„O„w„y„t„p„„„ „‚„u„Š„u„~„y„‘"
+						<TextBlock Text="ÐžÐ¶Ð¸Ð´Ð°ÑŽÑ‚ Ñ€ÐµÑˆÐµÐ½Ð¸Ñ"
 								   FontSize="18"
 								   FontWeight="SemiBold"
 								   Margin="0,0,0,4" />
@@ -364,7 +364,7 @@
 					<StackPanel Grid.Row="2"
                         Margin="0,0,0,12">
 
-						<TextBlock Text="„O„w„y„t„p„„„ „‚„u„Š„u„~„y„‘"
+						<TextBlock Text="ÐžÐ¶Ð¸Ð´Ð°ÑŽÑ‚ Ñ€ÐµÑˆÐµÐ½Ð¸Ñ"
 								   FontSize="18"
 								   FontWeight="SemiBold"
 								   Margin="0,0,0,4" />
@@ -381,20 +381,20 @@
 
 							<GridView>
 
-								<GridViewColumn Header="„B„‚„u„}„‘"
+								<GridViewColumn Header="Ð’Ñ€ÐµÐ¼Ñ"
 												Width="170"
 												DisplayMemberBinding="{Binding CreatedAtUtc,
                                     Converter={StaticResource LocalDateTimeConverter}}" />
 
-								<GridViewColumn Header="„R„€„q„„„„y„u"
+								<GridViewColumn Header="Ð¡Ð¾Ð±Ñ‹Ñ‚Ð¸Ðµ"
 												Width="240"
 												DisplayMemberBinding="{Binding Title}" />
 
-								<GridViewColumn Header="„P„€„t„‚„€„q„~„€„ƒ„„„y"
+								<GridViewColumn Header="ÐŸÐ¾Ð´Ñ€Ð¾Ð±Ð½Ð¾ÑÑ‚Ð¸"
 												Width="420"
 												DisplayMemberBinding="{Binding Details}" />
 
-								<GridViewColumn Header="„D„u„z„ƒ„„„r„y„u"
+								<GridViewColumn Header="Ð”ÐµÐ¹ÑÑ‚Ð²Ð¸Ðµ"
 												Width="120"
 												DisplayMemberBinding="{Binding Action}" />
 
@@ -421,15 +421,15 @@
 
                         <StackPanel Grid.Row="0">
 
-                            <TextBlock Text="„P„u„‚„u„t„p„‰„p „†„p„z„|„€„r"
+                            <TextBlock Text="ÐŸÐµÑ€ÐµÐ´Ð°Ñ‡Ð° Ñ„Ð°Ð¹Ð»Ð¾Ð²"
                                        FontSize="28"
                                        FontWeight="SemiBold" />
 
-                            <TextBlock Text="TransferGuard „{„€„~„„„‚„€„|„y„‚„…„u„„ „y„ƒ„‡„€„t„‘„‹„y„u „ƒ„u„„„u„r„„u „ƒ„€„u„t„y„~„u„~„y„‘ „y „„€„„„„„{„y „„u„‚„u„t„p„‰„y „t„p„~„~„„‡."
+                            <TextBlock Text="TransferGuard ÐºÐ¾Ð½Ñ‚Ñ€Ð¾Ð»Ð¸Ñ€ÑƒÐµÑ‚ Ð¸ÑÑ…Ð¾Ð´ÑÑ‰Ð¸Ðµ ÑÐµÑ‚ÐµÐ²Ñ‹Ðµ ÑÐ¾ÐµÐ´Ð¸Ð½ÐµÐ½Ð¸Ñ Ð¸ Ð¿Ð¾Ð¿Ñ‹Ñ‚ÐºÐ¸ Ð¿ÐµÑ€ÐµÐ´Ð°Ñ‡Ð¸ Ð´Ð°Ð½Ð½Ñ‹Ñ…."
                                        TextWrapping="Wrap"
                                        Margin="0,6,0,4" />
 
-                            <TextBlock Text="„D„|„‘ „{„p„w„t„€„s„€ „ƒ„€„q„„„„y„‘ „€„„„€„q„‚„p„w„p„„„„ƒ„‘ „„‚„€„ˆ„u„ƒ„ƒ, „…„t„p„|„v„~„~„p„‘ „„„€„‰„{„p, „„‚„€„„„€„{„€„| „y „„‚„y„~„‘„„„€„u „t„u„z„ƒ„„„r„y„u."
+                            <TextBlock Text="Ð”Ð»Ñ ÐºÐ°Ð¶Ð´Ð¾Ð³Ð¾ ÑÐ¾Ð±Ñ‹Ñ‚Ð¸Ñ Ð¾Ñ‚Ð¾Ð±Ñ€Ð°Ð¶Ð°ÑŽÑ‚ÑÑ Ð¿Ñ€Ð¾Ñ†ÐµÑÑ, ÑƒÐ´Ð°Ð»Ñ‘Ð½Ð½Ð°Ñ Ñ‚Ð¾Ñ‡ÐºÐ°, Ð¿Ñ€Ð¾Ñ‚Ð¾ÐºÐ¾Ð» Ð¸ Ð¿Ñ€Ð¸Ð½ÑÑ‚Ð¾Ðµ Ð´ÐµÐ¹ÑÑ‚Ð²Ð¸Ðµ."
                                        TextWrapping="Wrap"
                                        Margin="0,2,0,14" />
 
@@ -461,7 +461,7 @@
 
                                 <StackPanel>
 
-                                    <TextBlock Text="„R„€„ƒ„„„€„‘„~„y„u"
+                                    <TextBlock Text="Ð¡Ð¾ÑÑ‚Ð¾ÑÐ½Ð¸Ðµ"
                                                FontWeight="SemiBold" />
 
                                     <TextBlock Text="{Binding TransferGuardEnabled}"
@@ -478,7 +478,7 @@
 
                                 <StackPanel>
 
-                                    <TextBlock Text="„R„€„q„„„„y„z"
+                                    <TextBlock Text="Ð¡Ð¾Ð±Ñ‹Ñ‚Ð¸Ð¹"
                                                FontWeight="SemiBold" />
 
                                     <TextBlock Text="{Binding TransferEvents.Count}"
@@ -499,24 +499,24 @@
 
                                 <GridView>
 
-                                    <GridViewColumn Header="„B„‚„u„}„‘"
+                                    <GridViewColumn Header="Ð’Ñ€ÐµÐ¼Ñ"
                                                     Width="165"
                                                     DisplayMemberBinding="{Binding CreatedAtUtc,
                                                             Converter={StaticResource LocalDateTimeConverter}}" />
 
-                                    <GridViewColumn Header="„S„y„"
+                                    <GridViewColumn Header="Ð¢Ð¸Ð¿"
                                                     Width="150"
                                                     DisplayMemberBinding="{Binding Type}" />
 
-                                    <GridViewColumn Header="„R„€„q„„„„y„u"
+                                    <GridViewColumn Header="Ð¡Ð¾Ð±Ñ‹Ñ‚Ð¸Ðµ"
                                                     Width="220"
                                                     DisplayMemberBinding="{Binding Title}" />
 
-                                    <GridViewColumn Header="„P„€„t„‚„€„q„~„€„ƒ„„„y"
+                                    <GridViewColumn Header="ÐŸÐ¾Ð´Ñ€Ð¾Ð±Ð½Ð¾ÑÑ‚Ð¸"
                                                     Width="420"
                                                     DisplayMemberBinding="{Binding Details}" />
 
-                                    <GridViewColumn Header="„D„u„z„ƒ„„„r„y„u"
+                                    <GridViewColumn Header="Ð”ÐµÐ¹ÑÑ‚Ð²Ð¸Ðµ"
                                                     Width="120"
                                                     DisplayMemberBinding="{Binding Action}" />
 
@@ -544,11 +544,11 @@
 
                     <StackPanel Grid.Row="0">
 
-                        <TextBlock Text="„P„‚„€„r„u„‚„{„p „†„p„z„|„€„r „y „p„‚„‡„y„r„€„r"
+                        <TextBlock Text="ÐŸÑ€Ð¾Ð²ÐµÑ€ÐºÐ° Ñ„Ð°Ð¹Ð»Ð¾Ð² Ð¸ Ð°Ñ€Ñ…Ð¸Ð²Ð¾Ð²"
                                 FontSize="28"
                                 FontWeight="SemiBold" />
 
-                        <TextBlock Text="„Q„…„‰„~„p„‘ „„‚„€„r„u„‚„{„p „†„p„z„|„€„r, „p„‚„‡„y„r„€„r „y „y„‡ „r„|„€„w„u„~„~„€„s„€ „ƒ„€„t„u„‚„w„y„}„€„s„€."
+                        <TextBlock Text="Ð ÑƒÑ‡Ð½Ð°Ñ Ð¿Ñ€Ð¾Ð²ÐµÑ€ÐºÐ° Ñ„Ð°Ð¹Ð»Ð¾Ð², Ð°Ñ€Ñ…Ð¸Ð²Ð¾Ð² Ð¸ Ð¸Ñ… Ð²Ð»Ð¾Ð¶ÐµÐ½Ð½Ð¾Ð³Ð¾ ÑÐ¾Ð´ÐµÑ€Ð¶Ð¸Ð¼Ð¾Ð³Ð¾."
                                 Margin="0,6,0,14" />
 
                     </StackPanel>
@@ -569,13 +569,13 @@
                                 VerticalContentAlignment="Center" />
 
                         <Button Grid.Column="1"
-                                Content="„B„„q„‚„p„„„Ž „†„p„z„|"
+                                Content="Ð’Ñ‹Ð±Ñ€Ð°Ñ‚ÑŒ Ñ„Ð°Ð¹Ð»"
                                 Command="{Binding SelectArchiveFileCommand}"
                                 Margin="8,0,0,0"
                                 Padding="14,5" />
 
                         <Button Grid.Column="2"
-                                Content="„P„‚„€„r„u„‚„y„„„Ž"
+                                Content="ÐŸÑ€Ð¾Ð²ÐµÑ€Ð¸Ñ‚ÑŒ"
                                 Command="{Binding ScanArchiveFileCommand}"
                                 Margin="8,0,0,0"
                                 Padding="18,5" />
@@ -609,13 +609,13 @@
                                     <TextBlock Text="{Binding ArchiveScanResult.Verdict}"
                                             Margin="0,3,0,10" />
 
-                                    <TextBlock Text="„S„y„"
+                                    <TextBlock Text="Ð¢Ð¸Ð¿"
                                             FontWeight="SemiBold" />
 
                                     <TextBlock Text="{Binding ArchiveScanResult.FileType}"
                                             Margin="0,3,0,10" />
 
-                                    <TextBlock Text="„Q„p„x„}„u„‚"
+                                    <TextBlock Text="Ð Ð°Ð·Ð¼ÐµÑ€"
                                             FontWeight="SemiBold" />
 
                                     <TextBlock Text="{Binding ArchiveScanResult.FileSize}" />
@@ -633,22 +633,22 @@
 
                                     <WrapPanel>
 
-                                        <Button Content="„O„ƒ„„„p„r„y„„„Ž"
+                                        <Button Content="ÐžÑÑ‚Ð°Ð²Ð¸Ñ‚ÑŒ"
                                                 Command="{Binding ArchiveKeepCommand}"
                                                 Margin="0,0,8,0"
                                                 Padding="12,5" />
 
-                                        <Button Content="„D„€„q„p„r„y„„„Ž „y„ƒ„{„|„„‰„u„~„y„u"
+                                        <Button Content="Ð”Ð¾Ð±Ð°Ð²Ð¸Ñ‚ÑŒ Ð¸ÑÐºÐ»ÑŽÑ‡ÐµÐ½Ð¸Ðµ"
                                                 Command="{Binding ArchiveAddExceptionCommand}"
                                                 Margin="0,0,8,0"
                                                 Padding="12,5" />
 
-                                        <Button Content="„K„p„‚„p„~„„„y„~"
+                                        <Button Content="ÐšÐ°Ñ€Ð°Ð½Ñ‚Ð¸Ð½"
                                                 Command="{Binding ArchiveQuarantineCommand}"
                                                 Margin="0,0,8,0"
                                                 Padding="12,5" />
 
-                                        <Button Content="„T„t„p„|„y„„„Ž"
+                                        <Button Content="Ð£Ð´Ð°Ð»Ð¸Ñ‚ÑŒ"
                                                 Command="{Binding ArchiveDeleteCommand}"
                                                 Padding="12,5" />
 
@@ -663,7 +663,7 @@
                     </Border>
 
                     <GroupBox Grid.Row="3"
-                            Header="„O„q„~„p„‚„…„w„u„~„~„„u „„‚„y„x„~„p„{„y"
+                            Header="ÐžÐ±Ð½Ð°Ñ€ÑƒÐ¶ÐµÐ½Ð½Ñ‹Ðµ Ð¿Ñ€Ð¸Ð·Ð½Ð°ÐºÐ¸"
                             Margin="0,0,0,12">
 
                         <DataGrid ItemsSource="{Binding ArchiveFindings}"
@@ -681,19 +681,19 @@
                                                     Binding="{Binding Verdict}"
                                                     Width="100" />
 
-                                <DataGridTextColumn Header="„S„y„"
+                                <DataGridTextColumn Header="Ð¢Ð¸Ð¿"
                                                     Binding="{Binding Kind}"
                                                     Width="180" />
 
-                                <DataGridTextColumn Header="„O„„y„ƒ„p„~„y„u"
+                                <DataGridTextColumn Header="ÐžÐ¿Ð¸ÑÐ°Ð½Ð¸Ðµ"
                                                     Binding="{Binding Title}"
                                                     Width="220" />
 
-                                <DataGridTextColumn Header="„U„p„z„| „r„~„…„„„‚„y „p„‚„‡„y„r„p"
+                                <DataGridTextColumn Header="Ð¤Ð°Ð¹Ð» Ð²Ð½ÑƒÑ‚Ñ€Ð¸ Ð°Ñ€Ñ…Ð¸Ð²Ð°"
                                                     Binding="{Binding EntryPath}"
                                                     Width="2*" />
 
-                                <DataGridTextColumn Header="„D„u„„„p„|„y"
+                                <DataGridTextColumn Header="Ð”ÐµÑ‚Ð°Ð»Ð¸"
                                                     Binding="{Binding Details}"
                                                     Width="3*" />
 
@@ -704,12 +704,12 @@
                     </GroupBox>
 
                     <GroupBox Grid.Row="4"
-                            Header="„I„ƒ„„„€„‚„y„‘ „„‚„€„r„u„‚„€„{">
+                            Header="Ð˜ÑÑ‚Ð¾Ñ€Ð¸Ñ Ð¿Ñ€Ð¾Ð²ÐµÑ€Ð¾Ðº">
 
                         <DockPanel>
 
                             <Button DockPanel.Dock="Top"
-                                    Content="„O„q„~„€„r„y„„„Ž „y„ƒ„„„€„‚„y„"
+                                    Content="ÐžÐ±Ð½Ð¾Ð²Ð¸Ñ‚ÑŒ Ð¸ÑÑ‚Ð¾Ñ€Ð¸ÑŽ"
                                     Command="{Binding RefreshArchiveHistoryCommand}"
                                     HorizontalAlignment="Left"
                                     Margin="4"
@@ -722,7 +722,7 @@
 
                                 <DataGrid.Columns>
 
-                                    <DataGridTextColumn Header="„B„‚„u„}„‘"
+                                    <DataGridTextColumn Header="Ð’Ñ€ÐµÐ¼Ñ"
                                                         Binding="{Binding CompletedAtUtc}"
                                                         Width="160" />
 
@@ -730,7 +730,7 @@
                                                         Binding="{Binding Verdict}"
                                                         Width="100" />
 
-                                    <DataGridTextColumn Header="„U„p„z„|"
+                                    <DataGridTextColumn Header="Ð¤Ð°Ð¹Ð»"
                                                         Binding="{Binding FilePath}"
                                                         Width="3*" />
 
@@ -754,11 +754,11 @@
 
                     <StackPanel>
 
-                        <TextBlock Text="„K„p„‚„p„~„„„y„~"
+                        <TextBlock Text="ÐšÐ°Ñ€Ð°Ð½Ñ‚Ð¸Ð½"
                                    FontSize="28"
                                    FontWeight="SemiBold" />
 
-                        <TextBlock Text="„O„q„Œ„u„{„„„€„r „r „{„p„‚„p„~„„„y„~„u:"
+                        <TextBlock Text="ÐžÐ±ÑŠÐµÐºÑ‚Ð¾Ð² Ð² ÐºÐ°Ñ€Ð°Ð½Ñ‚Ð¸Ð½Ðµ:"
                                    FontSize="16"
                                    Margin="0,20,0,4" />
 
@@ -766,7 +766,7 @@
                                    FontSize="42"
                                    FontWeight="Bold" />
 
-                        <TextBlock Text="„P„‚„€„ƒ„}„€„„„‚, „r„€„ƒ„ƒ„„„p„~„€„r„|„u„~„y„u „y „€„{„€„~„‰„p„„„u„|„Ž„~„€„u „…„t„p„|„u„~„y„u „€„q„Œ„u„{„„„€„r „r„„„€„|„~„‘„„„„ƒ„‘ „‰„u„‚„u„x „€„q„‹„…„ „ƒ„|„…„w„q„… SecurityGuard."
+                        <TextBlock Text="ÐŸÑ€Ð¾ÑÐ¼Ð¾Ñ‚Ñ€, Ð²Ð¾ÑÑÑ‚Ð°Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ðµ Ð¸ Ð¾ÐºÐ¾Ð½Ñ‡Ð°Ñ‚ÐµÐ»ÑŒÐ½Ð¾Ðµ ÑƒÐ´Ð°Ð»ÐµÐ½Ð¸Ðµ Ð¾Ð±ÑŠÐµÐºÑ‚Ð¾Ð² Ð²Ñ‹Ð¿Ð¾Ð»Ð½ÑÑŽÑ‚ÑÑ Ñ‡ÐµÑ€ÐµÐ· Ð¾Ð±Ñ‰ÑƒÑŽ ÑÐ»ÑƒÐ¶Ð±Ñƒ SecurityGuard."
                                    TextWrapping="Wrap"
                                    Margin="0,20,0,0" />
 
@@ -788,11 +788,11 @@
 
                         <StackPanel Grid.Row="0">
 
-                            <TextBlock Text="„P„‚„p„r„y„|„p „y „y„ƒ„{„|„„‰„u„~„y„‘"
+                            <TextBlock Text="ÐŸÑ€Ð°Ð²Ð¸Ð»Ð° Ð¸ Ð¸ÑÐºÐ»ÑŽÑ‡ÐµÐ½Ð¸Ñ"
                                        FontSize="28"
                                        FontWeight="SemiBold" />
 
-                            <TextBlock Text="„O„q„‹„y„u „„‚„p„r„y„|„p „q„u„x„€„„p„ƒ„~„€„ƒ„„„y SecurityGuard"
+                            <TextBlock Text="ÐžÐ±Ñ‰Ð¸Ðµ Ð¿Ñ€Ð°Ð²Ð¸Ð»Ð° Ð±ÐµÐ·Ð¾Ð¿Ð°ÑÐ½Ð¾ÑÑ‚Ð¸ SecurityGuard"
                                        Margin="0,6,0,14" />
 
                         </StackPanel>
@@ -806,7 +806,7 @@
 
                                 <StackPanel>
 
-                                    <TextBlock Text="„B„ƒ„u„s„€ „„‚„p„r„y„|"
+                                    <TextBlock Text="Ð’ÑÐµÐ³Ð¾ Ð¿Ñ€Ð°Ð²Ð¸Ð»"
                                                FontWeight="SemiBold" />
 
                                     <TextBlock Text="{Binding Rules.Count}"
@@ -823,7 +823,7 @@
 
                                 <StackPanel>
 
-                                    <TextBlock Text="„Q„p„x„‚„u„Š„p„„‹„y„‡"
+                                    <TextBlock Text="Ð Ð°Ð·Ñ€ÐµÑˆÐ°ÑŽÑ‰Ð¸Ñ…"
                                                FontWeight="SemiBold" />
 
                                     <TextBlock Text="{Binding AllowRules.Count}"
@@ -840,7 +840,7 @@
 
                                 <StackPanel>
 
-                                    <TextBlock Text="„A„|„€„{„y„‚„…„„‹„y„‡"
+                                    <TextBlock Text="Ð‘Ð»Ð¾ÐºÐ¸Ñ€ÑƒÑŽÑ‰Ð¸Ñ…"
                                                FontWeight="SemiBold" />
 
                                     <TextBlock Text="{Binding BlockRules.Count}"
@@ -856,7 +856,7 @@
 
                         <TabControl Grid.Row="2">
 
-                            <TabItem Header="„B„ƒ„u">
+                            <TabItem Header="Ð’ÑÐµ">
 
                                 <ListView ItemsSource="{Binding Rules}">
 
@@ -864,35 +864,35 @@
 
                                         <GridView>
 
-                                            <GridViewColumn Header="„I„}„‘"
+                                            <GridViewColumn Header="Ð˜Ð¼Ñ"
                                                             Width="180"
                                                             DisplayMemberBinding="{Binding Name}" />
 
-                                            <GridViewColumn Header="„M„€„t„…„|„Ž"
+                                            <GridViewColumn Header="ÐœÐ¾Ð´ÑƒÐ»ÑŒ"
                                                             Width="150"
                                                             DisplayMemberBinding="{Binding ModuleDisplayName}" />
 
-                                            <GridViewColumn Header="„Q„u„Š„u„~„y„u"
+                                            <GridViewColumn Header="Ð ÐµÑˆÐµÐ½Ð¸Ðµ"
                                                             Width="110"
                                                             DisplayMemberBinding="{Binding DecisionDisplayName}" />
 
-                                            <GridViewColumn Header="„S„y„"
+                                            <GridViewColumn Header="Ð¢Ð¸Ð¿"
                                                             Width="170"
                                                             DisplayMemberBinding="{Binding ScopeDisplayName}" />
 
-                                            <GridViewColumn Header="„H„~„p„‰„u„~„y„u"
+                                            <GridViewColumn Header="Ð—Ð½Ð°Ñ‡ÐµÐ½Ð¸Ðµ"
                                                             Width="300"
                                                             DisplayMemberBinding="{Binding Value}" />
 
-                                            <GridViewColumn Header="„D„€„„€„|„~„y„„„u„|„Ž„~„„u „…„ƒ„|„€„r„y„‘"
+                                            <GridViewColumn Header="Ð”Ð¾Ð¿Ð¾Ð»Ð½Ð¸Ñ‚ÐµÐ»ÑŒÐ½Ñ‹Ðµ ÑƒÑÐ»Ð¾Ð²Ð¸Ñ"
                                                             Width="360"
                                                             DisplayMemberBinding="{Binding ConditionsDisplayName}" />
 
-                                            <GridViewColumn Header="„P„‚„y„€„‚„y„„„u„„"
+                                            <GridViewColumn Header="ÐŸÑ€Ð¸Ð¾Ñ€Ð¸Ñ‚ÐµÑ‚"
                                                             Width="90"
                                                             DisplayMemberBinding="{Binding Priority}" />
 
-                                            <GridViewColumn Header="„R„€„ƒ„„„€„‘„~„y„u"
+                                            <GridViewColumn Header="Ð¡Ð¾ÑÑ‚Ð¾ÑÐ½Ð¸Ðµ"
                                                             Width="100"
                                                             DisplayMemberBinding="{Binding EnabledDisplayName}" />
 
@@ -903,7 +903,7 @@
 
                                                     <DataTemplate>
 
-                                                        <Button Content="„T„t„p„|„y„„„Ž"
+                                                        <Button Content="Ð£Ð´Ð°Ð»Ð¸Ñ‚ÑŒ"
                                                                 Command="{Binding DeleteCommand}"
                                                                 Padding="8,4"
                                                                 Margin="2" />
@@ -922,7 +922,7 @@
 
                             </TabItem>
 
-                            <TabItem Header="„Q„p„x„‚„u„Š„u„~„y„‘">
+                            <TabItem Header="Ð Ð°Ð·Ñ€ÐµÑˆÐµÐ½Ð¸Ñ">
 
                                 <ListView ItemsSource="{Binding AllowRules}">
 
@@ -930,19 +930,19 @@
 
                                         <GridView>
 
-                                            <GridViewColumn Header="„I„}„‘"
+                                            <GridViewColumn Header="Ð˜Ð¼Ñ"
                                                             Width="200"
                                                             DisplayMemberBinding="{Binding Name}" />
 
-                                            <GridViewColumn Header="„M„€„t„…„|„Ž"
+                                            <GridViewColumn Header="ÐœÐ¾Ð´ÑƒÐ»ÑŒ"
                                                             Width="170"
                                                             DisplayMemberBinding="{Binding ModuleDisplayName}" />
 
-                                            <GridViewColumn Header="„S„y„"
+                                            <GridViewColumn Header="Ð¢Ð¸Ð¿"
                                                             Width="180"
                                                             DisplayMemberBinding="{Binding ScopeDisplayName}" />
 
-                                            <GridViewColumn Header="„H„~„p„‰„u„~„y„u"
+                                            <GridViewColumn Header="Ð—Ð½Ð°Ñ‡ÐµÐ½Ð¸Ðµ"
                                                             Width="420"
                                                             DisplayMemberBinding="{Binding Value}" />
 
@@ -953,7 +953,7 @@
 
                                                     <DataTemplate>
 
-                                                        <Button Content="„T„t„p„|„y„„„Ž"
+                                                        <Button Content="Ð£Ð´Ð°Ð»Ð¸Ñ‚ÑŒ"
                                                                 Command="{Binding DeleteCommand}"
                                                                 Padding="8,4"
                                                                 Margin="2" />
@@ -972,7 +972,7 @@
 
                             </TabItem>
 
-                            <TabItem Header="„A„|„€„{„y„‚„€„r„{„y">
+                            <TabItem Header="Ð‘Ð»Ð¾ÐºÐ¸Ñ€Ð¾Ð²ÐºÐ¸">
 
                                 <ListView ItemsSource="{Binding BlockRules}">
 
@@ -980,19 +980,19 @@
 
                                         <GridView>
 
-                                            <GridViewColumn Header="„I„}„‘"
+                                            <GridViewColumn Header="Ð˜Ð¼Ñ"
                                                             Width="200"
                                                             DisplayMemberBinding="{Binding Name}" />
 
-                                            <GridViewColumn Header="„M„€„t„…„|„Ž"
+                                            <GridViewColumn Header="ÐœÐ¾Ð´ÑƒÐ»ÑŒ"
                                                             Width="170"
                                                             DisplayMemberBinding="{Binding ModuleDisplayName}" />
 
-                                            <GridViewColumn Header="„S„y„"
+                                            <GridViewColumn Header="Ð¢Ð¸Ð¿"
                                                             Width="180"
                                                             DisplayMemberBinding="{Binding ScopeDisplayName}" />
 
-                                            <GridViewColumn Header="„H„~„p„‰„u„~„y„u"
+                                            <GridViewColumn Header="Ð—Ð½Ð°Ñ‡ÐµÐ½Ð¸Ðµ"
                                                             Width="420"
                                                             DisplayMemberBinding="{Binding Value}" />
 
@@ -1003,7 +1003,7 @@
 
                                                     <DataTemplate>
 
-                                                        <Button Content="„T„t„p„|„y„„„Ž"
+                                                        <Button Content="Ð£Ð´Ð°Ð»Ð¸Ñ‚ÑŒ"
                                                                 Command="{Binding DeleteCommand}"
                                                                 Padding="8,4"
                                                                 Margin="2" />
@@ -1035,7 +1035,7 @@
                     <DockPanel>
 
                         <TextBlock DockPanel.Dock="Top"
-                                   Text="„G„…„‚„~„p„| „ƒ„€„q„„„„y„z"
+                                   Text="Ð–ÑƒÑ€Ð½Ð°Ð» ÑÐ¾Ð±Ñ‹Ñ‚Ð¸Ð¹"
                                    FontSize="28"
                                    FontWeight="SemiBold"
                                    Margin="0,0,0,10" />
@@ -1046,28 +1046,28 @@
 
                                 <GridView>
 
-                                    <GridViewColumn Header="„B„‚„u„}„‘"
+                                    <GridViewColumn Header="Ð’Ñ€ÐµÐ¼Ñ"
                                                     Width="170"
                                                     DisplayMemberBinding="{Binding CreatedAtUtc,
                                                             Converter={StaticResource LocalDateTimeConverter}}" />
 
-                                    <GridViewColumn Header="„M„€„t„…„|„Ž"
+                                    <GridViewColumn Header="ÐœÐ¾Ð´ÑƒÐ»ÑŒ"
                                                     Width="140"
                                                     DisplayMemberBinding="{Binding Module}" />
 
-                                    <GridViewColumn Header="„S„y„"
+                                    <GridViewColumn Header="Ð¢Ð¸Ð¿"
                                                     Width="160"
                                                     DisplayMemberBinding="{Binding Type}" />
 
-                                    <GridViewColumn Header="„T„‚„€„r„u„~„Ž"
+                                    <GridViewColumn Header="Ð£Ñ€Ð¾Ð²ÐµÐ½ÑŒ"
                                                     Width="100"
                                                     DisplayMemberBinding="{Binding Severity}" />
 
-                                    <GridViewColumn Header="„R„€„q„„„„y„u"
+                                    <GridViewColumn Header="Ð¡Ð¾Ð±Ñ‹Ñ‚Ð¸Ðµ"
                                                     Width="220"
                                                     DisplayMemberBinding="{Binding Title}" />
 
-                                    <GridViewColumn Header="„D„u„z„ƒ„„„r„y„u"
+                                    <GridViewColumn Header="Ð”ÐµÐ¹ÑÑ‚Ð²Ð¸Ðµ"
                                                     Width="120"
                                                     DisplayMemberBinding="{Binding Action}" />
 
@@ -1089,7 +1089,7 @@
 
                         <StackPanel>
 
-                            <TextBlock Text="„N„p„ƒ„„„‚„€„z„{„y"
+                            <TextBlock Text="ÐÐ°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸"
                                        FontSize="28"
                                        FontWeight="SemiBold" />
 
@@ -1098,12 +1098,12 @@
                                        FontWeight="SemiBold"
                                        Margin="0,24,0,12" />
 
-                            <CheckBox Content="„B„{„|„„‰„y„„„Ž „{„€„~„„„‚„€„|„Ž „p„|„s„€„‚„y„„„}„€„r"
+                            <CheckBox Content="Ð’ÐºÐ»ÑŽÑ‡Ð¸Ñ‚ÑŒ ÐºÐ¾Ð½Ñ‚Ñ€Ð¾Ð»ÑŒ Ð°Ð»Ð³Ð¾Ñ€Ð¸Ñ‚Ð¼Ð¾Ð²"
                                       IsChecked="{Binding AlgorithmGuardEnabled}"
                                       FontSize="15"
                                       Margin="0,4,0,12" />
 
-                            <TextBlock Text="„Q„u„w„y„}"
+                            <TextBlock Text="Ð ÐµÐ¶Ð¸Ð¼"
                                        FontWeight="SemiBold"
                                        Margin="0,8,0,4" />
 
@@ -1112,7 +1112,7 @@
                                       Width="220"
                                       HorizontalAlignment="Left" />
 
-                            <TextBlock Text="„P„€„r„u„t„u„~„y„u „„‚„y „€„Š„y„q„{„u „ƒ„y„ƒ„„„u„}„~„€„z „q„|„€„{„y„‚„€„r„{„y"
+                            <TextBlock Text="ÐŸÐ¾Ð²ÐµÐ´ÐµÐ½Ð¸Ðµ Ð¿Ñ€Ð¸ Ð¾ÑˆÐ¸Ð±ÐºÐµ ÑÐ¸ÑÑ‚ÐµÐ¼Ð½Ð¾Ð¹ Ð±Ð»Ð¾ÐºÐ¸Ñ€Ð¾Ð²ÐºÐ¸"
                                        FontWeight="SemiBold"
                                        Margin="0,18,0,4" />
 
@@ -1121,25 +1121,25 @@
                                       Width="220"
                                       HorizontalAlignment="Left" />
 
-                            <TextBlock Text="Monitor ? „~„p„q„|„„t„u„~„y„u „y „r„~„…„„„‚„u„~„~„y„u „„‚„p„r„y„|„p „q„u„x „ƒ„y„ƒ„„„u„}„~„€„z „q„|„€„{„y„‚„€„r„{„y."
+                            <TextBlock Text="Monitor ? Ð½Ð°Ð±Ð»ÑŽÐ´ÐµÐ½Ð¸Ðµ Ð¸ Ð²Ð½ÑƒÑ‚Ñ€ÐµÐ½Ð½Ð¸Ðµ Ð¿Ñ€Ð°Ð²Ð¸Ð»Ð° Ð±ÐµÐ· ÑÐ¸ÑÑ‚ÐµÐ¼Ð½Ð¾Ð¹ Ð±Ð»Ð¾ÐºÐ¸Ñ€Ð¾Ð²ÐºÐ¸."
                                        TextWrapping="Wrap"
                                        MaxWidth="700"
                                        HorizontalAlignment="Left"
                                        Margin="0,14,0,0" />
 
-                            <TextBlock Text="Enforce ? „„‚„y„}„u„~„u„~„y„u „„€„t„t„u„‚„w„y„r„p„u„}„„‡ Block-„„‚„p„r„y„| „‰„u„‚„u„x „}„u„‡„p„~„y„x„}„ Windows."
+                            <TextBlock Text="Enforce ? Ð¿Ñ€Ð¸Ð¼ÐµÐ½ÐµÐ½Ð¸Ðµ Ð¿Ð¾Ð´Ð´ÐµÑ€Ð¶Ð¸Ð²Ð°ÐµÐ¼Ñ‹Ñ… Block-Ð¿Ñ€Ð°Ð²Ð¸Ð» Ñ‡ÐµÑ€ÐµÐ· Ð¼ÐµÑ…Ð°Ð½Ð¸Ð·Ð¼Ñ‹ Windows."
                                        TextWrapping="Wrap"
                                        MaxWidth="700"
                                        HorizontalAlignment="Left"
                                        Margin="0,6,0,0" />
 
-                            <TextBlock Text="FailOpen ? „„‚„y „€„Š„y„q„{„u enforcement „}„€„~„y„„„€„‚„y„~„s „„‚„€„t„€„|„w„p„u„„„ƒ„‘. FailClosed ? AlgorithmGuard „„u„‚„u„‡„€„t„y„„ „r Faulted."
+                            <TextBlock Text="FailOpen ? Ð¿Ñ€Ð¸ Ð¾ÑˆÐ¸Ð±ÐºÐµ enforcement Ð¼Ð¾Ð½Ð¸Ñ‚Ð¾Ñ€Ð¸Ð½Ð³ Ð¿Ñ€Ð¾Ð´Ð¾Ð»Ð¶Ð°ÐµÑ‚ÑÑ. FailClosed ? AlgorithmGuard Ð¿ÐµÑ€ÐµÑ…Ð¾Ð´Ð¸Ñ‚ Ð² Faulted."
                                        TextWrapping="Wrap"
                                        MaxWidth="700"
                                        HorizontalAlignment="Left"
                                        Margin="0,6,0,0" />
 
-                            <Button Content="„R„€„‡„‚„p„~„y„„„Ž „~„p„ƒ„„„‚„€„z„{„y AlgorithmGuard"
+                            <Button Content="Ð¡Ð¾Ñ…Ñ€Ð°Ð½Ð¸Ñ‚ÑŒ Ð½Ð°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸ AlgorithmGuard"
                                     Width="270"
                                     HorizontalAlignment="Left"
                                     Margin="0,20,0,0"
@@ -1152,12 +1152,12 @@
                                        FontWeight="SemiBold"
                                        Margin="0,0,0,12" />
 
-                            <CheckBox Content="„B„{„|„„‰„y„„„Ž „{„€„~„„„‚„€„|„Ž „y„ƒ„‡„€„t„‘„‹„y„‡ „ƒ„€„u„t„y„~„u„~„y„z"
+                            <CheckBox Content="Ð’ÐºÐ»ÑŽÑ‡Ð¸Ñ‚ÑŒ ÐºÐ¾Ð½Ñ‚Ñ€Ð¾Ð»ÑŒ Ð¸ÑÑ…Ð¾Ð´ÑÑ‰Ð¸Ñ… ÑÐ¾ÐµÐ´Ð¸Ð½ÐµÐ½Ð¸Ð¹"
                                       IsChecked="{Binding TransferGuardEnabled}"
                                       FontSize="15"
                                       Margin="0,4,0,12" />
 
-                            <TextBlock Text="„Q„u„w„y„}"
+                            <TextBlock Text="Ð ÐµÐ¶Ð¸Ð¼"
                                        FontWeight="SemiBold"
                                        Margin="0,8,0,4" />
 
@@ -1166,7 +1166,7 @@
                                       Width="220"
                                       HorizontalAlignment="Left" />
 
-                            <TextBlock Text="„P„€„r„u„t„u„~„y„u „„‚„y „€„Š„y„q„{„u „ƒ„u„„„u„r„€„z „q„|„€„{„y„‚„€„r„{„y"
+                            <TextBlock Text="ÐŸÐ¾Ð²ÐµÐ´ÐµÐ½Ð¸Ðµ Ð¿Ñ€Ð¸ Ð¾ÑˆÐ¸Ð±ÐºÐµ ÑÐµÑ‚ÐµÐ²Ð¾Ð¹ Ð±Ð»Ð¾ÐºÐ¸Ñ€Ð¾Ð²ÐºÐ¸"
                                        FontWeight="SemiBold"
                                        Margin="0,18,0,4" />
 
@@ -1175,25 +1175,25 @@
                                       Width="220"
                                       HorizontalAlignment="Left" />
 
-                            <TextBlock Text="Monitor ? „€„q„~„p„‚„…„w„u„~„y„u „y„ƒ„‡„€„t„‘„‹„y„‡ „ƒ„€„u„t„y„~„u„~„y„z „y „„‚„y„}„u„~„u„~„y„u „r„~„…„„„‚„u„~„~„y„‡ „„‚„p„r„y„| „q„u„x „q„|„€„{„y„‚„€„r„{„y Windows Firewall."
+                            <TextBlock Text="Monitor ? Ð¾Ð±Ð½Ð°Ñ€ÑƒÐ¶ÐµÐ½Ð¸Ðµ Ð¸ÑÑ…Ð¾Ð´ÑÑ‰Ð¸Ñ… ÑÐ¾ÐµÐ´Ð¸Ð½ÐµÐ½Ð¸Ð¹ Ð¸ Ð¿Ñ€Ð¸Ð¼ÐµÐ½ÐµÐ½Ð¸Ðµ Ð²Ð½ÑƒÑ‚Ñ€ÐµÐ½Ð½Ð¸Ñ… Ð¿Ñ€Ð°Ð²Ð¸Ð» Ð±ÐµÐ· Ð±Ð»Ð¾ÐºÐ¸Ñ€Ð¾Ð²ÐºÐ¸ Windows Firewall."
                                        TextWrapping="Wrap"
                                        MaxWidth="700"
                                        HorizontalAlignment="Left"
                                        Margin="0,14,0,0" />
 
-                            <TextBlock Text="Enforce ? „„€„t„t„u„‚„w„y„r„p„u„}„„u Block-„„‚„p„r„y„|„p „„‚„y„}„u„~„‘„„„„ƒ„‘ „‰„u„‚„u„x Windows Firewall."
+                            <TextBlock Text="Enforce ? Ð¿Ð¾Ð´Ð´ÐµÑ€Ð¶Ð¸Ð²Ð°ÐµÐ¼Ñ‹Ðµ Block-Ð¿Ñ€Ð°Ð²Ð¸Ð»Ð° Ð¿Ñ€Ð¸Ð¼ÐµÐ½ÑÑŽÑ‚ÑÑ Ñ‡ÐµÑ€ÐµÐ· Windows Firewall."
                                        TextWrapping="Wrap"
                                        MaxWidth="700"
                                        HorizontalAlignment="Left"
                                        Margin="0,6,0,0" />
 
-                            <TextBlock Text="FailOpen ? „„‚„y „€„Š„y„q„{„u Firewall „}„€„~„y„„„€„‚„y„~„s „„‚„€„t„€„|„w„p„u„„„ƒ„‘. FailClosed ? TransferGuard „„u„‚„u„‡„€„t„y„„ „r Faulted."
+                            <TextBlock Text="FailOpen ? Ð¿Ñ€Ð¸ Ð¾ÑˆÐ¸Ð±ÐºÐµ Firewall Ð¼Ð¾Ð½Ð¸Ñ‚Ð¾Ñ€Ð¸Ð½Ð³ Ð¿Ñ€Ð¾Ð´Ð¾Ð»Ð¶Ð°ÐµÑ‚ÑÑ. FailClosed ? TransferGuard Ð¿ÐµÑ€ÐµÑ…Ð¾Ð´Ð¸Ñ‚ Ð² Faulted."
                                        TextWrapping="Wrap"
                                        MaxWidth="700"
                                        HorizontalAlignment="Left"
                                        Margin="0,6,0,0" />
 
-                            <Button Content="„R„€„‡„‚„p„~„y„„„Ž „~„p„ƒ„„„‚„€„z„{„y TransferGuard"
+                            <Button Content="Ð¡Ð¾Ñ…Ñ€Ð°Ð½Ð¸Ñ‚ÑŒ Ð½Ð°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸ TransferGuard"
                                     Width="270"
                                     HorizontalAlignment="Left"
                                     Margin="0,20,0,0"
@@ -1206,12 +1206,12 @@
                                     FontWeight="SemiBold"
                                     Margin="0,0,0,12" />
 
-                            <TextBlock Text="„P„u„‚„u„~„€„ƒ „ƒ„„y„ƒ„{„€„r"
+                            <TextBlock Text="ÐŸÐµÑ€ÐµÐ½Ð¾Ñ ÑÐ¿Ð¸ÑÐºÐ¾Ð²"
                                     FontSize="20"
                                     FontWeight="SemiBold"
                                     Margin="0,0,0,12" />
 
-                            <TextBlock Text="„^„{„ƒ„„€„‚„„ „y „y„}„„€„‚„„ „„‚„p„r„y„| AlgorithmGuard, TransferGuard, ArchiveGuard „y „ƒ„„y„ƒ„{„p „y„x„r„u„ƒ„„„~„„‡ SHA-256."
+                            <TextBlock Text="Ð­ÐºÑÐ¿Ð¾Ñ€Ñ‚ Ð¸ Ð¸Ð¼Ð¿Ð¾Ñ€Ñ‚ Ð¿Ñ€Ð°Ð²Ð¸Ð» AlgorithmGuard, TransferGuard, ArchiveGuard Ð¸ ÑÐ¿Ð¸ÑÐºÐ° Ð¸Ð·Ð²ÐµÑÑ‚Ð½Ñ‹Ñ… SHA-256."
                                     TextWrapping="Wrap"
                                     MaxWidth="760"
                                     HorizontalAlignment="Left"
@@ -1219,18 +1219,18 @@
 
                             <StackPanel Orientation="Horizontal">
 
-                                <Button Content="„^„{„ƒ„„€„‚„„„y„‚„€„r„p„„„Ž „ƒ„„y„ƒ„{„y"
+                                <Button Content="Ð­ÐºÑÐ¿Ð¾Ñ€Ñ‚Ð¸Ñ€Ð¾Ð²Ð°Ñ‚ÑŒ ÑÐ¿Ð¸ÑÐºÐ¸"
                                         Width="180"
                                         Command="{Binding ExportSecurityListsCommand}" />
 
-                                <Button Content="„O„„„{„‚„„„„Ž „„p„„{„… „ƒ„„y„ƒ„{„€„r"
+                                <Button Content="ÐžÑ‚ÐºÑ€Ñ‹Ñ‚ÑŒ Ð¿Ð°Ð¿ÐºÑƒ ÑÐ¿Ð¸ÑÐºÐ¾Ð²"
                                         Width="190"
                                         Margin="8,0,0,0"
                                         Command="{Binding OpenSecurityListsFolderCommand}" />
 
                             </StackPanel>
 
-                            <TextBlock Text="„P„€„ƒ„|„u„t„~„y„z „„{„ƒ„„€„‚„„"
+                            <TextBlock Text="ÐŸÐ¾ÑÐ»ÐµÐ´Ð½Ð¸Ð¹ ÑÐºÑÐ¿Ð¾Ñ€Ñ‚"
                                         FontWeight="SemiBold"
                                         Margin="0,18,0,6" />
 
@@ -1239,7 +1239,7 @@
                                      Width="760"
                                      HorizontalAlignment="Left" />
 
-                            <TextBlock Text="Fingerprint „„{„ƒ„„€„‚„„„y„‚„€„r„p„~„~„€„s„€ „„p„{„u„„„p"
+                            <TextBlock Text="Fingerprint ÑÐºÑÐ¿Ð¾Ñ€Ñ‚Ð¸Ñ€Ð¾Ð²Ð°Ð½Ð½Ð¾Ð³Ð¾ Ð¿Ð°ÐºÐµÑ‚Ð°"
                                     FontWeight="SemiBold"
                                     Margin="0,10,0,6" />
 
@@ -1250,12 +1250,12 @@
 
                             <Separator Margin="0,24,0,24" />
 
-                            <TextBlock Text="„I„}„„€„‚„„ „ƒ„„y„ƒ„{„€„r"
+                            <TextBlock Text="Ð˜Ð¼Ð¿Ð¾Ñ€Ñ‚ ÑÐ¿Ð¸ÑÐºÐ¾Ð²"
                                     FontSize="18"
                                     FontWeight="SemiBold"
                                     Margin="0,0,0,10" />
 
-                            <TextBlock Text="„@„‚„‡„y„r„y„‚„€„r„p„~„~„p„‘ „{„€„„y„‘ „„€„ƒ„|„u„t„~„u„s„€ „y„}„„€„‚„„„p"
+                            <TextBlock Text="ÐÑ€Ñ…Ð¸Ð²Ð¸Ñ€Ð¾Ð²Ð°Ð½Ð½Ð°Ñ ÐºÐ¾Ð¿Ð¸Ñ Ð¿Ð¾ÑÐ»ÐµÐ´Ð½ÐµÐ³Ð¾ Ð¸Ð¼Ð¿Ð¾Ñ€Ñ‚Ð°"
                                     FontWeight="SemiBold"
                                     Margin="0,16,0,6" />
 
@@ -1278,7 +1278,7 @@
                                         Margin="0,0,8,0" />
 
                                 <Button Grid.Column="1"
-                                        Content="„B„„q„‚„p„„„Ž ZIP"
+                                        Content="Ð’Ñ‹Ð±Ñ€Ð°Ñ‚ÑŒ ZIP"
                                         Width="120"
                                         Command="{Binding SelectSecurityListPackageCommand}" />
 
@@ -1287,11 +1287,11 @@
                             <StackPanel Orientation="Horizontal"
                                         Margin="0,10,0,0">
 
-                                <Button Content="„P„‚„€„r„u„‚„y„„„Ž „„p„{„u„„"
+                                <Button Content="ÐŸÑ€Ð¾Ð²ÐµÑ€Ð¸Ñ‚ÑŒ Ð¿Ð°ÐºÐµÑ‚"
                                         Width="150"
                                         Command="{Binding ValidateSecurityListPackageCommand}" />
 
-                                <Button Content="„I„}„„€„‚„„„y„‚„€„r„p„„„Ž"
+                                <Button Content="Ð˜Ð¼Ð¿Ð¾Ñ€Ñ‚Ð¸Ñ€Ð¾Ð²Ð°Ñ‚ÑŒ"
                                         Width="150"
                                         Margin="8,0,0,0"
                                         IsEnabled="{Binding SecurityListPackageValid}"
@@ -1305,7 +1305,7 @@
                                     HorizontalAlignment="Left"
                                     Margin="0,14,0,0" />
 
-                            <TextBlock Text="„P„‚„u„t„…„„‚„u„w„t„u„~„y„‘ „„€„ƒ„|„u „y„}„„€„‚„„„p"
+                            <TextBlock Text="ÐŸÑ€ÐµÐ´ÑƒÐ¿Ñ€ÐµÐ¶Ð´ÐµÐ½Ð¸Ñ Ð¿Ð¾ÑÐ»Ðµ Ð¸Ð¼Ð¿Ð¾Ñ€Ñ‚Ð°"
                                     FontWeight="SemiBold"
                                     Margin="0,16,0,6" />
 
@@ -1317,17 +1317,17 @@
 
                             <Separator Margin="0,30,0,24" />
 
-                            <CheckBox Content="„B„{„|„„‰„y„„„Ž „p„r„„„€„}„p„„„y„‰„u„ƒ„{„…„ „„‚„€„r„u„‚„{„… „~„€„r„„‡ „†„p„z„|„€„r"
+                            <CheckBox Content="Ð’ÐºÐ»ÑŽÑ‡Ð¸Ñ‚ÑŒ Ð°Ð²Ñ‚Ð¾Ð¼Ð°Ñ‚Ð¸Ñ‡ÐµÑÐºÑƒÑŽ Ð¿Ñ€Ð¾Ð²ÐµÑ€ÐºÑƒ Ð½Ð¾Ð²Ñ‹Ñ… Ñ„Ð°Ð¹Ð»Ð¾Ð²"
                                     IsChecked="{Binding ArchiveGuardAutoScanEnabled}"
                                     FontSize="15"
                                     Margin="0,4,0,12" />
 
-                            <CheckBox Content="„@„r„„„€„}„p„„„y„‰„u„ƒ„{„y „{„€„~„„„‚„€„|„y„‚„€„r„p„„„Ž „„p„„{„y Downloads „„€„|„Ž„x„€„r„p„„„u„|„u„z"
+                            <CheckBox Content="ÐÐ²Ñ‚Ð¾Ð¼Ð°Ñ‚Ð¸Ñ‡ÐµÑÐºÐ¸ ÐºÐ¾Ð½Ñ‚Ñ€Ð¾Ð»Ð¸Ñ€Ð¾Ð²Ð°Ñ‚ÑŒ Ð¿Ð°Ð¿ÐºÐ¸ Downloads Ð¿Ð¾Ð»ÑŒÐ·Ð¾Ð²Ð°Ñ‚ÐµÐ»ÐµÐ¹"
                                     IsChecked="{Binding ArchiveGuardScanUserDownloads}"
                                     FontSize="15"
                                     Margin="0,4,0,16" />
 
-                            <TextBlock Text="„D„€„„€„|„~„y„„„u„|„Ž„~„„u „{„€„~„„„‚„€„|„y„‚„…„u„}„„u „„p„„{„y"
+                            <TextBlock Text="Ð”Ð¾Ð¿Ð¾Ð»Ð½Ð¸Ñ‚ÐµÐ»ÑŒÐ½Ñ‹Ðµ ÐºÐ¾Ð½Ñ‚Ñ€Ð¾Ð»Ð¸Ñ€ÑƒÐµÐ¼Ñ‹Ðµ Ð¿Ð°Ð¿ÐºÐ¸"
                                     FontWeight="SemiBold"
                                     Margin="0,8,0,6" />
 
@@ -1341,18 +1341,18 @@
                             <StackPanel Orientation="Horizontal"
                                         Margin="0,8,0,0">
 
-                                <Button Content="„D„€„q„p„r„y„„„Ž „„p„„{„…"
+                                <Button Content="Ð”Ð¾Ð±Ð°Ð²Ð¸Ñ‚ÑŒ Ð¿Ð°Ð¿ÐºÑƒ"
                                         Width="140"
                                         Command="{Binding AddArchiveGuardDirectoryCommand}" />
 
-                                <Button Content="„T„t„p„|„y„„„Ž"
+                                <Button Content="Ð£Ð´Ð°Ð»Ð¸Ñ‚ÑŒ"
                                         Width="110"
                                         Margin="8,0,0,0"
                                         Command="{Binding RemoveArchiveGuardDirectoryCommand}" />
 
                             </StackPanel>
 
-                            <TextBlock Text="„U„p„{„„„y„‰„u„ƒ„{„y „{„€„~„„„‚„€„|„y„‚„…„u„}„„u „{„p„„„p„|„€„s„y"
+                            <TextBlock Text="Ð¤Ð°ÐºÑ‚Ð¸Ñ‡ÐµÑÐºÐ¸ ÐºÐ¾Ð½Ñ‚Ñ€Ð¾Ð»Ð¸Ñ€ÑƒÐµÐ¼Ñ‹Ðµ ÐºÐ°Ñ‚Ð°Ð»Ð¾Ð³Ð¸"
                                     FontWeight="SemiBold"
                                     Margin="0,20,0,6" />
 
@@ -1363,13 +1363,13 @@
                                     HorizontalAlignment="Left"
                                     IsEnabled="False" />
 
-                            <TextBlock Text="„H„t„u„ƒ„Ž „€„„„€„q„‚„p„w„p„„„„ƒ„‘ „{„p„„„p„|„€„s„y, „t„|„‘ „{„€„„„€„‚„„‡ „ƒ„|„…„w„q„u „‚„u„p„|„Ž„~„€ „…„t„p„|„€„ƒ„Ž „x„p„„…„ƒ„„„y„„„Ž „~„p„q„|„„t„u„~„y„u."
+                            <TextBlock Text="Ð—Ð´ÐµÑÑŒ Ð¾Ñ‚Ð¾Ð±Ñ€Ð°Ð¶Ð°ÑŽÑ‚ÑÑ ÐºÐ°Ñ‚Ð°Ð»Ð¾Ð³Ð¸, Ð´Ð»Ñ ÐºÐ¾Ñ‚Ð¾Ñ€Ñ‹Ñ… ÑÐ»ÑƒÐ¶Ð±Ðµ Ñ€ÐµÐ°Ð»ÑŒÐ½Ð¾ ÑƒÐ´Ð°Ð»Ð¾ÑÑŒ Ð·Ð°Ð¿ÑƒÑÑ‚Ð¸Ñ‚ÑŒ Ð½Ð°Ð±Ð»ÑŽÐ´ÐµÐ½Ð¸Ðµ."
                                     TextWrapping="Wrap"
                                     MaxWidth="700"
                                     HorizontalAlignment="Left"
                                     Margin="0,8,0,0" />
 
-                            <Button Content="„R„€„‡„‚„p„~„y„„„Ž „~„p„ƒ„„„‚„€„z„{„y ArchiveGuard"
+                            <Button Content="Ð¡Ð¾Ñ…Ñ€Ð°Ð½Ð¸Ñ‚ÑŒ Ð½Ð°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸ ArchiveGuard"
                                     Width="270"
                                     HorizontalAlignment="Left"
                                     Margin="0,20,0,0"
@@ -1377,14 +1377,14 @@
 
                             <Separator Margin="0,30,0,24" />
 
-                            <TextBlock Text="„R„€„ƒ„„„€„‘„~„y„u „ƒ„|„…„w„q„"
+                            <TextBlock Text="Ð¡Ð¾ÑÑ‚Ð¾ÑÐ½Ð¸Ðµ ÑÐ»ÑƒÐ¶Ð±Ñ‹"
                                        FontSize="16"
                                        FontWeight="SemiBold"
                                        Margin="0,4,0,4" />
 
                             <TextBlock Text="{Binding ServiceStatus}" />
 
-							<TextBlock Text="„O„q„Œ„u„{„„„ „{„p„‚„p„~„„„y„~„p"
+							<TextBlock Text="ÐžÐ±ÑŠÐµÐºÑ‚Ñ‹ ÐºÐ°Ñ€Ð°Ð½Ñ‚Ð¸Ð½Ð°"
                                        FontSize="16"
                                        FontWeight="SemiBold"
                                        Margin="0,20,0,4" />
@@ -1426,25 +1426,25 @@
 							<StackPanel Orientation="Horizontal"
 										Margin="0,10,0,0">
 
-								<Button Content="„O„q„~„€„r„y„„„Ž „{„p„‚„p„~„„„y„~"
+								<Button Content="ÐžÐ±Ð½Ð¾Ð²Ð¸Ñ‚ÑŒ ÐºÐ°Ñ€Ð°Ð½Ñ‚Ð¸Ð½"
 										Width="170"
 										Command="{Binding RefreshArchiveQuarantineCommand}" />
 
-								<Button Content="„B„€„ƒ„ƒ„„„p„~„€„r„y„„„Ž „y „t„€„q„p„r„y„„„Ž „r „y„ƒ„{„|„„‰„u„~„y„‘"
+								<Button Content="Ð’Ð¾ÑÑÑ‚Ð°Ð½Ð¾Ð²Ð¸Ñ‚ÑŒ Ð¸ Ð´Ð¾Ð±Ð°Ð²Ð¸Ñ‚ÑŒ Ð² Ð¸ÑÐºÐ»ÑŽÑ‡ÐµÐ½Ð¸Ñ"
 										Width="300"
 										Margin="8,0,0,0"
 										Command="{Binding RestoreArchiveFromQuarantineWithExceptionCommand}" />
 
 							</StackPanel>
 
-                            <TextBlock Text="„P„€„ƒ„|„u„t„~„u„u „€„q„~„€„r„|„u„~„y„u"
+                            <TextBlock Text="ÐŸÐ¾ÑÐ»ÐµÐ´Ð½ÐµÐµ Ð¾Ð±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ðµ"
                                        FontSize="16"
                                        FontWeight="SemiBold"
                                        Margin="0,20,0,4" />
 
                             <TextBlock Text="{Binding LastRefreshUtc}" />
 
-                            <Button Content="„O„q„~„€„r„y„„„Ž „ƒ„€„ƒ„„„€„‘„~„y„u"
+                            <Button Content="ÐžÐ±Ð½Ð¾Ð²Ð¸Ñ‚ÑŒ ÑÐ¾ÑÑ‚Ð¾ÑÐ½Ð¸Ðµ"
                                     Width="180"
                                     HorizontalAlignment="Left"
                                     Margin="0,24,0,20"
