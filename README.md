@@ -1,4 +1,4 @@
-# SecurityGuard
+﻿# SecurityGuard
 
 SecurityGuard — локальное приложение безопасности для Windows, предназначенное для контроля выполнения скриптов и процессов, исходящих операций передачи данных, а также проверки файлов и архивов.
 
@@ -106,16 +106,16 @@ artifacts\publish\ui\win-x64
 
 ## Сборка установщика
 
-Для сборки MSI версии `0.1.30`:
+Для сборки MSI версии `0.1.34`:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 0.1.30
+.\scripts\build-installer.ps1 -Version 0.1.34
 ```
 
 Готовый установщик:
 
 ```text
-artifacts\installer\0.1.30\SecurityGuard-0.1.30-win-x64.msi
+artifacts\installer\0.1.34\SecurityGuard-0.1.34-win-x64.msi
 ```
 
 Если после изменения версии WiX не создаёт MSI, очистите промежуточные файлы установщика:
@@ -136,7 +136,7 @@ Remove-Item `
 Запустите PowerShell от имени администратора.
 
 ```powershell
-$msi = (Resolve-Path ".\artifacts\installer\0.1.30\SecurityGuard-0.1.30-win-x64.msi").Path
+$msi = (Resolve-Path ".\artifacts\installer\0.1.34\SecurityGuard-0.1.34-win-x64.msi").Path
 
 $p = Start-Process msiexec.exe `
     -Verb RunAs `
@@ -229,13 +229,13 @@ sc.exe qfailure SecurityGuard
 После установки выполните:
 
 ```powershell
-.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.30
+.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.34
 ```
 
 Успешная проверка выглядит примерно так:
 
 ```text
-Version: 0.1.30
+Version: 0.1.34
 Service: Running
 Startup: Automatic
 Account: LocalSystem
@@ -255,11 +255,33 @@ Start-Process "C:\Program Files\SecurityGuard\UI\SecurityGuard.UI.exe"
 
 Начиная с версии `0.1.29` WPF UI автоматически запускается после входа пользователя с параметром `--background`. Главное окно при этом не открывается: UI работает через системный трей. Нажатие `X` скрывает окно, а пункт `Выход` завершает только UI. Windows Service продолжает работать независимо от UI. Повторный запуск SecurityGuard открывает уже работающий экземпляр интерфейса и не создаёт второй процесс.
 
+AlgorithmGuard и TransferGuard создают интерактивные уведомления для событий, требующих решения пользователя.
+
+Уведомления работают и тогда, когда главное окно скрыто, а SecurityGuard UI запущен в фоновом режиме.
+
+Один Pending-запрос не создаёт повторное уведомление при каждом периодическом обновлении интерфейса. После выполнения действия или исчезновения запроса связанное уведомление закрывается.
+
+Pending-запросы AlgorithmGuard и TransferGuard также доступны непосредственно на страницах соответствующих модулей.
+
+Списки событий отображаются от новых событий к старым.
+
 При обновлении или удалении SecurityGuard установщик автоматически закрывает работающий фоновый WPF UI перед заменой или удалением файлов. Windows Service управляется MSI отдельно от пользовательского интерфейса.
+
+## Настройки модулей
+
+Параметры AlgorithmGuard, TransferGuard и ArchiveGuard редактируются в пользовательском интерфейсе и применяются после нажатия соответствующей кнопки сохранения.
+
+Периодическое автоматическое обновление состояния SecurityGuard не перезаписывает несохранённые изменения пользователя.
+
+После успешного сохранения интерфейс снова синхронизирует значения с Windows Service.
 
 ## TransferGuard
 
 TransferGuard контролирует исходящие сетевые соединения и операции передачи файлов.
+
+Ожидающие решения отображаются непосредственно на странице TransferGuard. Пользователь может выполнить действие над запросом без перехода на страницу обзора.
+
+Для событий, требующих решения, SecurityGuard также показывает интерактивное всплывающее уведомление. Действие можно выполнить как из уведомления, так и со страницы TransferGuard.
 
 Для неизвестного сетевого действия доступны `Allow`, `AllowApplication`, `Block` и `BlockApplication`. Правила уровня приложения создаются по полному `ProcessPath`.
 
@@ -294,11 +316,25 @@ FileTransfer Block  250
 
 ## AlgorithmGuard и AppLocker
 
-AlgorithmGuard может использовать возможности Windows AppLocker.
+AlgorithmGuard контролирует запуск скриптов, интерпретируемых команд и связанных процессов.
 
-Если PowerShell-модуль AppLocker недоступен, SecurityGuard в режиме `Monitor` с политикой `FailOpen` продолжает работу в деградированном режиме и не останавливает основную службу.
+В режиме `Monitor` события обнаруживаются и регистрируются без принудительной системной блокировки.
 
-Наличие AppLocker зависит от конфигурации и редакции Windows.
+В режиме `Enforce` SecurityGuard автоматически выбирает доступный механизм принудительного контроля.
+
+Если AppLocker полностью доступен и готов к работе, может использоваться AppLocker.
+
+Если AppLocker недоступен, отсутствует его PowerShell-модуль или текущая редакция Windows не предоставляет необходимое управление AppLocker, SecurityGuard автоматически использует `ProcessFallback`.
+
+`ProcessFallback` позволяет AlgorithmGuard продолжать работу в режиме `Enforce` и применять созданные блокирующие правила непосредственно к обнаруженным процессам.
+
+Выбранный backend сохраняется на время работы службы.
+
+При использовании ProcessFallback состояние AlgorithmGuard отображается как:
+
+```text
+Enforce mode is active using process runtime fallback
+```
 
 ## Обновление
 
@@ -307,15 +343,15 @@ SecurityGuard поддерживает обновление MSI поверх у�
 Например:
 
 ```text
-0.1.29 → 0.1.30
+0.1.33 → 0.1.34
 ```
 
-Для обновления предварительное удаление `0.1.29` не требуется.
+Для обновления предварительное удаление `0.1.33` не требуется.
 
 Запустите новый MSI:
 
 ```powershell
-$msi = (Resolve-Path ".\artifacts\installer\0.1.30\SecurityGuard-0.1.30-win-x64.msi").Path
+$msi = (Resolve-Path ".\artifacts\installer\0.1.34\SecurityGuard-0.1.34-win-x64.msi").Path
 
 $p = Start-Process msiexec.exe `
     -Verb RunAs `
@@ -329,7 +365,7 @@ $p.ExitCode
 После обновления:
 
 ```powershell
-.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.30
+.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.34
 ```
 
 ## Удаление
@@ -406,16 +442,22 @@ SecurityGuard позволяет экспортировать и импорти�
 dotnet test .\SecurityGuard.slnx
 ```
 
+Проверка известных уязвимостей NuGet-пакетов:
+
+```powershell
+dotnet list .\SecurityGuard.slnx package --vulnerable --include-transitive
+```
+
 Затем:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 0.1.30
+.\scripts\build-installer.ps1 -Version 0.1.34
 ```
 
 После установки:
 
 ```powershell
-.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.30
+.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.34
 ```
 
 ## Текущий статус
@@ -423,8 +465,11 @@ dotnet test .\SecurityGuard.slnx
 На Windows проверены:
 
 * полная сборка решения;
-* автоматические тесты решения без ошибок;
+* полный набор автоматических тестов: `425/425`;
+* отсутствие известных уязвимых NuGet-пакетов по результату `dotnet list package --vulnerable --include-transitive`;
 * установка MSI;
+* обновление MSI `0.1.33 → 0.1.34`;
+* работа установленной версии `0.1.34`;
 * автоматический запуск Windows Service;
 * работа службы от LocalSystem;
 * запуск WPF UI;
@@ -439,8 +484,17 @@ dotnet test .\SecurityGuard.slnx
 * удаление MSI;
 * сохранение `ProgramData`;
 * повторная установка;
-* обновление `0.1.29 → 0.1.30`;
+* работа AlgorithmGuard в режиме `Enforce` через `ProcessFallback`;
+* фактическая блокировка тестового скрипта через `ProcessFallback`;
+* интерактивные уведомления AlgorithmGuard;
+* отображение Pending-запросов непосредственно на странице AlgorithmGuard;
+* прокрутка страницы AlgorithmGuard вместе с Pending-запросами и журналом событий;
 * обнаружение исходящих сетевых соединений TransferGuard;
+* интерактивные уведомления TransferGuard;
+* отображение Pending-запросов непосредственно на странице TransferGuard;
+* выполнение действий над запросами непосредственно со страницы TransferGuard;
+* выполнение действий непосредственно из всплывающих уведомлений;
+* работа уведомлений при скрытом основном окне;
 * постоянное разрешение всего приложения по `ProcessPath`;
 * постоянная блокировка всего приложения по `ProcessPath`;
 * применение `BlockApplication` через Windows Firewall в режиме `Enforce`;
@@ -448,7 +502,9 @@ dotnet test .\SecurityGuard.slnx
 * работа разрешения после перезапуска приложения и смены PID;
 * автоматическая очистка старых Pending-запросов разрешённого приложения;
 * сохранение Pending-запросов других приложений;
-* согласованное отображение новых Pending-запросов в UI.
+* сортировка событий от новых к старым;
+* сохранение несохранённых изменений настроек AlgorithmGuard, TransferGuard и ArchiveGuard при автоматическом обновлении UI;
+* синхронизация настроек с Windows Service после их сохранения.
 
 ## Платформа
 
