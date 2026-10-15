@@ -17,3 +17,5 @@ installer/SecurityGuard.Installer/obj/
 
 .DS_Store
 Thumbs.db
+artifacts/installer/
+
