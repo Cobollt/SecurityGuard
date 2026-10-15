@@ -327,82 +327,69 @@
                 </Grid>
 
 				<Grid Visibility="{Binding SelectedPageIndex,
-    Converter={StaticResource IndexToVisibilityConverter},
-    ConverterParameter=1}">
+                        Converter={StaticResource IndexToVisibilityConverter},
+                        ConverterParameter=1}">
 
-					<Grid.RowDefinitions>
-						<RowDefinition Height="Auto" />
-						<RowDefinition Height="Auto" />
-						<RowDefinition Height="*" />
-					</Grid.RowDefinitions>
+					<ScrollViewer VerticalScrollBarVisibility="Auto"
+								  HorizontalScrollBarVisibility="Disabled">
 
-					<StackPanel Grid.Row="0">
+						<StackPanel>
 
-						<TextBlock Text="Контроль алгоритмов"
-								   FontSize="28"
-								   FontWeight="SemiBold" />
+							<TextBlock Text="Контроль алгоритмов"
+									   FontSize="28"
+									   FontWeight="SemiBold" />
 
-						<TextBlock Text="Контроль запуска несанкционированных скриптов, интерпретируемых команд и связанных процессов."
-								   TextWrapping="Wrap"
-								   Margin="0,6,0,10" />
+							<TextBlock Text="Контроль запуска несанкционированных скриптов, интерпретируемых команд и связанных процессов."
+									   TextWrapping="Wrap"
+									   Margin="0,6,0,14" />
 
-					</StackPanel>
+							<TextBlock Text="Ожидают решения"
+									   FontSize="18"
+									   FontWeight="SemiBold"
+									   Margin="0,0,0,4" />
 
-					<StackPanel Grid.Row="1"
-								Margin="0,0,0,12">
+							<ItemsControl ItemsSource="{Binding AlgorithmPendingRequests}"
+										  ItemTemplate="{StaticResource DecisionRequestCardTemplate}"
+										  Margin="0,0,0,16" />
 
-						<TextBlock Text="Ожидают решения"
-								   FontSize="18"
-								   FontWeight="SemiBold"
-								   Margin="0,0,0,4" />
+							<TextBlock Text="Журнал событий"
+									   FontSize="18"
+									   FontWeight="SemiBold"
+									   Margin="0,4,0,4" />
 
-						<ItemsControl ItemsSource="{Binding AlgorithmPendingRequests}"
-									  ItemTemplate="{StaticResource DecisionRequestCardTemplate}" />
+							<ListView ItemsSource="{Binding AlgorithmEvents}"
+									  Margin="0,0,0,12">
 
-					</StackPanel>
+								<ListView.View>
 
-					<StackPanel Grid.Row="2"
-                        Margin="0,0,0,12">
+									<GridView>
 
-						<TextBlock Text="Ожидают решения"
-								   FontSize="18"
-								   FontWeight="SemiBold"
-								   Margin="0,0,0,4" />
+										<GridViewColumn Header="Время"
+														Width="170"
+														DisplayMemberBinding="{Binding CreatedAtUtc,
+                                            Converter={StaticResource LocalDateTimeConverter}}" />
 
-						<ItemsControl ItemsSource="{Binding TransferPendingRequests}"
-									  ItemTemplate="{StaticResource DecisionRequestCardTemplate}" />
+										<GridViewColumn Header="Событие"
+														Width="240"
+														DisplayMemberBinding="{Binding Title}" />
 
-					</StackPanel>
+										<GridViewColumn Header="Подробности"
+														Width="420"
+														DisplayMemberBinding="{Binding Details}" />
 
-					<ListView Grid.Row="2"
-							  ItemsSource="{Binding AlgorithmEvents}">
+										<GridViewColumn Header="Действие"
+														Width="120"
+														DisplayMemberBinding="{Binding Action}" />
 
-						<ListView.View>
+									</GridView>
 
-							<GridView>
+								</ListView.View>
 
-								<GridViewColumn Header="Время"
-												Width="170"
-												DisplayMemberBinding="{Binding CreatedAtUtc,
-                                    Converter={StaticResource LocalDateTimeConverter}}" />
+							</ListView>
 
-								<GridViewColumn Header="Событие"
-												Width="240"
-												DisplayMemberBinding="{Binding Title}" />
+						</StackPanel>
 
-								<GridViewColumn Header="Подробности"
-												Width="420"
-												DisplayMemberBinding="{Binding Details}" />
-
-								<GridViewColumn Header="Действие"
-												Width="120"
-												DisplayMemberBinding="{Binding Action}" />
-
-							</GridView>
-
-						</ListView.View>
-
-					</ListView>
+					</ScrollViewer>
 
 				</Grid>
 
@@ -410,126 +397,132 @@
                     Converter={StaticResource IndexToVisibilityConverter},
                     ConverterParameter=2}">
 
-                    <Grid>
+					<ScrollViewer VerticalScrollBarVisibility="Auto"
+								  HorizontalScrollBarVisibility="Disabled">
 
-						<Grid.RowDefinitions>
-							<RowDefinition Height="Auto" />
-							<RowDefinition Height="Auto" />
-							<RowDefinition Height="Auto" />
-							<RowDefinition Height="*" />
-						</Grid.RowDefinitions>
+						<StackPanel>
 
-                        <StackPanel Grid.Row="0">
+							<TextBlock Text="Передача файлов"
+									   FontSize="28"
+									   FontWeight="SemiBold" />
 
-                            <TextBlock Text="Передача файлов"
-                                       FontSize="28"
-                                       FontWeight="SemiBold" />
+							<TextBlock Text="TransferGuard контролирует исходящие сетевые соединения и попытки передачи данных."
+									   TextWrapping="Wrap"
+									   Margin="0,6,0,4" />
 
-                            <TextBlock Text="TransferGuard контролирует исходящие сетевые соединения и попытки передачи данных."
-                                       TextWrapping="Wrap"
-                                       Margin="0,6,0,4" />
+							<TextBlock Text="Для каждого события отображаются процесс, удалённая точка, протокол и принятое действие."
+									   TextWrapping="Wrap"
+									   Margin="0,2,0,14" />
 
-                            <TextBlock Text="Для каждого события отображаются процесс, удалённая точка, протокол и принятое действие."
-                                       TextWrapping="Wrap"
-                                       Margin="0,2,0,14" />
+							<WrapPanel Margin="0,0,0,12">
 
-                        </StackPanel>
+								<Border Style="{StaticResource Card}"
+										Width="220">
 
-                        <StackPanel Grid.Row="1"
-                                    Orientation="Horizontal"
-                                    Margin="0,0,0,12">
+									<StackPanel>
 
-                            <Border Style="{StaticResource Card}"
-                                    Width="220">
+										<TextBlock Text="TransferGuard"
+												   FontWeight="SemiBold" />
 
-                                <StackPanel>
+										<TextBlock Text="{Binding TransferGuardMode}"
+												   FontSize="20"
+												   FontWeight="Bold"
+												   Margin="0,6,0,0" />
 
-                                    <TextBlock Text="TransferGuard"
-                                               FontWeight="SemiBold" />
+									</StackPanel>
 
-                                    <TextBlock Text="{Binding TransferGuardMode}"
-                                               FontSize="20"
-                                               FontWeight="Bold"
-                                               Margin="0,6,0,0" />
+								</Border>
 
-                                </StackPanel>
+								<Border Style="{StaticResource Card}"
+										Width="220">
 
-                            </Border>
+									<StackPanel>
 
-                            <Border Style="{StaticResource Card}"
-                                    Width="220">
+										<TextBlock Text="Состояние"
+												   FontWeight="SemiBold" />
 
-                                <StackPanel>
+										<TextBlock Text="{Binding TransferGuardEnabled}"
+												   FontSize="20"
+												   FontWeight="Bold"
+												   Margin="0,6,0,0" />
 
-                                    <TextBlock Text="Состояние"
-                                               FontWeight="SemiBold" />
+									</StackPanel>
 
-                                    <TextBlock Text="{Binding TransferGuardEnabled}"
-                                               FontSize="20"
-                                               FontWeight="Bold"
-                                               Margin="0,6,0,0" />
+								</Border>
 
-                                </StackPanel>
+								<Border Style="{StaticResource Card}"
+										Width="220">
 
-                            </Border>
+									<StackPanel>
 
-                            <Border Style="{StaticResource Card}"
-                                    Width="220">
+										<TextBlock Text="Событий"
+												   FontWeight="SemiBold" />
 
-                                <StackPanel>
+										<TextBlock Text="{Binding TransferEvents.Count}"
+												   FontSize="20"
+												   FontWeight="Bold"
+												   Margin="0,6,0,0" />
 
-                                    <TextBlock Text="Событий"
-                                               FontWeight="SemiBold" />
+									</StackPanel>
 
-                                    <TextBlock Text="{Binding TransferEvents.Count}"
-                                               FontSize="20"
-                                               FontWeight="Bold"
-                                               Margin="0,6,0,0" />
+								</Border>
 
-                                </StackPanel>
+							</WrapPanel>
 
-                            </Border>
+							<TextBlock Text="Ожидают решения"
+									   FontSize="18"
+									   FontWeight="SemiBold"
+									   Margin="0,0,0,4" />
 
-                        </StackPanel>
+							<ItemsControl ItemsSource="{Binding TransferPendingRequests}"
+										  ItemTemplate="{StaticResource DecisionRequestCardTemplate}"
+										  Margin="0,0,0,16" />
 
-                        <ListView Grid.Row="3"
-                                  ItemsSource="{Binding TransferEvents}">
+							<TextBlock Text="Журнал событий"
+									   FontSize="18"
+									   FontWeight="SemiBold"
+									   Margin="0,4,0,4" />
 
-                            <ListView.View>
+							<ListView ItemsSource="{Binding TransferEvents}"
+									  Margin="0,0,0,12">
 
-                                <GridView>
+								<ListView.View>
 
-                                    <GridViewColumn Header="Время"
-                                                    Width="165"
-                                                    DisplayMemberBinding="{Binding CreatedAtUtc,
-                                                            Converter={StaticResource LocalDateTimeConverter}}" />
+									<GridView>
 
-                                    <GridViewColumn Header="Тип"
-                                                    Width="150"
-                                                    DisplayMemberBinding="{Binding Type}" />
+										<GridViewColumn Header="Время"
+														Width="165"
+														DisplayMemberBinding="{Binding CreatedAtUtc,
+                                            Converter={StaticResource LocalDateTimeConverter}}" />
 
-                                    <GridViewColumn Header="Событие"
-                                                    Width="220"
-                                                    DisplayMemberBinding="{Binding Title}" />
+										<GridViewColumn Header="Тип"
+														Width="150"
+														DisplayMemberBinding="{Binding Type}" />
 
-                                    <GridViewColumn Header="Подробности"
-                                                    Width="420"
-                                                    DisplayMemberBinding="{Binding Details}" />
+										<GridViewColumn Header="Событие"
+														Width="220"
+														DisplayMemberBinding="{Binding Title}" />
 
-                                    <GridViewColumn Header="Действие"
-                                                    Width="120"
-                                                    DisplayMemberBinding="{Binding Action}" />
+										<GridViewColumn Header="Подробности"
+														Width="420"
+														DisplayMemberBinding="{Binding Details}" />
 
-                                </GridView>
+										<GridViewColumn Header="Действие"
+														Width="120"
+														DisplayMemberBinding="{Binding Action}" />
 
-                            </ListView.View>
+									</GridView>
 
-                        </ListView>
+								</ListView.View>
 
-                    </Grid>
+							</ListView>
 
-                </Grid>
+						</StackPanel>
 
+					</ScrollViewer>
+
+				</Grid>
+				
                 <Grid Visibility="{Binding SelectedPageIndex,
                     Converter={StaticResource IndexToVisibilityConverter},
                     ConverterParameter=3}">

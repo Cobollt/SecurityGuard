@@ -26,6 +26,18 @@ public sealed class MainViewModel
     private readonly HashSet<Guid> _notifiedDecisionRequestIds =
         [];
 
+    private bool _algorithmGuardSettingsDirty;
+
+    private bool _applyingAlgorithmGuardSettings;
+
+    private bool _transferGuardSettingsDirty;
+
+    private bool _applyingTransferGuardSettings;
+
+    private bool _archiveGuardSettingsDirty;
+
+    private bool _applyingArchiveGuardSettings;
+
     private int _selectedPageIndex;
     private bool _isBusy;
     private bool _isConnected;
@@ -318,10 +330,17 @@ public sealed class MainViewModel
         get =>
             _algorithmGuardEnabled;
 
-        set =>
-            SetProperty(
-                ref _algorithmGuardEnabled,
-                value);
+        set
+        {
+            if (SetProperty(
+                    ref _algorithmGuardEnabled,
+                    value) &&
+                !_applyingAlgorithmGuardSettings)
+            {
+                _algorithmGuardSettingsDirty =
+                    true;
+            }
+        }
     }
 
     public AlgorithmGuardMode AlgorithmGuardMode
@@ -329,10 +348,17 @@ public sealed class MainViewModel
         get =>
             _algorithmGuardMode;
 
-        set =>
-            SetProperty(
-                ref _algorithmGuardMode,
-                value);
+        set
+        {
+            if (SetProperty(
+                    ref _algorithmGuardMode,
+                    value) &&
+                !_applyingAlgorithmGuardSettings)
+            {
+                _algorithmGuardSettingsDirty =
+                    true;
+            }
+        }
     }
 
     public EnforcementFailurePolicy AlgorithmGuardFailurePolicy
@@ -340,10 +366,17 @@ public sealed class MainViewModel
         get =>
             _algorithmGuardFailurePolicy;
 
-        set =>
-            SetProperty(
-                ref _algorithmGuardFailurePolicy,
-                value);
+        set
+        {
+            if (SetProperty(
+                    ref _algorithmGuardFailurePolicy,
+                    value) &&
+                !_applyingAlgorithmGuardSettings)
+            {
+                _algorithmGuardSettingsDirty =
+                    true;
+            }
+        }
     }
 
     public bool TransferGuardEnabled
@@ -351,10 +384,17 @@ public sealed class MainViewModel
         get =>
             _transferGuardEnabled;
 
-        set =>
-            SetProperty(
-                ref _transferGuardEnabled,
-                value);
+        set
+        {
+            if (SetProperty(
+                    ref _transferGuardEnabled,
+                    value) &&
+                !_applyingTransferGuardSettings)
+            {
+                _transferGuardSettingsDirty =
+                    true;
+            }
+        }
     }
 
     public TransferGuardMode TransferGuardMode
@@ -362,10 +402,17 @@ public sealed class MainViewModel
         get =>
             _transferGuardMode;
 
-        set =>
-            SetProperty(
-                ref _transferGuardMode,
-                value);
+        set
+        {
+            if (SetProperty(
+                    ref _transferGuardMode,
+                    value) &&
+                !_applyingTransferGuardSettings)
+            {
+                _transferGuardSettingsDirty =
+                    true;
+            }
+        }
     }
 
     public TransferEnforcementFailurePolicy TransferGuardFailurePolicy
@@ -373,10 +420,17 @@ public sealed class MainViewModel
         get =>
             _transferGuardFailurePolicy;
 
-        set =>
-            SetProperty(
-                ref _transferGuardFailurePolicy,
-                value);
+        set
+        {
+            if (SetProperty(
+                    ref _transferGuardFailurePolicy,
+                    value) &&
+                !_applyingTransferGuardSettings)
+            {
+                _transferGuardSettingsDirty =
+                    true;
+            }
+        }
     }
 
     public string? LastSecurityListExportSha256
@@ -875,14 +929,30 @@ public sealed class MainViewModel
     private void ApplyAlgorithmGuardSettings(
         AlgorithmGuardSettings settings)
     {
-        AlgorithmGuardEnabled =
-            settings.Enabled;
+        if (_algorithmGuardSettingsDirty)
+        {
+            return;
+        }
 
-        AlgorithmGuardMode =
-            settings.Mode;
+        _applyingAlgorithmGuardSettings =
+            true;
 
-        AlgorithmGuardFailurePolicy =
-            settings.FailurePolicy;
+        try
+        {
+            AlgorithmGuardEnabled =
+                settings.Enabled;
+
+            AlgorithmGuardMode =
+                settings.Mode;
+
+            AlgorithmGuardFailurePolicy =
+                settings.FailurePolicy;
+        }
+        finally
+        {
+            _applyingAlgorithmGuardSettings =
+                false;
+        }
     }
 
     private async Task SaveAlgorithmGuardSettingsAsync()
@@ -897,6 +967,9 @@ public sealed class MainViewModel
 
             await _client.UpdateAlgorithmGuardSettingsAsync(
                 settings);
+
+            _algorithmGuardSettingsDirty =
+                false;
 
             LastError =
                 null;
@@ -913,14 +986,30 @@ public sealed class MainViewModel
     private void ApplyTransferGuardSettings(
         TransferGuardSettings settings)
     {
-        TransferGuardEnabled =
-            settings.Enabled;
+        if (_transferGuardSettingsDirty)
+        {
+            return;
+        }
 
-        TransferGuardMode =
-            settings.Mode;
+        _applyingTransferGuardSettings =
+            true;
 
-        TransferGuardFailurePolicy =
-            settings.FailurePolicy;
+        try
+        {
+            TransferGuardEnabled =
+                settings.Enabled;
+
+            TransferGuardMode =
+                settings.Mode;
+
+            TransferGuardFailurePolicy =
+                settings.FailurePolicy;
+        }
+        finally
+        {
+            _applyingTransferGuardSettings =
+                false;
+        }
     }
 
     private async Task SaveTransferGuardSettingsAsync()
@@ -933,8 +1022,11 @@ public sealed class MainViewModel
                     TransferGuardMode,
                     TransferGuardFailurePolicy);
 
-            await _client.UpdateTransferGuardSettingsAsync(
+               await _client.UpdateTransferGuardSettingsAsync(
                 settings);
+
+            _transferGuardSettingsDirty =
+                false;
 
             LastError =
                 null;
@@ -1347,21 +1439,36 @@ public sealed class MainViewModel
     private void ApplyArchiveGuardSettings(
         ArchiveGuardAutoScanSettingsIpcDto settings)
     {
-        ArchiveGuardAutoScanEnabled =
-            settings.Enabled;
+        if (_archiveGuardSettingsDirty)
+        {
+            return;
+        }
 
-        ArchiveGuardScanUserDownloads =
-            settings.ScanUserDownloads;
+        _applyingArchiveGuardSettings =
+            true;
 
-        Replace(
-            ArchiveGuardAdditionalDirectories,
-            settings.AdditionalDirectories);
+        try
+        {
+            ArchiveGuardAutoScanEnabled =
+                settings.Enabled;
 
-        Replace(
-            ArchiveGuardWatchedDirectories,
-            settings.WatchedDirectories);
+            ArchiveGuardScanUserDownloads =
+                settings.ScanUserDownloads;
+
+            Replace(
+                ArchiveGuardAdditionalDirectories,
+                settings.AdditionalDirectories);
+
+            Replace(
+                ArchiveGuardWatchedDirectories,
+                settings.WatchedDirectories);
+        }
+        finally
+        {
+            _applyingArchiveGuardSettings =
+                false;
+        }
     }
-
     private async Task SaveArchiveGuardSettingsAsync()
     {
         try
@@ -1375,6 +1482,9 @@ public sealed class MainViewModel
             var result =
                 await _client.UpdateArchiveGuardAutoScanSettingsAsync(
                     request);
+
+            _archiveGuardSettingsDirty =
+                false;
 
             ApplyArchiveGuardSettings(
                 result);
@@ -1426,6 +1536,9 @@ public sealed class MainViewModel
 
         ArchiveGuardAdditionalDirectories.Add(
             directory);
+
+        _archiveGuardSettingsDirty =
+            true;
     }
 
     private void RemoveArchiveGuardDirectory()
@@ -1438,6 +1551,9 @@ public sealed class MainViewModel
 
         ArchiveGuardAdditionalDirectories.Remove(
             SelectedArchiveGuardAdditionalDirectory);
+
+        _archiveGuardSettingsDirty =
+            true;
 
         SelectedArchiveGuardAdditionalDirectory =
             null;
@@ -1528,16 +1644,23 @@ public sealed class MainViewModel
     public bool ArchiveHasPendingDecision =>
         ArchiveScanResult?.DecisionRequestId is not null &&
         !_archiveDecisionResolved;
-    
+
     public bool ArchiveGuardAutoScanEnabled
     {
         get =>
             _archiveGuardAutoScanEnabled;
 
-        set =>
-            SetProperty(
-                ref _archiveGuardAutoScanEnabled,
-                value);
+        set
+        {
+            if (SetProperty(
+                    ref _archiveGuardAutoScanEnabled,
+                    value) &&
+                !_applyingArchiveGuardSettings)
+            {
+                _archiveGuardSettingsDirty =
+                    true;
+            }
+        }
     }
 
     public bool ArchiveGuardScanUserDownloads
@@ -1545,10 +1668,17 @@ public sealed class MainViewModel
         get =>
             _archiveGuardScanUserDownloads;
 
-        set =>
-            SetProperty(
-                ref _archiveGuardScanUserDownloads,
-                value);
+        set
+        {
+            if (SetProperty(
+                    ref _archiveGuardScanUserDownloads,
+                    value) &&
+                !_applyingArchiveGuardSettings)
+            {
+                _archiveGuardSettingsDirty =
+                    true;
+            }
+        }
     }
 
     public string? SelectedArchiveGuardAdditionalDirectory

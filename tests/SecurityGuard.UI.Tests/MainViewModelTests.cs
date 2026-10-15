@@ -625,4 +625,123 @@ public sealed class MainViewModelTests
         Assert.Single(
             viewModel.ArchiveGuardWatchedDirectories);
     }
+
+    [Fact]
+    public async Task Refresh_does_not_overwrite_unsaved_algorithm_guard_settings()
+    {
+        var client =
+            new FakeSecurityGuardClient
+            {
+                AlgorithmGuardSettings =
+                    new SecurityGuard.AlgorithmGuard.Models.AlgorithmGuardSettings(
+                        true,
+                        SecurityGuard.AlgorithmGuard.Enums.AlgorithmGuardMode.Enforce,
+                        SecurityGuard.AlgorithmGuard.Enums.EnforcementFailurePolicy.FailClosed)
+            };
+
+        var viewModel =
+            new MainViewModel(
+                client);
+
+        await viewModel.RefreshAsync();
+
+        viewModel.AlgorithmGuardEnabled =
+            false;
+
+        viewModel.AlgorithmGuardMode =
+            SecurityGuard.AlgorithmGuard.Enums.AlgorithmGuardMode.Monitor;
+
+        viewModel.AlgorithmGuardFailurePolicy =
+            SecurityGuard.AlgorithmGuard.Enums.EnforcementFailurePolicy.FailOpen;
+
+        await viewModel.RefreshAsync();
+
+        Assert.False(
+            viewModel.AlgorithmGuardEnabled);
+
+        Assert.Equal(
+            SecurityGuard.AlgorithmGuard.Enums.AlgorithmGuardMode.Monitor,
+            viewModel.AlgorithmGuardMode);
+
+        Assert.Equal(
+            SecurityGuard.AlgorithmGuard.Enums.EnforcementFailurePolicy.FailOpen,
+            viewModel.AlgorithmGuardFailurePolicy);
+    }
+
+    [Fact]
+    public async Task Refresh_does_not_overwrite_unsaved_transfer_guard_settings()
+    {
+        var client =
+            new FakeSecurityGuardClient
+            {
+                TransferGuardSettings =
+                    new TransferGuardSettings(
+                        true,
+                        TransferGuardMode.Enforce,
+                        TransferEnforcementFailurePolicy.FailClosed)
+            };
+
+        var viewModel =
+            new MainViewModel(
+                client);
+
+        await viewModel.RefreshAsync();
+
+        viewModel.TransferGuardEnabled =
+            false;
+
+        viewModel.TransferGuardMode =
+            TransferGuardMode.Monitor;
+
+        viewModel.TransferGuardFailurePolicy =
+            TransferEnforcementFailurePolicy.FailOpen;
+
+        await viewModel.RefreshAsync();
+
+        Assert.False(
+            viewModel.TransferGuardEnabled);
+
+        Assert.Equal(
+            TransferGuardMode.Monitor,
+            viewModel.TransferGuardMode);
+
+        Assert.Equal(
+            TransferEnforcementFailurePolicy.FailOpen,
+            viewModel.TransferGuardFailurePolicy);
+    }
+
+    [Fact]
+    public async Task Refresh_does_not_overwrite_unsaved_archive_guard_settings()
+    {
+        var client =
+            new FakeSecurityGuardClient
+            {
+                ArchiveGuardSettings =
+                    new ArchiveGuardAutoScanSettingsIpcDto(
+                        true,
+                        true,
+                        [],
+                        [])
+            };
+
+        var viewModel =
+            new MainViewModel(
+                client);
+
+        await viewModel.RefreshAsync();
+
+        viewModel.ArchiveGuardAutoScanEnabled =
+            false;
+
+        viewModel.ArchiveGuardScanUserDownloads =
+            false;
+
+        await viewModel.RefreshAsync();
+
+        Assert.False(
+            viewModel.ArchiveGuardAutoScanEnabled);
+
+        Assert.False(
+            viewModel.ArchiveGuardScanUserDownloads);
+    }
 }
