@@ -81,8 +81,39 @@
 					<TextBlock Text="{Binding ProcessName}"
 							   Margin="0,4,0,0" />
 
+					<TextBlock Text="{Binding ProcessPathText}"
+							   TextWrapping="Wrap"
+							   Margin="0,8,0,0"
+							   Visibility="{Binding HasProcessPath,
+                           Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+					<TextBlock Text="{Binding InitiatorText}"
+							   TextWrapping="Wrap"
+							   FontWeight="SemiBold"
+							   Margin="0,6,0,0"
+							   Visibility="{Binding HasInitiator,
+                           Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+					<TextBlock Text="{Binding InitiatorPathText}"
+							   TextWrapping="Wrap"
+							   Margin="0,4,0,0"
+							   Visibility="{Binding HasInitiatorPath,
+                           Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+					<TextBlock Text="{Binding ExecutionChainText}"
+							   TextWrapping="Wrap"
+							   Margin="0,8,0,0"
+							   Visibility="{Binding HasExecutionChain,
+                           Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+					<TextBlock Text="{Binding CommandLineText}"
+							   TextWrapping="Wrap"
+							   Margin="0,8,0,0"
+							   Visibility="{Binding HasCommandLine,
+                           Converter={StaticResource BooleanToVisibilityConverter}}" />
+
 					<ItemsControl ItemsSource="{Binding Actions}"
-								  Margin="0,8,0,0">
+								  Margin="0,10,0,0">
 
 						<ItemsControl.ItemsPanel>
 
@@ -1096,6 +1127,17 @@
                                       FontSize="15"
                                       Margin="0,4,0,12" />
 
+							<CheckBox Content="Доверять системным процессам Windows"
+                                      IsChecked="{Binding AlgorithmGuardTrustWindowsSystemProcesses}"
+                                      FontSize="15"
+                                      Margin="0,4,0,6" />
+
+							<TextBlock Text="Подписанные системные процессы Microsoft не будут создавать уведомления. cmd, PowerShell, wscript, mshta и другие чувствительные инструменты автоматически не разрешаются."
+									   TextWrapping="Wrap"
+									   MaxWidth="700"
+									   HorizontalAlignment="Left"
+									   Margin="24,0,0,12" />
+
                             <TextBlock Text="Режим"
                                        FontWeight="SemiBold"
                                        Margin="0,8,0,4" />
@@ -1149,6 +1191,17 @@
                                       IsChecked="{Binding TransferGuardEnabled}"
                                       FontSize="15"
                                       Margin="0,4,0,12" />
+
+							<CheckBox Content="Доверять системным процессам Windows"
+                                      IsChecked="{Binding TransferGuardTrustWindowsSystemProcesses}"
+                                      FontSize="15"
+                                      Margin="0,4,0,6" />
+
+							<TextBlock Text="Подписанные системные процессы Microsoft не будут запрашивать решение для обычных исходящих соединений. Явные правила SecurityGuard сохраняют приоритет."
+									   TextWrapping="Wrap"
+									   MaxWidth="700"
+									   HorizontalAlignment="Left"
+									   Margin="24,0,0,12" />
 
                             <TextBlock Text="Режим"
                                        FontWeight="SemiBold"

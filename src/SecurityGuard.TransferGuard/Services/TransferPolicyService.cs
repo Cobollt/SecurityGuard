@@ -3,6 +3,7 @@ using SecurityGuard.Core.Enums;
 using SecurityGuard.Core.Models;
 using SecurityGuard.TransferGuard.Configuration;
 using SecurityGuard.TransferGuard.Models;
+using SecurityGuard.TransferGuard.Contracts;
 
 namespace SecurityGuard.TransferGuard.Services;
 
@@ -13,13 +14,17 @@ public sealed class TransferPolicyService
     private readonly IDecisionRequestRepository _decisionRepository;
     private readonly IAuditService _auditService;
     private readonly TransferGuardOptions _options;
+    private readonly IWindowsSystemProcessTrustService _systemProcessTrustService;
+    private readonly ITransferGuardRuntimeState _runtimeState;
 
     public TransferPolicyService(
         TransferRuleContextFactory contextFactory,
         IRuleEngine ruleEngine,
         IDecisionRequestRepository decisionRepository,
         IAuditService auditService,
-        TransferGuardOptions options)
+        TransferGuardOptions options,
+        IWindowsSystemProcessTrustService systemProcessTrustService,
+        ITransferGuardRuntimeState runtimeState)
     {
         _contextFactory =
             contextFactory;
@@ -35,6 +40,12 @@ public sealed class TransferPolicyService
 
         _options =
             options;
+
+        _systemProcessTrustService =
+            systemProcessTrustService;
+
+        _runtimeState =
+            runtimeState;
     }
 
     public async Task HandleAsync(
@@ -58,6 +69,16 @@ public sealed class TransferPolicyService
                 result,
                 cancellationToken);
 
+            return;
+        }
+
+        if (_runtimeState
+                .CurrentSettings
+                .TrustWindowsSystemProcesses &&
+            await TryHandleTrustedWindowsProcessAsync(
+                observation,
+                cancellationToken))
+        {
             return;
         }
 
@@ -92,6 +113,53 @@ public sealed class TransferPolicyService
                 : SecurityAction.Allow,
             cancellationToken:
                 cancellationToken);
+    }
+
+    private async Task<bool> TryHandleTrustedWindowsProcessAsync(
+        NetworkConnectionObservation observation,
+        CancellationToken cancellationToken)
+    {
+        var process =
+            observation.Process;
+
+        if (process is null)
+        {
+            return false;
+        }
+
+        var executablePath =
+            !string.IsNullOrWhiteSpace(
+                process.ExecutablePath)
+                ? process.ExecutablePath
+                : observation.ApplicationPath;
+
+        var trustResult =
+            await _systemProcessTrustService.EvaluateAsync(
+                new WindowsSystemProcessTrustRequest(
+                    process.ProcessId,
+                    process.ProcessName,
+                    executablePath,
+                    process.Publisher),
+                cancellationToken);
+
+        if (!trustResult.IsTrusted)
+        {
+            return false;
+        }
+
+        await _auditService.WriteAsync(
+            SecurityModuleKind.TransferGuard,
+            SecurityEventType.NetworkConnection,
+            SecuritySeverity.Info,
+            "Trusted Windows process outbound connection",
+            BuildTrustedProcessDetails(
+                observation,
+                trustResult),
+            SecurityAction.Allow,
+            cancellationToken:
+                cancellationToken);
+
+        return true;
     }
 
     private async Task CreateDecisionRequestAsync(
@@ -162,6 +230,17 @@ public sealed class TransferPolicyService
             $"({observation.Protocol})";
     }
 
+    private static string BuildTrustedProcessDetails(
+        NetworkConnectionObservation observation,
+        WindowsSystemProcessTrustResult trustResult)
+    {
+        return string.Join(
+            Environment.NewLine,
+            BuildDetails(
+                observation),
+            $"Trust: {trustResult.Reason}");
+    }
+
     private static string BuildDetails(
         NetworkConnectionObservation observation)
     {
@@ -173,6 +252,7 @@ public sealed class TransferPolicyService
                 $"PID: {observation.Process?.ProcessId.ToString() ?? "Unknown"}",
                 $"Process: {observation.Process?.ProcessName ?? "Unknown"}",
                 $"Executable: {observation.Process?.ExecutablePath ?? "Unknown"}",
+                $"Publisher: {observation.Process?.Publisher ?? "Unknown"}",
                 $"WFP application: {observation.ApplicationPath ?? "Unknown"}",
                 $"Local: {observation.LocalAddress}:{observation.LocalPort}",
                 $"Remote: {observation.RemoteAddress}:{observation.RemotePort}"

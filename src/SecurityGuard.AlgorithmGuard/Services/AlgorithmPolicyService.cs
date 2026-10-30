@@ -1,10 +1,10 @@
+using SecurityGuard.AlgorithmGuard.Configuration;
 using SecurityGuard.AlgorithmGuard.Contracts;
 using SecurityGuard.AlgorithmGuard.Enums;
 using SecurityGuard.AlgorithmGuard.Models;
 using SecurityGuard.Core.Contracts;
 using SecurityGuard.Core.Enums;
 using SecurityGuard.Core.Models;
-using SecurityGuard.AlgorithmGuard.Configuration;
 
 namespace SecurityGuard.AlgorithmGuard.Services;
 
@@ -20,6 +20,7 @@ public sealed class AlgorithmPolicyService
     private readonly IDecisionRequestRepository _decisionRepository;
     private readonly IAuditService _auditService;
     private readonly AlgorithmGuardOptions _options;
+    private readonly IWindowsSystemProcessTrustService _systemProcessTrustService;
 
     public AlgorithmPolicyService(
         AlgorithmObservationService observationService,
@@ -31,7 +32,8 @@ public sealed class AlgorithmPolicyService
         IModuleRegistry moduleRegistry,
         IDecisionRequestRepository decisionRepository,
         IAuditService auditService,
-        AlgorithmGuardOptions options)
+        AlgorithmGuardOptions options,
+        IWindowsSystemProcessTrustService systemProcessTrustService)
     {
         _observationService =
             observationService;
@@ -62,6 +64,9 @@ public sealed class AlgorithmPolicyService
 
         _options =
             options;
+
+        _systemProcessTrustService =
+            systemProcessTrustService;
     }
 
     public async Task HandleAsync(
@@ -115,11 +120,59 @@ public sealed class AlgorithmPolicyService
             return;
         }
 
-        await CreateDecisionRequestAsync(
-                enriched,
-                context,
-                identity,
+        var settings =
+            await _settingsService.GetAsync(
                 cancellationToken);
+
+        if (settings.TrustWindowsSystemProcesses &&
+            await TryHandleTrustedWindowsProcessAsync(
+                enriched,
+                cancellationToken))
+        {
+            return;
+        }
+
+        await CreateDecisionRequestAsync(
+            enriched,
+            context,
+            identity,
+            cancellationToken);
+    }
+
+    private async Task<bool> TryHandleTrustedWindowsProcessAsync(
+        AlgorithmExecutionAttempt attempt,
+        CancellationToken cancellationToken)
+    {
+        var trustResult =
+            await _systemProcessTrustService.EvaluateAsync(
+                new WindowsSystemProcessTrustRequest(
+                    attempt.ProcessId,
+                    attempt.ProcessName,
+                    attempt.ExecutablePath,
+                    attempt.ProcessPublisher,
+                    attempt.ProcessSignatureStatus),
+                cancellationToken);
+
+        if (!trustResult.IsTrusted)
+        {
+            return false;
+        }
+
+        await _auditService.WriteAsync(
+            SecurityModuleKind.AlgorithmGuard,
+            SecurityEventType.AlgorithmExecution,
+            SecuritySeverity.Info,
+            "Trusted Windows process algorithm execution",
+            BuildTrustedProcessDetails(
+                attempt,
+                trustResult),
+            SecurityAction.Allow,
+            correlationId:
+                attempt.CorrelationId,
+            cancellationToken:
+                cancellationToken);
+
+        return true;
     }
 
     private async Task ApplyRuntimeEnforcementAsync(
@@ -153,8 +206,10 @@ public sealed class AlgorithmPolicyService
                 $"SHA256: {attempt.ScriptSha256 ?? "Unknown"}",
                 $"Result: {result.Message}"),
             SecurityAction.Block,
-            correlationId: attempt.CorrelationId,
-            cancellationToken: cancellationToken);
+            correlationId:
+                attempt.CorrelationId,
+            cancellationToken:
+                cancellationToken);
 
         if (result.Terminated)
         {
@@ -189,10 +244,14 @@ public sealed class AlgorithmPolicyService
             SecurityEventType.AlgorithmExecution,
             SecuritySeverity.Info,
             "Algorithm allowed once",
-            BuildDetails(attempt),
-            action: SecurityAction.AllowOnce,
-            correlationId: attempt.CorrelationId,
-            cancellationToken: cancellationToken);
+            BuildDetails(
+                attempt),
+            action:
+                SecurityAction.AllowOnce,
+            correlationId:
+                attempt.CorrelationId,
+            cancellationToken:
+                cancellationToken);
     }
 
     private Task HandleRuleMatchAsync(
@@ -230,10 +289,13 @@ public sealed class AlgorithmPolicyService
             SecurityEventType.AlgorithmExecution,
             severity,
             title,
-            BuildDetails(attempt),
+            BuildDetails(
+                attempt),
             action,
-            correlationId: attempt.CorrelationId,
-            cancellationToken: cancellationToken);
+            correlationId:
+                attempt.CorrelationId,
+            cancellationToken:
+                cancellationToken);
     }
 
     private async Task CreateDecisionRequestAsync(
@@ -246,7 +308,8 @@ public sealed class AlgorithmPolicyService
             DateTimeOffset.UtcNow;
 
         await _decisionRepository.RemoveOlderThanAsync(
-            now - _options.PendingDecisionLifetime,
+            now -
+            _options.PendingDecisionLifetime,
             cancellationToken);
 
         var actions =
@@ -283,11 +346,26 @@ public sealed class AlgorithmPolicyService
             SecurityEventType.AlgorithmExecution,
             SecuritySeverity.Medium,
             "Algorithm requires decision",
-            BuildDetails(attempt),
+            BuildDetails(
+                attempt),
             SecurityAction.None,
-            correlationId: attempt.CorrelationId,
-            cancellationToken: cancellationToken);
+            correlationId:
+                attempt.CorrelationId,
+            cancellationToken:
+                cancellationToken);
     }
+
+    private static string BuildTrustedProcessDetails(
+        AlgorithmExecutionAttempt attempt,
+        WindowsSystemProcessTrustResult trustResult)
+    {
+        return string.Join(
+            Environment.NewLine,
+            BuildDetails(
+                attempt),
+            $"Trust: {trustResult.Reason}");
+    }
+
     private static string BuildExecutionChain(
         AlgorithmExecutionAttempt attempt)
     {
@@ -305,6 +383,7 @@ public sealed class AlgorithmPolicyService
                 .Append(
                     attempt.ProcessName));
     }
+
     private static IReadOnlyList<SecurityAction> GetAvailableActions(
         AlgorithmExecutionAttempt attempt)
     {

@@ -16,6 +16,8 @@ public sealed class TransferFilePolicyService
     private readonly IAuditService _auditService;
     private readonly TransferGuardOptions _options;
     private readonly ITransferFileEnforcementCoordinator _enforcementCoordinator;
+    private readonly IWindowsSystemProcessTrustService _systemProcessTrustService;
+    private readonly ITransferGuardRuntimeState _runtimeState;
 
     public async Task HandleAsync(
         FileTransferCandidate candidate,
@@ -47,6 +49,14 @@ public sealed class TransferFilePolicyService
                 result,
                 cancellationToken);
 
+            return;
+        }
+
+        if (_runtimeState.CurrentSettings.TrustWindowsSystemProcesses &&
+            await TryHandleTrustedWindowsProcessAsync(
+                candidate,
+                cancellationToken))
+        {
             return;
         }
 
@@ -102,6 +112,53 @@ public sealed class TransferFilePolicyService
                 : SecurityAction.Allow,
             cancellationToken:
                 cancellationToken);
+    }
+
+    private async Task<bool> TryHandleTrustedWindowsProcessAsync(
+        FileTransferCandidate candidate,
+        CancellationToken cancellationToken)
+    {
+        var process =
+            candidate.Connection.Process;
+
+        if (process is null)
+        {
+            return false;
+        }
+
+        var executablePath =
+            !string.IsNullOrWhiteSpace(
+                process.ExecutablePath)
+                    ? process.ExecutablePath
+                    : candidate.Connection.ApplicationPath;
+
+        var trustResult =
+            await _systemProcessTrustService.EvaluateAsync(
+                new WindowsSystemProcessTrustRequest(
+                    process.ProcessId,
+                    process.ProcessName,
+                    executablePath,
+                    process.Publisher),
+                cancellationToken);
+
+        if (!trustResult.IsTrusted)
+        {
+            return false;
+        }
+
+        await _auditService.WriteAsync(
+            SecurityModuleKind.TransferGuard,
+            SecurityEventType.FileTransfer,
+            SecuritySeverity.Info,
+            "Trusted Windows process file transfer candidate",
+            BuildDetails(
+                candidate,
+                $"Trust: {trustResult.Reason}"),
+            SecurityAction.Allow,
+            cancellationToken:
+                cancellationToken);
+
+        return true;
     }
 
     private async Task CreateDecisionRequestAsync(
@@ -208,6 +265,8 @@ public sealed class TransferFilePolicyService
         IDecisionRequestRepository decisionRepository,
         IAuditService auditService,
         ITransferFileEnforcementCoordinator enforcementCoordinator,
+        IWindowsSystemProcessTrustService systemProcessTrustService,
+        ITransferGuardRuntimeState runtimeState,
         TransferGuardOptions options)
     {
         _contextFactory =
@@ -225,10 +284,15 @@ public sealed class TransferFilePolicyService
         _enforcementCoordinator =
             enforcementCoordinator;
 
+        _systemProcessTrustService =
+            systemProcessTrustService;
+
+        _runtimeState =
+            runtimeState;
+
         _options =
             options;
     }
-
     private static string BuildPolicyResult(
         bool blocked,
         TransferFileEnforcementResult? enforcement)

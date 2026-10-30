@@ -537,7 +537,8 @@ public sealed class MainViewModelTests
                     new SecurityGuard.AlgorithmGuard.Models.AlgorithmGuardSettings(
                         true,
                         SecurityGuard.AlgorithmGuard.Enums.AlgorithmGuardMode.Enforce,
-                        SecurityGuard.AlgorithmGuard.Enums.EnforcementFailurePolicy.FailClosed)
+                        SecurityGuard.AlgorithmGuard.Enums.EnforcementFailurePolicy.FailClosed,
+                        false)
             };
 
         var viewModel =
@@ -556,6 +557,9 @@ public sealed class MainViewModelTests
         Assert.Equal(
             SecurityGuard.AlgorithmGuard.Enums.EnforcementFailurePolicy.FailClosed,
             viewModel.AlgorithmGuardFailurePolicy);
+
+        Assert.False(
+            viewModel.AlgorithmGuardTrustWindowsSystemProcesses);
     }
 
     [Fact]
@@ -568,7 +572,8 @@ public sealed class MainViewModelTests
                     new TransferGuardSettings(
                         true,
                         TransferGuardMode.Enforce,
-                        TransferEnforcementFailurePolicy.FailClosed)
+                        TransferEnforcementFailurePolicy.FailClosed,
+                        false)
             };
 
         var viewModel =
@@ -587,8 +592,10 @@ public sealed class MainViewModelTests
         Assert.Equal(
             TransferEnforcementFailurePolicy.FailClosed,
             viewModel.TransferGuardFailurePolicy);
-    }
 
+        Assert.False(
+            viewModel.TransferGuardTrustWindowsSystemProcesses);
+    }
     [Fact]
     public async Task Refresh_loads_archive_guard_settings()
     {
@@ -654,6 +661,9 @@ public sealed class MainViewModelTests
         viewModel.AlgorithmGuardFailurePolicy =
             SecurityGuard.AlgorithmGuard.Enums.EnforcementFailurePolicy.FailOpen;
 
+        viewModel.AlgorithmGuardTrustWindowsSystemProcesses =
+            false;
+
         await viewModel.RefreshAsync();
 
         Assert.False(
@@ -666,6 +676,9 @@ public sealed class MainViewModelTests
         Assert.Equal(
             SecurityGuard.AlgorithmGuard.Enums.EnforcementFailurePolicy.FailOpen,
             viewModel.AlgorithmGuardFailurePolicy);
+
+        Assert.False(
+            viewModel.AlgorithmGuardTrustWindowsSystemProcesses);
     }
 
     [Fact]
@@ -696,6 +709,9 @@ public sealed class MainViewModelTests
         viewModel.TransferGuardFailurePolicy =
             TransferEnforcementFailurePolicy.FailOpen;
 
+        viewModel.TransferGuardTrustWindowsSystemProcesses =
+            false;
+
         await viewModel.RefreshAsync();
 
         Assert.False(
@@ -708,6 +724,9 @@ public sealed class MainViewModelTests
         Assert.Equal(
             TransferEnforcementFailurePolicy.FailOpen,
             viewModel.TransferGuardFailurePolicy);
+
+        Assert.False(
+            viewModel.TransferGuardTrustWindowsSystemProcesses);
     }
 
     [Fact]
@@ -743,5 +762,89 @@ public sealed class MainViewModelTests
 
         Assert.False(
             viewModel.ArchiveGuardScanUserDownloads);
+    }
+
+    [Fact]
+    public async Task Save_algorithm_guard_settings_preserves_windows_trust_setting()
+    {
+        var client =
+            new FakeSecurityGuardClient();
+
+        var viewModel =
+            new MainViewModel(
+                client);
+
+        await viewModel.RefreshAsync();
+
+        viewModel.AlgorithmGuardEnabled =
+            true;
+
+        viewModel.AlgorithmGuardMode =
+            SecurityGuard.AlgorithmGuard.Enums.AlgorithmGuardMode.Enforce;
+
+        viewModel.AlgorithmGuardFailurePolicy =
+            SecurityGuard.AlgorithmGuard.Enums.EnforcementFailurePolicy.FailClosed;
+
+        viewModel.AlgorithmGuardTrustWindowsSystemProcesses =
+            false;
+
+        viewModel
+            .SaveAlgorithmGuardSettingsCommand
+            .Execute(
+                null);
+
+        await Task.Delay(
+            100);
+
+        Assert.False(
+            client
+                .AlgorithmGuardSettings
+                .TrustWindowsSystemProcesses);
+
+        Assert.Equal(
+            SecurityGuard.AlgorithmGuard.Enums.AlgorithmGuardMode.Enforce,
+            client.AlgorithmGuardSettings.Mode);
+    }
+
+    [Fact]
+    public async Task Save_transfer_guard_settings_preserves_windows_trust_setting()
+    {
+        var client =
+            new FakeSecurityGuardClient();
+
+        var viewModel =
+            new MainViewModel(
+                client);
+
+        await viewModel.RefreshAsync();
+
+        viewModel.TransferGuardEnabled =
+            true;
+
+        viewModel.TransferGuardMode =
+            TransferGuardMode.Enforce;
+
+        viewModel.TransferGuardFailurePolicy =
+            TransferEnforcementFailurePolicy.FailClosed;
+
+        viewModel.TransferGuardTrustWindowsSystemProcesses =
+            false;
+
+        viewModel
+            .SaveTransferGuardSettingsCommand
+            .Execute(
+                null);
+
+        await Task.Delay(
+            100);
+
+        Assert.False(
+            client
+                .TransferGuardSettings
+                .TrustWindowsSystemProcesses);
+
+        Assert.Equal(
+            TransferGuardMode.Enforce,
+            client.TransferGuardSettings.Mode);
     }
 }

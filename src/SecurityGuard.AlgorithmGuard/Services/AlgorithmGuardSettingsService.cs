@@ -17,6 +17,9 @@ public sealed class AlgorithmGuardSettingsService
     private const string FailurePolicyKey =
         "AlgorithmGuard.FailurePolicy";
 
+    private const string TrustWindowsSystemProcessesKey =
+        "AlgorithmGuard.TrustWindowsSystemProcesses";
+
     private readonly ISettingsRepository _settingsRepository;
 
     public AlgorithmGuardSettingsService(
@@ -47,6 +50,11 @@ public sealed class AlgorithmGuardSettingsService
                 FailurePolicyKey,
                 cancellationToken);
 
+        var trustWindowsSystemProcessesValue =
+            await _settingsRepository.GetAsync(
+                TrustWindowsSystemProcessesKey,
+                cancellationToken);
+
         var enabled =
             bool.TryParse(
                 enabledValue,
@@ -70,10 +78,18 @@ public sealed class AlgorithmGuardSettingsService
                 ? parsedFailurePolicy
                 : defaults.FailurePolicy;
 
+        var trustWindowsSystemProcesses =
+            bool.TryParse(
+                trustWindowsSystemProcessesValue,
+                out var parsedTrustWindowsSystemProcesses)
+                ? parsedTrustWindowsSystemProcesses
+                : defaults.TrustWindowsSystemProcesses;
+
         return new AlgorithmGuardSettings(
             enabled,
             mode,
-            failurePolicy);
+            failurePolicy,
+            trustWindowsSystemProcesses);
     }
 
     public async Task SaveAsync(
@@ -96,6 +112,11 @@ public sealed class AlgorithmGuardSettingsService
         await _settingsRepository.SetAsync(
             FailurePolicyKey,
             settings.FailurePolicy.ToString(),
+            cancellationToken);
+
+        await _settingsRepository.SetAsync(
+            TrustWindowsSystemProcessesKey,
+            settings.TrustWindowsSystemProcesses.ToString(),
             cancellationToken);
     }
 }

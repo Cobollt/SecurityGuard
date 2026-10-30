@@ -79,7 +79,10 @@ public sealed class AlgorithmRuleContextFactory
 
             ExecutionChain:
                 BuildExecutionChain(
-                    attempt));
+                    attempt),
+
+            ProcessPath:
+                attempt.ExecutablePath);
     }
 
     private static string BuildExecutionChain(

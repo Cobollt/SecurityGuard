@@ -52,6 +52,9 @@ public sealed class TransferGuardSettingsServiceTests
             Assert.Equal(
                 TransferEnforcementFailurePolicy.FailOpen,
                 settings.FailurePolicy);
+
+            Assert.True(
+                settings.TrustWindowsSystemProcesses);
         }
         finally
         {
@@ -95,13 +98,19 @@ public sealed class TransferGuardSettingsServiceTests
                 new TransferGuardSettings(
                     false,
                     TransferGuardMode.Enforce,
-                    TransferEnforcementFailurePolicy.FailClosed);
+                    TransferEnforcementFailurePolicy.FailClosed,
+                    false);
 
             await service.SaveAsync(
                 expected);
 
+            var restartedService =
+                new TransferGuardSettingsService(
+                    new SqliteSettingsRepository(
+                        factory));
+
             var restored =
-                await service.GetAsync();
+                await restartedService.GetAsync();
 
             Assert.Equal(
                 expected,

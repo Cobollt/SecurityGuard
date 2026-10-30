@@ -5,11 +5,13 @@ namespace SecurityGuard.TransferGuard.Models;
 public sealed record TransferGuardSettings(
     bool Enabled,
     TransferGuardMode Mode,
-    TransferEnforcementFailurePolicy FailurePolicy)
+    TransferEnforcementFailurePolicy FailurePolicy,
+    bool TrustWindowsSystemProcesses = true)
 {
     public static TransferGuardSettings Default =>
         new(
             true,
             TransferGuardMode.Monitor,
-            TransferEnforcementFailurePolicy.FailOpen);
+            TransferEnforcementFailurePolicy.FailOpen,
+            true);
 }

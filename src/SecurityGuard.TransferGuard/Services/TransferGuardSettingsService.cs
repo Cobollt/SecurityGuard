@@ -17,6 +17,9 @@ public sealed class TransferGuardSettingsService
     private const string FailurePolicyKey =
         "TransferGuard.FailurePolicy";
 
+    private const string TrustWindowsSystemProcessesKey =
+        "TransferGuard.TrustWindowsSystemProcesses";
+
     private readonly ISettingsRepository _settingsRepository;
 
     public TransferGuardSettingsService(
@@ -47,6 +50,11 @@ public sealed class TransferGuardSettingsService
                 FailurePolicyKey,
                 cancellationToken);
 
+        var trustWindowsSystemProcessesValue =
+            await _settingsRepository.GetAsync(
+                TrustWindowsSystemProcessesKey,
+                cancellationToken);
+
         var enabled =
             bool.TryParse(
                 enabledValue,
@@ -70,10 +78,18 @@ public sealed class TransferGuardSettingsService
                 ? parsedFailurePolicy
                 : defaults.FailurePolicy;
 
+        var trustWindowsSystemProcesses =
+            bool.TryParse(
+                trustWindowsSystemProcessesValue,
+                out var parsedTrustWindowsSystemProcesses)
+                ? parsedTrustWindowsSystemProcesses
+                : defaults.TrustWindowsSystemProcesses;
+
         return new TransferGuardSettings(
             enabled,
             mode,
-            failurePolicy);
+            failurePolicy,
+            trustWindowsSystemProcesses);
     }
 
     public async Task SaveAsync(
@@ -96,6 +112,11 @@ public sealed class TransferGuardSettingsService
         await _settingsRepository.SetAsync(
             FailurePolicyKey,
             settings.FailurePolicy.ToString(),
+            cancellationToken);
+
+        await _settingsRepository.SetAsync(
+            TrustWindowsSystemProcessesKey,
+            settings.TrustWindowsSystemProcesses.ToString(),
             cancellationToken);
     }
 }

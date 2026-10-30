@@ -49,6 +49,8 @@ public sealed class MainViewModel
     private string _securityListsStatusText = "Пакет списков не выбран.";
     private bool _securityListPackageValid;
     private bool _algorithmGuardEnabled;
+    private bool _algorithmGuardTrustWindowsSystemProcesses =
+    true;
     private string? _lastSecurityListExportSha256;
     private string? _lastSecurityListImportArchivePath;
 
@@ -59,6 +61,9 @@ public sealed class MainViewModel
         EnforcementFailurePolicy.FailOpen;
 
     private bool _transferGuardEnabled;
+
+    private bool _transferGuardTrustWindowsSystemProcesses =
+    true;
 
     private TransferGuardMode _transferGuardMode =
         TransferGuardMode.Monitor;
@@ -343,6 +348,24 @@ public sealed class MainViewModel
         }
     }
 
+    public bool AlgorithmGuardTrustWindowsSystemProcesses
+    {
+        get =>
+            _algorithmGuardTrustWindowsSystemProcesses;
+
+        set
+        {
+            if (SetProperty(
+                    ref _algorithmGuardTrustWindowsSystemProcesses,
+                    value) &&
+                !_applyingAlgorithmGuardSettings)
+            {
+                _algorithmGuardSettingsDirty =
+                    true;
+            }
+        }
+    }
+
     public AlgorithmGuardMode AlgorithmGuardMode
     {
         get =>
@@ -388,6 +411,24 @@ public sealed class MainViewModel
         {
             if (SetProperty(
                     ref _transferGuardEnabled,
+                    value) &&
+                !_applyingTransferGuardSettings)
+            {
+                _transferGuardSettingsDirty =
+                    true;
+            }
+        }
+    }
+
+    public bool TransferGuardTrustWindowsSystemProcesses
+    {
+        get =>
+            _transferGuardTrustWindowsSystemProcesses;
+
+        set
+        {
+            if (SetProperty(
+                    ref _transferGuardTrustWindowsSystemProcesses,
                     value) &&
                 !_applyingTransferGuardSettings)
             {
@@ -942,6 +983,9 @@ public sealed class MainViewModel
             AlgorithmGuardEnabled =
                 settings.Enabled;
 
+            AlgorithmGuardTrustWindowsSystemProcesses =
+                settings.TrustWindowsSystemProcesses;
+
             AlgorithmGuardMode =
                 settings.Mode;
 
@@ -963,7 +1007,8 @@ public sealed class MainViewModel
                 new AlgorithmGuardSettings(
                     AlgorithmGuardEnabled,
                     AlgorithmGuardMode,
-                    AlgorithmGuardFailurePolicy);
+                    AlgorithmGuardFailurePolicy,
+                    AlgorithmGuardTrustWindowsSystemProcesses);
 
             await _client.UpdateAlgorithmGuardSettingsAsync(
                 settings);
@@ -999,6 +1044,9 @@ public sealed class MainViewModel
             TransferGuardEnabled =
                 settings.Enabled;
 
+            TransferGuardTrustWindowsSystemProcesses =
+                settings.TrustWindowsSystemProcesses;
+
             TransferGuardMode =
                 settings.Mode;
 
@@ -1020,9 +1068,10 @@ public sealed class MainViewModel
                 new TransferGuardSettings(
                     TransferGuardEnabled,
                     TransferGuardMode,
-                    TransferGuardFailurePolicy);
+                    TransferGuardFailurePolicy,
+                    TransferGuardTrustWindowsSystemProcesses);
 
-               await _client.UpdateTransferGuardSettingsAsync(
+            await _client.UpdateTransferGuardSettingsAsync(
                 settings);
 
             _transferGuardSettingsDirty =
@@ -1469,6 +1518,7 @@ public sealed class MainViewModel
                 false;
         }
     }
+
     private async Task SaveArchiveGuardSettingsAsync()
     {
         try

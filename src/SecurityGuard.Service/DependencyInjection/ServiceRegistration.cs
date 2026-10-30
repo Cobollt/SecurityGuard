@@ -212,6 +212,14 @@ public static class ServiceRegistration
             PowerShellAuthenticodeSignatureService>();
 
         services.AddSingleton<
+            IWindowsSystemProcessTrustService,
+            WindowsSystemProcessTrustService>();
+
+        services.AddSingleton<
+            IWindowsServiceHostInspector,
+            WindowsServiceHostInspector>();
+
+        services.AddSingleton<
             AppLockerAlgorithmEnforcementService>();
 
         services.AddSingleton<

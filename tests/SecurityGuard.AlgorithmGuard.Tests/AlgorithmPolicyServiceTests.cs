@@ -239,13 +239,325 @@ public sealed class AlgorithmPolicyServiceTests
             decisionRepository.LastRequest.Identity);
     }
 
+    [Fact]
+    public async Task Trusted_windows_process_does_not_create_pending_request()
+    {
+        var moduleRegistry =
+            new FakeModuleRegistry();
+
+        var audit =
+            new FakeAuditService();
+
+        var settings =
+            new FakeSettingsService(
+                AlgorithmGuardSettings.Default);
+
+        var decisions =
+            new FakeDecisionRequestRepository();
+
+        var trust =
+            new FakeWindowsSystemProcessTrustService(
+                request =>
+                    string.Equals(
+                        request.ProcessName,
+                        "WerFault.exe",
+                        StringComparison.OrdinalIgnoreCase));
+
+        var service =
+            CreateService(
+                settings,
+                moduleRegistry,
+                audit,
+                ruleResult:
+                    RuleEvaluationResult.NoMatch(),
+                decisionRepository:
+                    decisions,
+                trustService:
+                    trust);
+
+        await service.HandleAsync(
+            new AlgorithmExecutionAttempt(
+                Guid.NewGuid(),
+                5000,
+                1000,
+                "WerFault.exe",
+                @"C:\Windows\System32\WerFault.exe",
+                null,
+                default,
+                default,
+                null,
+                null,
+                DateTimeOffset.UtcNow));
+
+        Assert.Null(
+            decisions.LastRequest);
+
+        Assert.Equal(
+            1,
+            trust.CallCount);
+
+        Assert.Contains(
+            audit.Entries,
+            entry =>
+                entry.Title ==
+                "Trusted Windows process algorithm execution");
+    }
+
+    [Fact]
+    public async Task Cmd_process_still_creates_pending_request()
+    {
+        var moduleRegistry =
+            new FakeModuleRegistry();
+
+        var audit =
+            new FakeAuditService();
+
+        var settings =
+            new FakeSettingsService(
+                AlgorithmGuardSettings.Default);
+
+        var decisions =
+            new FakeDecisionRequestRepository();
+
+        var trust =
+            new FakeWindowsSystemProcessTrustService(
+                request =>
+                    !string.Equals(
+                        request.ProcessName,
+                        "cmd.exe",
+                        StringComparison.OrdinalIgnoreCase));
+
+        var service =
+            CreateService(
+                settings,
+                moduleRegistry,
+                audit,
+                ruleResult:
+                    RuleEvaluationResult.NoMatch(),
+                decisionRepository:
+                    decisions,
+                trustService:
+                    trust);
+
+        await service.HandleAsync(
+            new AlgorithmExecutionAttempt(
+                Guid.NewGuid(),
+                5001,
+                1000,
+                "cmd.exe",
+                @"C:\Windows\System32\cmd.exe",
+                "cmd.exe /c echo test",
+                InterpreterKind.CommandShell,
+                AlgorithmInvocationType.InlineCommand,
+                null,
+                null,
+                DateTimeOffset.UtcNow));
+
+        Assert.NotNull(
+            decisions.LastRequest);
+
+        Assert.Equal(
+            "cmd.exe",
+            decisions.LastRequest.ProcessName);
+
+        Assert.Equal(
+            1,
+            trust.CallCount);
+    }
+
+    [Fact]
+    public async Task Powershell_process_still_creates_pending_request()
+    {
+        var moduleRegistry =
+            new FakeModuleRegistry();
+
+        var audit =
+            new FakeAuditService();
+
+        var settings =
+            new FakeSettingsService(
+                AlgorithmGuardSettings.Default);
+
+        var decisions =
+            new FakeDecisionRequestRepository();
+
+        var trust =
+            new FakeWindowsSystemProcessTrustService(
+                request =>
+                    !string.Equals(
+                        request.ProcessName,
+                        "powershell.exe",
+                        StringComparison.OrdinalIgnoreCase));
+
+        var service =
+            CreateService(
+                settings,
+                moduleRegistry,
+                audit,
+                ruleResult:
+                    RuleEvaluationResult.NoMatch(),
+                decisionRepository:
+                    decisions,
+                trustService:
+                    trust);
+
+        await service.HandleAsync(
+            new AlgorithmExecutionAttempt(
+                Guid.NewGuid(),
+                5002,
+                1000,
+                "powershell.exe",
+                @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
+                "powershell.exe -Command Get-Process",
+                InterpreterKind.PowerShell,
+                AlgorithmInvocationType.InlineCommand,
+                null,
+                null,
+                DateTimeOffset.UtcNow));
+
+        Assert.NotNull(
+            decisions.LastRequest);
+
+        Assert.Equal(
+            "powershell.exe",
+            decisions.LastRequest.ProcessName);
+
+        Assert.Equal(
+            1,
+            trust.CallCount);
+    }
+
+    [Fact]
+    public async Task Explicit_block_rule_has_priority_over_windows_trust()
+    {
+        var moduleRegistry =
+            new FakeModuleRegistry();
+
+        var audit =
+            new FakeAuditService();
+
+        var settings =
+            new FakeSettingsService(
+                AlgorithmGuardSettings.Default);
+
+        var decisions =
+            new FakeDecisionRequestRepository();
+
+        var trust =
+            new FakeWindowsSystemProcessTrustService(
+                true);
+
+        var service =
+            CreateService(
+                settings,
+                moduleRegistry,
+                audit,
+                new AlgorithmRuntimeEnforcementResult(
+                    false,
+                    false,
+                    "Runtime enforcement not required"),
+                new RuleEvaluationResult(
+                    true,
+                    RuleDecision.Block,
+                    Guid.NewGuid(),
+                    "Explicit block"),
+                decisions,
+                trust);
+
+        await service.HandleAsync(
+            new AlgorithmExecutionAttempt(
+                Guid.NewGuid(),
+                5003,
+                1000,
+                "WerFault.exe",
+                @"C:\Windows\System32\WerFault.exe",
+                null,
+                default,
+                default,
+                null,
+                null,
+                DateTimeOffset.UtcNow));
+
+        Assert.Null(
+            decisions.LastRequest);
+
+        Assert.Equal(
+            0,
+            trust.CallCount);
+
+        Assert.Contains(
+            audit.Entries,
+            entry =>
+                entry.Title ==
+                "Algorithm matched block rule");
+    }
+
+    [Fact]
+    public async Task Disabled_windows_trust_creates_algorithm_pending_request()
+    {
+        var moduleRegistry =
+            new FakeModuleRegistry();
+
+        var audit =
+            new FakeAuditService();
+
+        var settings =
+            new FakeSettingsService(
+                new AlgorithmGuardSettings(
+                    true,
+                    AlgorithmGuardMode.Monitor,
+                    EnforcementFailurePolicy.FailOpen,
+                    false));
+
+        var decisions =
+            new FakeDecisionRequestRepository();
+
+        var trust =
+            new FakeWindowsSystemProcessTrustService(
+                true);
+
+        var service =
+            CreateService(
+                settings,
+                moduleRegistry,
+                audit,
+                ruleResult:
+                    RuleEvaluationResult.NoMatch(),
+                decisionRepository:
+                    decisions,
+                trustService:
+                    trust);
+
+        await service.HandleAsync(
+            new AlgorithmExecutionAttempt(
+                Guid.NewGuid(),
+                5100,
+                1000,
+                "WerFault.exe",
+                @"C:\Windows\System32\WerFault.exe",
+                null,
+                default,
+                default,
+                null,
+                null,
+                DateTimeOffset.UtcNow));
+
+        Assert.NotNull(
+            decisions.LastRequest);
+
+        Assert.Equal(
+            0,
+            trust.CallCount);
+    }
+
     private static AlgorithmPolicyService CreateService(
         IAlgorithmGuardSettingsService settingsService,
         IModuleRegistry moduleRegistry,
         IAuditService auditService,
         AlgorithmRuntimeEnforcementResult? runtimeResult = null,
         RuleEvaluationResult? ruleResult = null,
-        FakeDecisionRequestRepository? decisionRepository = null)
+        FakeDecisionRequestRepository? decisionRepository = null,
+        FakeWindowsSystemProcessTrustService? trustService = null)
     {
         return new AlgorithmPolicyService(
             new AlgorithmObservationService(
@@ -267,7 +579,9 @@ public sealed class AlgorithmPolicyServiceTests
             decisionRepository ??
             new FakeDecisionRequestRepository(),
             auditService,
-            new AlgorithmGuardOptions());
+            new AlgorithmGuardOptions(),
+            trustService ??
+            new FakeWindowsSystemProcessTrustService());
     }
 
     private static AlgorithmExecutionAttempt CreateAttempt()
@@ -561,6 +875,56 @@ public sealed class AlgorithmPolicyServiceTests
                     "Unsigned",
                     null,
                     null));
+        }
+    }
+
+    private sealed class FakeWindowsSystemProcessTrustService
+        : IWindowsSystemProcessTrustService
+    {
+        private readonly Func<
+            WindowsSystemProcessTrustRequest,
+            bool> _resultFactory;
+
+        public int CallCount { get; private set; }
+
+        public FakeWindowsSystemProcessTrustService()
+            : this(
+                false)
+        {
+        }
+
+        public FakeWindowsSystemProcessTrustService(
+            bool trusted)
+            : this(
+                _ => trusted)
+        {
+        }
+
+        public FakeWindowsSystemProcessTrustService(
+            Func<
+                WindowsSystemProcessTrustRequest,
+                bool> resultFactory)
+        {
+            _resultFactory =
+                resultFactory;
+        }
+
+        public Task<WindowsSystemProcessTrustResult> EvaluateAsync(
+            WindowsSystemProcessTrustRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            CallCount++;
+
+            var trusted =
+                _resultFactory(
+                    request);
+
+            return Task.FromResult(
+                new WindowsSystemProcessTrustResult(
+                    trusted,
+                    trusted
+                        ? "Trusted"
+                        : "Not trusted"));
         }
     }
 }
