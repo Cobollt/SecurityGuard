@@ -106,16 +106,16 @@ artifacts\publish\ui\win-x64
 
 ## Сборка установщика
 
-Для сборки MSI версии `0.1.38`:
+Для сборки MSI версии `0.1.42`:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 0.1.38
+.\scripts\build-installer.ps1 -Version 0.1.42
 ```
 
 Готовый установщик:
 
 ```text
-artifacts\installer\0.1.38\SecurityGuard-0.1.38-win-x64.msi
+artifacts\installer\0.1.42\SecurityGuard-0.1.42-win-x64.msi
 ```
 
 Если после изменения версии WiX не создаёт MSI, очистите промежуточные файлы установщика:
@@ -136,7 +136,7 @@ Remove-Item `
 Запустите PowerShell от имени администратора.
 
 ```powershell
-$msi = (Resolve-Path ".\artifacts\installer\0.1.38\SecurityGuard-0.1.38-win-x64.msi").Path
+$msi = (Resolve-Path ".\artifacts\installer\0.1.42\SecurityGuard-0.1.42-win-x64.msi").Path
 
 $p = Start-Process msiexec.exe `
     -Verb RunAs `
@@ -229,7 +229,7 @@ sc.exe qfailure SecurityGuard
 После установки выполните:
 
 ```powershell
-.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.38
+.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.42
 ```
 
 Успешная проверка выглядит примерно так:
@@ -343,15 +343,15 @@ SecurityGuard поддерживает обновление MSI поверх у�
 Например:
 
 ```text
-0.1.37 → 0.1.38
+0.1.41 → 0.1.42
 ```
 
-Для обновления предварительное удаление `0.1.37` не требуется.
+Для обновления предварительное удаление `0.1.41` не требуется.
 
 Запустите новый MSI:
 
 ```powershell
-$msi = (Resolve-Path ".\artifacts\installer\0.1.38\SecurityGuard-0.1.38-win-x64.msi").Path
+$msi = (Resolve-Path ".\artifacts\installer\0.1.42\SecurityGuard-0.1.42-win-x64.msi").Path
 
 $p = Start-Process msiexec.exe `
     -Verb RunAs `
@@ -365,7 +365,7 @@ $p.ExitCode
 После обновления:
 
 ```powershell
-.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.38
+.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.42
 ```
 
 ## Удаление
@@ -451,13 +451,13 @@ dotnet list .\SecurityGuard.slnx package --vulnerable --include-transitive
 Затем:
 
 ```powershell
-.\scripts\build-installer.ps1 -Version 0.1.38
+.\scripts\build-installer.ps1 -Version 0.1.42
 ```
 
 После установки:
 
 ```powershell
-.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.38
+.\scripts\verify-installed.ps1 -ExpectedVersion 0.1.42
 ```
 
 ## Текущий статус
@@ -468,8 +468,8 @@ dotnet list .\SecurityGuard.slnx package --vulnerable --include-transitive
 * полный набор автоматических тестов: `455/455`;
 * отсутствие известных уязвимых NuGet-пакетов по результату `dotnet list package --vulnerable --include-transitive`;
 * установка MSI;
-* обновление MSI `0.1.37 → 0.1.38`;
-* работа установленной версии `0.1.38`;
+* обновление MSI `0.1.41 → 0.1.42`;
+* работа установленной версии `0.1.42`;
 * автоматический запуск Windows Service;
 * работа службы от LocalSystem;
 * запуск WPF UI;
