@@ -1,0 +1,23 @@
+<Project Sdk="WixToolset.Sdk/7.0.0">
+
+  <PropertyGroup>
+    <OutputType>Bundle</OutputType>
+    <InstallerPlatform>x64</InstallerPlatform>
+    <ProductVersion Condition="'$(ProductVersion)' == ''">0.0.0</ProductVersion>
+    <DefineConstants>ProductVersion=$(ProductVersion)</DefineConstants>
+    <OutputName>SecurityGuard-$(ProductVersion)-win-x64-setup</OutputName>
+    <OutputPath>$(MSBuildThisFileDirectory)..\..\artifacts\installer\$(ProductVersion)\</OutputPath>
+    <AcceptEula>wix7</AcceptEula>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.BootstrapperApplications.wixext"
+                      Version="7.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <BindPath Include="$(MSBuildThisFileDirectory)..\..\artifacts\installer\$(ProductVersion)"
+              BindName="InstallerOutput" />
+  </ItemGroup>
+
+</Project>

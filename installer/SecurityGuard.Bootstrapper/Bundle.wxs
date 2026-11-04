@@ -1,0 +1,31 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal">
+
+  <Bundle Id="Cobollt.SecurityGuard.Bundle"
+          Name="SecurityGuard"
+          Manufacturer="Cobollt"
+          Version="$(var.ProductVersion)"
+          Compressed="yes">
+
+    <BootstrapperApplication>
+      <bal:WixStandardBootstrapperApplication
+          LicenseUrl=""
+          Theme="hyperlinkLicense" />
+    </BootstrapperApplication>
+
+    <Chain>
+		<MsiPackage
+            SourceFile="!(bindpath.InstallerOutput)\SecurityGuard-$(var.ProductVersion)-win-x64.msi"
+            Visible="no"
+            Vital="yes">
+
+			<MsiProperty
+				Name="ARPSYSTEMCOMPONENT"
+				Value="1" />
+
+		</MsiPackage>
+    </Chain>
+
+  </Bundle>
+
+</Wix>
