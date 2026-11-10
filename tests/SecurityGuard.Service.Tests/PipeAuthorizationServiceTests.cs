@@ -8,6 +8,50 @@ public sealed class PipeAuthorizationServiceTests
     private readonly PipeAuthorizationService _service =
         new();
 
+    [Theory]
+    [InlineData(PipeMessageType.SubmitDecision)]
+    [InlineData(PipeMessageType.DeleteRule)]
+    [InlineData(PipeMessageType.UpdateAlgorithmGuardSettings)]
+    [InlineData(PipeMessageType.UpdateTransferGuardSettings)]
+    [InlineData(PipeMessageType.CreateTransferGuardRule)]
+    [InlineData(PipeMessageType.UpdateArchiveGuardSettings)]
+    [InlineData(PipeMessageType.ExportSecurityLists)]
+    [InlineData(PipeMessageType.ImportSecurityLists)]
+    [InlineData(PipeMessageType.RestoreArchiveFromQuarantineWithException)]
+    public void Mutating_commands_require_administrator(PipeMessageType command)
+    {
+        Assert.False(_service.IsAuthorized(command, new PipeClientContext("User", false)));
+        Assert.True(_service.IsAuthorized(command, new PipeClientContext("Admin", true)));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Unknown_and_unsupported_commands_are_denied(bool administrator)
+    {
+        var context = new PipeClientContext("User", administrator);
+        Assert.False(_service.IsAuthorized((PipeMessageType)999, context));
+        Assert.False(_service.IsAuthorized(PipeMessageType.ApplyArchiveDecision, context));
+    }
+
+    [Theory]
+    [InlineData(PipeMessageType.Ping)]
+    [InlineData(PipeMessageType.GetSnapshot)]
+    [InlineData(PipeMessageType.GetRules)]
+    [InlineData(PipeMessageType.GetAlgorithmGuardSettings)]
+    [InlineData(PipeMessageType.GetTransferGuardSettings)]
+    [InlineData(PipeMessageType.GetScanResults)]
+    [InlineData(PipeMessageType.GetScanResult)]
+    [InlineData(PipeMessageType.ScanFile)]
+    [InlineData(PipeMessageType.GetArchiveGuardSettings)]
+    [InlineData(PipeMessageType.ValidateSecurityLists)]
+    [InlineData(PipeMessageType.GetSecurityListsFolder)]
+    [InlineData(PipeMessageType.GetArchiveGuardQuarantineItems)]
+    public void Read_and_scan_commands_remain_available_to_standard_users(PipeMessageType command)
+    {
+        Assert.True(_service.IsAuthorized(command, new PipeClientContext("User", false)));
+    }
+
     [Fact]
     public void Standard_user_can_read_snapshot()
     {

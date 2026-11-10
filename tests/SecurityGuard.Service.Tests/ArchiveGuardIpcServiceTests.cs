@@ -377,6 +377,15 @@ public sealed class ArchiveGuardIpcServiceTests
 
 		public string? FileName { get; private set; }
 
+        public async Task<T> ExecuteWithSha256ExceptionAsync<T>(
+            string sha256, string fileName,
+            Func<CancellationToken, Task<T>> operation,
+            CancellationToken cancellationToken = default)
+        {
+            await AddSha256ExceptionAsync(sha256, fileName, cancellationToken);
+            return await operation(cancellationToken);
+        }
+
 		public Task AddSha256ExceptionAsync(
 			string sha256,
 			string fileName,

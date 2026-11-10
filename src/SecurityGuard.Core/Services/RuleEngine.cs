@@ -28,42 +28,33 @@ public sealed class RuleEngine
             await _repository.GetEnabledAsync(
                 cancellationToken);
 
-        var matches =
-            rules
-                .Where(
-                    rule =>
-                        rule.Module ==
-                        module)
-                .Where(
-                    rule =>
-                        rule.ExpiresAtUtc is null ||
-                        rule.ExpiresAtUtc > now)
-                .Where(
-                    rule =>
-                        IsActivityCompatible(
-                            rule,
-                            context))
-                .Where(
-                    rule =>
-                        IsMatch(
-                            rule,
-                            context))
-                .OrderByDescending(
-                    rule =>
-                        rule.Priority)
-                .ThenByDescending(
-                    rule =>
-                        rule.Decision ==
-                        RuleDecision.Block)
-                .ToArray();
+        SecurityRule? selected = null;
 
-        if (matches.Length == 0)
+        foreach (var rule in rules)
+        {
+            if (rule.Module != module ||
+                rule.ExpiresAtUtc <= now ||
+                !IsActivityCompatible(rule, context) ||
+                !IsMatch(rule, context))
+            {
+                continue;
+            }
+
+            // Preserve the repository order when priority and decision are equal.
+            if (selected is null ||
+                rule.Priority > selected.Priority ||
+                (rule.Priority == selected.Priority &&
+                 rule.Decision == RuleDecision.Block &&
+                 selected.Decision != RuleDecision.Block))
+            {
+                selected = rule;
+            }
+        }
+
+        if (selected is null)
         {
             return RuleEvaluationResult.NoMatch();
         }
-
-        var selected =
-            matches[0];
 
         return new RuleEvaluationResult(
             true,

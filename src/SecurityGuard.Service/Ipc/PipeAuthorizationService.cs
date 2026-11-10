@@ -34,8 +34,23 @@ public sealed class PipeAuthorizationService
             PipeMessageType.ImportSecurityLists =>
                 context.IsAdministrator,
 
-            _ =>
-                true
+            PipeMessageType.RestoreArchiveFromQuarantineWithException =>
+                context.IsAdministrator,
+
+            PipeMessageType.Ping or
+            PipeMessageType.GetSnapshot or
+            PipeMessageType.GetRules or
+            PipeMessageType.GetAlgorithmGuardSettings or
+            PipeMessageType.GetTransferGuardSettings or
+            PipeMessageType.GetScanResults or
+            PipeMessageType.GetScanResult or
+            PipeMessageType.ScanFile or
+            PipeMessageType.GetArchiveGuardSettings or
+            PipeMessageType.ValidateSecurityLists or
+            PipeMessageType.GetSecurityListsFolder or
+            PipeMessageType.GetArchiveGuardQuarantineItems => true,
+
+            _ => false
         };
     }
 }

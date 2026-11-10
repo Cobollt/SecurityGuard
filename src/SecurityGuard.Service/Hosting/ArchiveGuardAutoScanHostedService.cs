@@ -59,7 +59,7 @@ public sealed class ArchiveGuardAutoScanHostedService
                     false,
 
                 FullMode =
-                    BoundedChannelFullMode.DropWrite
+                    BoundedChannelFullMode.Wait
             });
 
     private ArchiveGuardAutoScanSettings _settings =
@@ -72,6 +72,7 @@ public sealed class ArchiveGuardAutoScanHostedService
         _watchedDirectories;
 
     private int _processedSinceCleanup;
+    private int _overflowRecoveryRequested;
 
     public ArchiveGuardAutoScanHostedService(
         IArchiveGuardAutoScanSettingsService settingsService,
@@ -156,7 +157,7 @@ public sealed class ArchiveGuardAutoScanHostedService
                     .ToArray();
 
             await Task.WhenAll(
-                workers);
+                workers.Append(RecoverOverflowAsync(stoppingToken)));
         }
         catch (OperationCanceledException)
             when (stoppingToken.IsCancellationRequested)
@@ -351,6 +352,7 @@ public sealed class ArchiveGuardAutoScanHostedService
             _queuedPaths.TryRemove(
                 fullPath,
                 out _);
+            Interlocked.Exchange(ref _overflowRecoveryRequested, 1);
         }
     }
 
@@ -374,7 +376,65 @@ public sealed class ArchiveGuardAutoScanHostedService
             _queuedRecoveryDirectories.TryRemove(
                 directory,
                 out _);
+            Interlocked.Exchange(ref _overflowRecoveryRequested, 1);
         }
+    }
+
+    private async Task RecoverOverflowAsync(CancellationToken cancellationToken)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+        while (await timer.WaitForNextTickAsync(cancellationToken))
+        {
+            if (Interlocked.Exchange(ref _overflowRecoveryRequested, 0) == 0)
+            {
+                continue;
+            }
+
+            await _auditService.WriteAsync(
+                SecurityModuleKind.ArchiveGuard, SecurityEventType.System,
+                SecuritySeverity.Medium, "ArchiveGuard queue overflow recovery",
+                "The scan queue was full; rescanning watched directories.",
+                cancellationToken: cancellationToken);
+
+            // Do not feed recovery back into the full queue. Scan directly with
+            // one recovery worker, sharing the normal per-path deduplication.
+            foreach (var directory in _watchedDirectories.ToArray())
+            {
+                try
+                {
+                    foreach (var file in Directory.EnumerateFiles(directory))
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (!_settings.Enabled || !_candidatePolicy.ShouldScan(file) ||
+                            !_queuedPaths.TryAdd(file, 0))
+                        {
+                            continue;
+                        }
+
+                        _lastActivity.TryAdd(file, DateTimeOffset.UtcNow);
+                        await ProcessFileAsync(file, cancellationToken);
+                    }
+                }
+                catch (IOException exception)
+                {
+                    await ReportRecoveryFailureAsync(directory, exception, cancellationToken);
+                }
+                catch (UnauthorizedAccessException exception)
+                {
+                    await ReportRecoveryFailureAsync(directory, exception, cancellationToken);
+                }
+            }
+        }
+    }
+
+    private Task ReportRecoveryFailureAsync(
+        string directory, Exception exception, CancellationToken cancellationToken)
+    {
+        return _auditService.WriteAsync(
+            SecurityModuleKind.ArchiveGuard, SecurityEventType.System,
+            SecuritySeverity.Medium, "ArchiveGuard queue recovery failed",
+            $"Directory={directory}; Error={exception.Message}",
+            cancellationToken: cancellationToken);
     }
 
     private bool IsCurrentlyWatched(
@@ -706,6 +766,14 @@ public sealed class ArchiveGuardAutoScanHostedService
         var cutoff =
             DateTimeOffset.UtcNow -
             retention;
+
+        foreach (var pair in _lastActivity)
+        {
+            if (pair.Value < cutoff && !_queuedPaths.ContainsKey(pair.Key))
+            {
+                ((ICollection<KeyValuePair<string, DateTimeOffset>>)_lastActivity).Remove(pair);
+            }
+        }
 
         foreach (var pair in
                  _recentlyScanned)

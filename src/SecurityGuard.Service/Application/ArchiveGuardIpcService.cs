@@ -198,15 +198,14 @@ public sealed class ArchiveGuardIpcService
                 "The quarantine item does not contain a SHA-256 hash.");
         }
 
-        await _exceptionService.AddSha256ExceptionAsync(
-            record.Sha256,
-            record.OriginalFileName,
-            cancellationToken);
-
         var restoredPath =
-            await _quarantineService.RestoreAsync(
-                record.Id,
-                cancellationToken: cancellationToken);
+            await _exceptionService.ExecuteWithSha256ExceptionAsync(
+                record.Sha256,
+                record.OriginalFileName,
+                token => _quarantineService.RestoreAsync(
+                    record.Id,
+                    cancellationToken: token),
+                cancellationToken);
 
         return new ArchiveGuardQuarantineRestoreIpcDto(
             record.Id,

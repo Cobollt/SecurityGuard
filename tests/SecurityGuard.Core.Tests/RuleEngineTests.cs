@@ -87,6 +87,21 @@ public sealed class RuleEngineTests
             result.Decision);
     }
 
+    [Fact]
+    public async Task Equal_priority_and_decision_preserve_repository_order()
+    {
+        var first = CreateRule("First", RuleDecision.Allow, 100);
+        var second = CreateRule("Second", RuleDecision.Allow, 100);
+        var expired = CreateRule("Expired", RuleDecision.Block, 500) with
+        {
+            ExpiresAtUtc = DateTimeOffset.UtcNow.AddDays(-1)
+        };
+        var engine = new RuleEngine(new FakeRuleRepository([expired, first, second]));
+        var result = await engine.EvaluateAsync(SecurityModuleKind.AlgorithmGuard,
+            new RuleMatchContext(FileHash: "ABC"));
+        Assert.Equal(first.Id, result.MatchedRuleId);
+    }
+
     private static SecurityRule CreateRule(
         string name,
         RuleDecision decision,
