@@ -34,6 +34,8 @@ public static class ServiceRegistration
     public static IServiceCollection AddSecurityGuard(
         this IServiceCollection services)
     {
+        services.AddLogging();
+
         var paths =
             SecurityGuardPaths.CreateDefault();
 

@@ -6,6 +6,8 @@ using SecurityGuard.Service.Hosting;
 using SecurityGuard.Storage.Database;
 using SecurityGuard.Storage.Repositories;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using SecurityGuard.Service.Ipc;
 using SecurityGuard.Service.Application;
 using SecurityGuard.Service.DependencyInjection;
 
@@ -13,6 +15,16 @@ namespace SecurityGuard.Service.Tests;
 
 public sealed class SecurityGuardStartupServiceTests
 {
+    [Fact]
+    public void Pipe_server_logger_is_available_without_a_host_builder()
+    {
+        var services = new ServiceCollection();
+        services.AddSecurityGuard();
+        using var provider = services.BuildServiceProvider();
+
+        Assert.NotNull(provider.GetRequiredService<ILogger<SecurityGuardPipeServer>>());
+    }
+
     [Fact]
     public async Task Start_initializes_core()
     {

@@ -66,7 +66,7 @@ jobs:
             $counts = $results.TestRun.ResultSummary.Counters
             "Executed: $($counts.executed); passed: $($counts.passed); failed: $($counts.failed)." | Add-Content $env:GITHUB_STEP_SUMMARY
             $results.TestRun.Results.UnitTestResult | Where-Object outcome -eq 'Failed' | ForEach-Object {
-              $issue = "$($_.testName): $([string]$_.Output.ErrorInfo.Message)"
+              $issue = "$($_.testName): $([string]$_.Output.ErrorInfo.Message)`n$([string]$_.Output.ErrorInfo.StackTrace)"
               $issue = $issue.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
               Write-Output "::error title=Windows test failed::$issue"
               "### $($_.testName)" | Add-Content $env:GITHUB_STEP_SUMMARY
