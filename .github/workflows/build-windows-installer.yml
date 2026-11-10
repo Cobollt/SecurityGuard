@@ -1,0 +1,89 @@
+name: Build Windows installer
+
+on:
+  push:
+    branches:
+      - fix/security-guard-hardening
+    paths:
+      - '.github/workflows/build-windows-installer.yml'
+      - 'src/**'
+      - 'tests/**'
+      - 'scripts/**'
+      - 'installer/**'
+      - 'Directory.Build.props'
+      - 'global.json'
+      - 'SecurityGuard.slnx'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Installer version (major.minor.patch)
+        required: true
+        default: '0.1.43'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2025
+    timeout-minutes: 45
+    env:
+      INSTALLER_VERSION: ${{ inputs.version || '0.1.43' }}
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      DOTNET_NOLOGO: '1'
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Install .NET 10 SDK
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Validate version
+        run: |
+          if ($env:INSTALLER_VERSION -notmatch '^\d+\.\d+\.\d+$') {
+            throw 'Installer version must have the form major.minor.patch.'
+          }
+
+      - name: Run tests on Windows
+        run: |
+          dotnet test .\SecurityGuard.slnx --configuration Release --logger trx --results-directory artifacts/test-results
+          if ($LASTEXITCODE -ne 0) { throw 'Windows tests failed.' }
+
+      - name: Build MSI and EXE installers
+        run: |
+          & .\scripts\build-installer.ps1 -Version $env:INSTALLER_VERSION
+
+      - name: Generate SHA-256 checksums
+        run: |
+          $directory = Join-Path 'artifacts/installer' $env:INSTALLER_VERSION
+          $installers = Get-ChildItem $directory -File | Where-Object { $_.Extension -in '.msi', '.exe' }
+          if (@($installers).Count -ne 2) { throw 'Expected one MSI and one EXE installer.' }
+          $installers | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            '{0}  {1}' -f $hash, $_.Name
+          } | Set-Content (Join-Path $directory 'SHA256SUMS.txt') -Encoding utf8
+
+      - name: Upload installers
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: SecurityGuard-${{ env.INSTALLER_VERSION }}-win-x64-installers
+          path: artifacts/installer/${{ env.INSTALLER_VERSION }}/*
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Windows test results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: windows-test-results
+          path: artifacts/test-results/*.trx
+          if-no-files-found: warn
+          retention-days: 14
