@@ -57,6 +57,23 @@ jobs:
           dotnet test .\SecurityGuard.slnx --configuration Release --logger trx --results-directory artifacts/test-results
           if ($LASTEXITCODE -ne 0) { throw 'Windows tests failed.' }
 
+      - name: Summarize Windows test results
+        if: always()
+        run: |
+          '## Windows test results' | Add-Content $env:GITHUB_STEP_SUMMARY
+          Get-ChildItem artifacts/test-results -Filter '*.trx' -ErrorAction SilentlyContinue | ForEach-Object {
+            [xml]$results = Get-Content $_.FullName -Raw
+            $counts = $results.TestRun.ResultSummary.Counters
+            "Executed: $($counts.executed); passed: $($counts.passed); failed: $($counts.failed)." | Add-Content $env:GITHUB_STEP_SUMMARY
+            $results.TestRun.Results.UnitTestResult | Where-Object outcome -eq 'Failed' | ForEach-Object {
+              "### $($_.testName)" | Add-Content $env:GITHUB_STEP_SUMMARY
+              '```text' | Add-Content $env:GITHUB_STEP_SUMMARY
+              [string]$_.Output.ErrorInfo.Message | Add-Content $env:GITHUB_STEP_SUMMARY
+              [string]$_.Output.ErrorInfo.StackTrace | Add-Content $env:GITHUB_STEP_SUMMARY
+              '```' | Add-Content $env:GITHUB_STEP_SUMMARY
+            }
+          }
+
       - name: Build MSI and EXE installers
         run: |
           & .\scripts\build-installer.ps1 -Version $env:INSTALLER_VERSION
