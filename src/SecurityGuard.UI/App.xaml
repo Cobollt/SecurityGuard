@@ -7,6 +7,26 @@
 		<BooleanToVisibilityConverter
             x:Key="BooleanToVisibilityConverter" />
 
+        <SolidColorBrush x:Key="ControlBorderBrush"
+                         Color="#606060" />
+
+        <Style x:Key="FramedControl"
+               TargetType="{x:Type Control}">
+            <Setter Property="BorderBrush"
+                    Value="{StaticResource ControlBorderBrush}" />
+            <Setter Property="BorderThickness"
+                    Value="1" />
+        </Style>
+
+        <Style TargetType="TextBox"
+               BasedOn="{StaticResource FramedControl}" />
+
+        <Style TargetType="ComboBox"
+               BasedOn="{StaticResource FramedControl}" />
+
+        <Style TargetType="ListBox"
+               BasedOn="{StaticResource FramedControl}" />
+
 		<Style TargetType="Button">
 			<Setter Property="Padding"
                     Value="12,8" />
@@ -16,7 +36,8 @@
                     Value="36" />
 		</Style>
 
-		<Style TargetType="ListView">
+		<Style TargetType="ListView"
+               BasedOn="{StaticResource FramedControl}">
 			<Setter Property="Margin"
                     Value="0,8,0,0" />
 		</Style>
